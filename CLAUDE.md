@@ -149,7 +149,7 @@ These rules ensure maintainability, safety, and developer velocity.
 ### 7 - Git
 
 - **GH-1 (MUST**) Use Conventional Commits format when writing commit messages: https://www.conventionalcommits.org/en/v1.0.0
-- **GH-2 (SHOULD NOT**) Refer to Claude or Anthropic in commit messages.
+- **GH-2 (MUST NOT**) Refer to Claude or Anthropic in commit messages.
 
 ---
 
