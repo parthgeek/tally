@@ -1,11 +1,27 @@
 {
+	"name": "nexus",
+	"private": true,
+	"workspaces": [
+		"apps/*",
+		"packages/*",
+		"services/*"
+	],
+	"scripts": {
+		"build": "pnpm -r run build",
+		"dev": "pnpm -r --parallel run dev",
+		"typecheck": "pnpm -r run typecheck",
+		"lint": "pnpm -r run lint"
+	},
 	"devDependencies": {
-		"typescript": "^5.9.2",
-		"ts-node": "^10.9.2",
 		"@types/node": "^24.3.0",
 		"eslint": "^9.34.0",
-		"prettier": "^3.6.2",
 		"eslint-config-prettier": "^10.1.8",
-		"eslint-plugin-import": "^2.32.0"
+		"eslint-plugin-import": "^2.32.0",
+		"prettier": "^3.6.2",
+		"ts-node": "^10.9.2",
+		"typescript": "^5.9.2"
+	},
+	"dependencies": {
+		"zod": "^4.1.1"
 	}
 }

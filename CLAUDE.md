@@ -172,6 +172,26 @@ These rules ensure maintainability, safety, and developer velocity.
 
 ---
 
+### 10 — Documentation
+
+- **DOC-1 (MUST)** After implementing any feature, create comprehensive documentation in the `/docs` folder.
+- **DOC-2 (MUST)** Ask the user which existing file to update or whether to create a new documentation file.
+- **DOC-3 (MUST)** Include a summary of what was implemented, including:
+  - Overview of the feature/changes
+  - Key components/files affected
+  - Integration points and dependencies
+  - Configuration changes
+  - Known limitations or considerations
+- **DOC-4 (SHOULD)** Include relevant technical details that future developers would need:
+  - Architecture decisions and rationale
+  - API endpoints or interfaces created/modified
+  - Database schema changes
+  - Environment variables or configuration required
+- **DOC-5 (SHOULD)** Reference related files, components, or documentation for context.
+- **DOC-6 (MUST)** Use clear, concise language that assumes the reader is a software developer familiar with the project.
+
+---
+
 ## Writing Functions Best Practices
 
 When evaluating whether a function you implemented is good or not, use this checklist:
