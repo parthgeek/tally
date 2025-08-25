@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          
+      - name: Install dependencies
+        run: pnpm install
+        
+      - name: Lint
+        run: pnpm run lint
+        
+      - name: Type check
+        run: pnpm run typecheck
+        
+      - name: Test
+        run: pnpm run test
+
+  e2e:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: ci
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          
+      - name: Install dependencies
+        run: pnpm install
+        
+      - name: Install Playwright with dependencies
+        run: pnpm -w exec playwright install --with-deps
+        
+      - name: Run Playwright e2e tests
+        run: pnpm -w exec playwright test --reporter=line
