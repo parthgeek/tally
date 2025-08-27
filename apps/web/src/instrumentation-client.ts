@@ -1,4 +1,4 @@
-import { initSentryClient, getPosthogClientBrowser } from '@nexus/analytics';
+import { getPosthogClientBrowser } from '@nexus/analytics';
 import * as Sentry from "@sentry/nextjs";
 
 // Initialize PostHog for client-side

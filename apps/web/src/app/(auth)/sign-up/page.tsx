@@ -41,11 +41,30 @@ export default function SignUpPage() {
 
       if (error) {
         setError(error.message);
-      } else if (data.user && !data.user.email_confirmed_at) {
-        setMessage("Check your email for a confirmation link");
-      } else {
-        router.push("/dashboard");
-        router.refresh();
+      } else if (data.user) {
+        // Debug: Log the response to understand the authentication state
+        console.log("Sign-up response:", { 
+          hasSession: !!data.session, 
+          userConfirmed: !!data.user.email_confirmed_at,
+          userId: data.user.id 
+        });
+        
+        // Future-proof: Handle both email confirmation enabled/disabled scenarios
+        if (data.session) {
+          // Case 1: Email confirmation disabled (development) - user gets immediate session
+          console.log("User signed up with immediate session - redirecting to dashboard");
+          router.push("/dashboard");
+          router.refresh();
+        } else if (!data.user.email_confirmed_at) {
+          // Case 2: Email confirmation enabled (production) - user needs to confirm email
+          console.log("Email confirmation required");
+          setMessage("Check your email for a confirmation link");
+        } else {
+          // Case 3: Email confirmed but no session - should redirect to dashboard
+          console.log("User confirmed but no session - redirecting to dashboard");
+          router.push("/dashboard");
+          router.refresh();
+        }
       }
     } catch {
       setError("An unexpected error occurred");

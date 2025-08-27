@@ -81,6 +81,23 @@ Required environment variables for authentication:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key
 - `SUPABASE_SERVICE_ROLE_KEY` - Service role key for server operations
 
+### Development Configuration
+
+**⚠️ IMPORTANT: Email Confirmation Settings**
+
+For local development and testing, email confirmation has been **disabled** in the Supabase Authentication settings to prevent:
+- Bounced email warnings from Supabase
+- Blocked testing workflows 
+- Development friction
+
+**Production Reminder**: Re-enable email confirmation in Supabase Auth settings before deploying to production to ensure proper user verification.
+
+**Location**: Supabase Dashboard → Authentication → Settings → Email Auth → "Confirm email" (currently disabled for dev)
+
+**Code Compatibility**: The sign-up flow in `apps/web/src/app/(auth)/sign-up/page.tsx` is designed to handle both scenarios:
+- **Development (email confirmation disabled)**: User gets immediate session and redirects to dashboard
+- **Production (email confirmation enabled)**: User sees "Check your email" message and must confirm before signing in
+
 ## Security Considerations
 
 1. **Client vs Server Clients**: Different Supabase clients are used for different contexts to maintain proper security boundaries
@@ -246,6 +263,82 @@ The complete authentication and organization onboarding system includes:
 3. **User-Focused** - Smooth onboarding experience with contextual guidance
 4. **Developer-Friendly** - Type-safe APIs with comprehensive error handling
 5. **Observable** - Integrated analytics and error tracking from the start
+
+## Troubleshooting & Fixes Applied
+
+### Critical Issues Resolved
+
+#### 1. **Supabase Auth Helpers Compatibility (Critical)**
+
+**Problem**: The deprecated `@supabase/auth-helpers-nextjs` package (v0.10.0) was incompatible with Next.js 15's async cookies API, causing `cookies().get()` errors throughout the application.
+
+**Error**: `Route "/api/auth/org/create" used cookies().get() without awaiting`
+
+**Solution**: 
+- Migrated from deprecated `@supabase/auth-helpers-nextjs` to modern `@supabase/ssr` package
+- Updated all Supabase client creation to use proper async cookie handling
+- Fixed all API routes to await cookie operations properly
+
+**Files Modified**:
+- `apps/web/src/lib/supabase.ts` - Complete rewrite using `@supabase/ssr`
+- `apps/web/src/lib/api/with-org.ts` - Fixed async client creation
+- `apps/web/src/app/api/auth/org/create/route.ts` - Added service role client for elevated permissions
+
+#### 2. **Email Confirmation Configuration**
+
+**Problem**: Supabase email confirmation was causing bounced email warnings and blocking development workflows.
+
+**Solution**: 
+- Disabled email confirmation in Supabase Auth settings for development
+- Updated sign-up flow to handle both development (immediate session) and production (email confirmation) scenarios
+- Added future-proof logic in `apps/web/src/app/(auth)/sign-up/page.tsx`
+
+**Production Note**: Re-enable email confirmation before production deployment.
+
+#### 3. **TypeScript & React Hook Strict Mode Violations**
+
+**Problem**: Build failures due to strict TypeScript and ESLint violations preventing production deployment.
+
+**Errors Fixed**:
+- `org-switcher.tsx:59:31` - Unexpected `any` type usage
+- `org-switcher.tsx:89:6` - React Hook useEffect missing dependency
+- `instrumentation-client.ts:1:10` - Unused import warning
+
+**Solutions**:
+- Replaced `any` type with proper type checking using `'name' in role.orgs`
+- Moved `handleOrgSwitch` before `useEffect` and wrapped in `useCallback`
+- Removed unused `initSentryClient` import
+
+#### 4. **Test Infrastructure Improvements**
+
+**Problem**: E2E tests were failing due to authentication flow issues and missing password confirmation fields.
+
+**Solution**:
+- Fixed test email domains (changed from `@gmail.com` to avoid bounced emails)
+- Updated test selectors to handle both sign-up and sign-in flows
+- Added proper password confirmation handling for sign-up forms
+- Implemented future-proof test logic for email confirmation scenarios
+
+**Test Status**: 
+- ✅ Authentication redirects working
+- ✅ API security tests passing  
+- ✅ Form validation tests passing
+- ⚠️ Full onboarding flow requires manual sign-in step (expected with current settings)
+
+### Code Quality Improvements
+
+1. **Future-Proof Email Confirmation**: Sign-up flow handles both development and production email confirmation settings
+2. **Proper Error Handling**: All cookie operations now use proper async/await patterns
+3. **Type Safety**: Eliminated all `any` types and strict TypeScript violations
+4. **React Best Practices**: Fixed all React Hook dependency warnings
+5. **Clean Dependencies**: Removed unused imports and dependencies
+
+### Documentation Updates
+
+- Added email confirmation configuration notes
+- Documented code compatibility for development vs production
+- Added troubleshooting section with common issues and solutions
+- Updated environment variable requirements
 
 ## Next Steps
 

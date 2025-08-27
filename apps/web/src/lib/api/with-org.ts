@@ -9,7 +9,7 @@ export interface AuthenticatedContext {
 }
 
 export async function withOrg(orgId: OrgId): Promise<AuthenticatedContext> {
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
 
   // Get authenticated user
   const {
@@ -49,8 +49,8 @@ export async function withOrg(orgId: OrgId): Promise<AuthenticatedContext> {
 }
 
 export async function withOrgFromRequest(request: NextRequest): Promise<AuthenticatedContext> {
-  const supabase = createServerClient();
-  const cookieStore = cookies();
+  const supabase = await createServerClient();
+  const cookieStore = await cookies();
 
   // Get authenticated user
   const {
@@ -76,7 +76,7 @@ export async function withOrgFromRequest(request: NextRequest): Promise<Authenti
 
   // Fall back to orgId cookie
   if (!orgId) {
-    const cookieOrgId = (await cookieStore).get("orgId")?.value;
+    const cookieOrgId = cookieStore.get("orgId")?.value;
     if (cookieOrgId) {
       orgId = cookieOrgId;
     }

@@ -8,13 +8,14 @@ import {
 } from "@nexus/types/contracts";
 import { createErrorResponse, createValidationErrorResponse } from "@/lib/api/with-org";
 import { createServerClient } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerClient();
-    const cookieStore = cookies();
+    const supabase = await createServerClient();
+    const cookieStore = await cookies();
 
-    // Check authentication
+    // Check authentication using the regular client
     const {
       data: { user },
       error: authError,
@@ -23,6 +24,18 @@ export async function POST(request: NextRequest) {
     if (authError || !user) {
       return createErrorResponse("Unauthorized", 401);
     }
+
+    // Create a service role client for database operations that require elevated privileges
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
 
     // Parse and validate request body
     const body = await request.json();
@@ -35,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert into orgs table and capture generated org_id
-    const { data: orgData, error: orgError } = await supabase
+    const { data: orgData, error: orgError } = await supabaseAdmin
       .from("orgs")
       .insert({
         name: validatedRequest.name,
@@ -54,7 +67,7 @@ export async function POST(request: NextRequest) {
     const orgId = orgData.id as OrgId;
 
     // Insert into user_org_roles with role 'owner'
-    const { error: roleError } = await supabase
+    const { error: roleError } = await supabaseAdmin
       .from("user_org_roles")
       .insert({
         user_id: user.id,
@@ -68,7 +81,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Seed org categories: copy global defaults into org_categories for the new org_id
-    const { data: globalCategories, error: categoriesError } = await supabase
+    const { data: globalCategories, error: categoriesError } = await supabaseAdmin
       .from("categories")
       .select("id, name, parent_id")
       .is("org_id", null);
@@ -86,7 +99,7 @@ export async function POST(request: NextRequest) {
       const rootCategories = globalCategories.filter(cat => !cat.parent_id);
       
       for (const category of rootCategories) {
-        const { data: insertedCategory, error: insertError } = await supabase
+        const { data: insertedCategory, error: insertError } = await supabaseAdmin
           .from("categories")
           .insert({
             org_id: orgId,
@@ -107,7 +120,7 @@ export async function POST(request: NextRequest) {
       for (const category of childCategories) {
         const parentId = category.parent_id ? categoryMapping[category.parent_id] : null;
 
-        const { data: insertedChildCategory, error: childInsertError } = await supabase
+        const { data: insertedChildCategory, error: childInsertError } = await supabaseAdmin
           .from("categories")
           .insert({
             org_id: orgId,
@@ -124,7 +137,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Set orgId cookie for subsequent requests
-    (await cookieStore).set("orgId", orgId, {
+    cookieStore.set("orgId", orgId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Check, Building2 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
@@ -30,6 +30,27 @@ export function OrgSwitcher() {
     return orgCookie ? orgCookie.split('=')[1] : null;
   };
 
+  const handleOrgSwitch = useCallback(async (orgId: OrgId) => {
+    try {
+      // Set cookie
+      document.cookie = `orgId=${orgId}; path=/; SameSite=Lax`;
+      
+      // Update local state
+      const selectedOrg = memberships.find(m => m.org_id === orgId);
+      if (selectedOrg) {
+        setCurrentOrgId(orgId);
+        setCurrentOrgName(selectedOrg.org_name);
+      }
+      
+      setIsOpen(false);
+      
+      // Refresh the page to re-scope the app
+      router.refresh();
+    } catch (error) {
+      console.error("Error switching organization:", error);
+    }
+  }, [memberships, router]);
+
   // Fetch user's organization memberships
   useEffect(() => {
     const fetchMemberships = async () => {
@@ -56,7 +77,7 @@ export function OrgSwitcher() {
 
         const membershipData = roles?.map(role => ({
           org_id: role.org_id,
-          org_name: ((role as any).orgs?.name || "Unknown Organization") as string,
+          org_name: (role.orgs && 'name' in role.orgs ? role.orgs.name : "Unknown Organization") as string,
           role: role.role,
         })) || [];
 
@@ -86,28 +107,9 @@ export function OrgSwitcher() {
     };
 
     fetchMemberships();
-  }, [supabase]);
+  }, [supabase, handleOrgSwitch]);
 
-  const handleOrgSwitch = async (orgId: OrgId) => {
-    try {
-      // Set cookie
-      document.cookie = `orgId=${orgId}; path=/; SameSite=Lax`;
-      
-      // Update local state
-      const selectedOrg = memberships.find(m => m.org_id === orgId);
-      if (selectedOrg) {
-        setCurrentOrgId(orgId);
-        setCurrentOrgName(selectedOrg.org_name);
-      }
-      
-      setIsOpen(false);
-      
-      // Refresh the page to re-scope the app
-      router.refresh();
-    } catch (error) {
-      console.error("Error switching organization:", error);
-    }
-  };
+
 
   if (isLoading) {
     return (
