@@ -26,7 +26,7 @@ This is a monorepo with the following structure:
 - **packages/db/** - Database schema, migrations, and typed queries
 - **packages/types/** - Shared TypeScript types and API contracts
 - **packages/connectors/** - Integration SDKs (Plaid, Square, Merge.dev, OCR)
-- **packages/analytics/** - Observability clients (PostHog, Sentry, Langfuse)
+- **packages/analytics/** - Observability clients (PostHog, Sentry, Langfuse) with client/server separation
 - **packages/categorizer/** - Hybrid rules + LLM transaction categorization engine
 - **services/ingestion/** - Data normalization pipeline (raw → canonical format)
 - **services/exports/** - Export functionality (CSV, QuickBooks/Xero)
@@ -172,7 +172,16 @@ These rules ensure maintainability, safety, and developer velocity.
 
 ---
 
-### 10 — Documentation
+### 10 — Analytics Package
+
+- **A-1 (MUST)** Use client-specific imports for browser code: `import { ... } from '@nexus/analytics/client'`
+- **A-2 (MUST)** Use server-specific imports for server code: `import { ... } from '@nexus/analytics/server'`  
+- **A-3 (SHOULD)** Use universal imports for functions that work in both environments: `import { captureException } from '@nexus/analytics'`
+- **A-4 (MUST NOT)** Import server-only code in client-side files to prevent bundling errors
+
+---
+
+### 11 — Documentation
 
 - **DOC-1 (MUST)** After implementing any feature, create comprehensive documentation in the `/docs` folder.
 - **DOC-2 (MUST)** Ask the user which existing file to update or whether to create a new documentation file.

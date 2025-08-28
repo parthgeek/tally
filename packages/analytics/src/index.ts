@@ -1,24 +1,10 @@
+// Safe exports that work in both environments
 export {
-  getPosthogClientServer,
-  shutdownPosthogServer,
-} from './posthog-server.js';
-
-export {
-  getPosthogClientBrowser,
-} from './posthog-client.js';
-
-export {
-  initSentryServer,
-  initSentryClient,
   captureException,
   captureMessage,
   setUserContext,
 } from './sentry.js';
 
-export {
-  getLangfuse,
-  createTrace,
-  createGeneration,
-  scoreTrace,
-  shutdownLangfuse,
-} from './langfuse.js';
+// Re-export client and server modules
+export * from './client.js';
+export * from './server.js';

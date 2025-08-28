@@ -26,9 +26,9 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 NEXT_PUBLIC_SITE_URL=https://your-domain.com
 
 # Monitoring (optional but recommended)
-POSTHOG_API_KEY=your_posthog_api_key
-POSTHOG_HOST=https://app.posthog.com
-SENTRY_DSN=your_sentry_dsn_url
+NEXT_PUBLIC_POSTHOG_KEY=your_posthog_key
+NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
+NEXT_PUBLIC_SENTRY_DSN=your_sentry_dsn_url
 ```
 
 ### Generating Secure Encryption Key
@@ -85,8 +85,8 @@ Configure environment variables for Edge Functions in Supabase Dashboard:
    - `PLAID_ENV`
    - `PLAID_WEBHOOK_SECRET`
    - `ENCRYPTION_KEY`
-   - `POSTHOG_API_KEY` (optional)
-   - `SENTRY_DSN` (optional)
+   - `NEXT_PUBLIC_POSTHOG_KEY` (optional)
+   - `NEXT_PUBLIC_SENTRY_DSN` (optional)
 
 ## Plaid Dashboard Configuration
 

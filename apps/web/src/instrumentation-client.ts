@@ -1,5 +1,6 @@
-import { getPosthogClientBrowser, initSentryClient } from '@nexus/analytics';
-import { replayIntegration } from '@sentry/nextjs';
+// Use client-specific imports only
+import { getPosthogClientBrowser, initSentryClient } from "@nexus/analytics/client";
+import { replayIntegration } from "@sentry/nextjs";
 
 // Initialize PostHog for client-side
 getPosthogClientBrowser();
@@ -19,4 +20,4 @@ initSentryClient({
 });
 
 // Re-export Sentry helpers for Next.js integration
-export { captureRouterTransitionStart as onRouterTransitionStart } from '@sentry/nextjs';
+export { captureRouterTransitionStart as onRouterTransitionStart } from "@sentry/nextjs";
