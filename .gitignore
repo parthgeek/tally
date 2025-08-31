@@ -63,5 +63,9 @@ coverage/
 **/*-retry*.network
 **/*-retry*.trace
 
-# Temporary Supabase files
-**/supabase/.temp/
+# Supabase Edge Functions (mirrored from apps/edge)
+/supabase/functions/
+
+# Supabase local development
+.env.local
+supabase/.temp/

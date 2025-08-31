@@ -18,7 +18,12 @@
 		"lint": "eslint . --ext .ts,.tsx",
 		"typecheck": "tsc -b",
 		"migrate": "pnpm --filter @nexus/db run migrate",
-		"seed": "pnpm --filter @nexus/db run seed"
+		"seed": "pnpm --filter @nexus/db run seed",
+		"functions:sync": "bash scripts/sync-edge-functions.sh",
+		"functions:deploy": "bash scripts/deploy-edge-functions.sh",
+		"functions:cleanup": "bash scripts/cleanup-edge-functions.sh",
+		"functions:dev": "cd apps/edge && deno task test:watch",
+		"functions:test": "cd apps/edge && deno task test"
 	},
 	"devDependencies": {
 		"@eslint/eslintrc": "^3",

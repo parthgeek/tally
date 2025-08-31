@@ -2,6 +2,42 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Context7 MCP Server Integration
+
+This repository is configured with a Context7 MCP (Model Context Protocol) server to provide enhanced code context and documentation access. Claude Code should leverage this integration whenever:
+
+- Working with external libraries or frameworks
+- Implementing new features that require understanding of library APIs
+- Debugging issues related to third-party dependencies
+- Looking up best practices for specific technologies used in the project
+
+### When to Use Context7
+
+**MUST use Context7 when:**
+- Implementing authentication flows (NextAuth.js, Supabase Auth)
+- Working with database operations (Supabase, Prisma patterns)
+- Integrating payment systems (Stripe API)
+- Setting up monitoring and analytics (PostHog, Sentry, Langfuse)
+- Working with React/Next.js patterns and hooks
+- Implementing UI components (shadcn/ui, TailwindCSS)
+- Setting up testing frameworks (Vitest, Playwright)
+
+**SHOULD use Context7 when:**
+- Exploring unfamiliar APIs or library methods
+- Looking for examples of proper error handling patterns
+- Understanding TypeScript configuration and typing patterns
+- Implementing security best practices
+- Setting up CI/CD workflows
+
+### How to Use Context7
+
+1. **Before implementing new features**, use Context7 to research the relevant libraries and frameworks
+2. **When encountering errors**, use Context7 to find troubleshooting guidance and common solutions
+3. **For complex integrations**, reference Context7 documentation to ensure proper implementation patterns
+4. **During code reviews**, verify implementations against Context7 best practices
+
+The Context7 integration provides access to up-to-date documentation, examples, and best practices for all the technologies used in this project.
+
 ## Development Commands
 
 The project uses pnpm as the package manager. Key commands:

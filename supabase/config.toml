@@ -1,0 +1,29 @@
+# Supabase CLI configuration file
+# Note: project_id should be set via environment variable or CLI
+
+[functions]
+# import_map removed - Supabase CLI will auto-detect deno.json in functions directory
+
+[functions.plaid-exchange]
+verify_jwt = true
+
+[functions.plaid-sync-accounts]
+verify_jwt = false  # Called by service role
+
+[functions.plaid-backfill-transactions]
+verify_jwt = false  # Called by service role
+
+[functions.plaid-sync-transactions]
+verify_jwt = false  # Called by service role
+
+[functions.plaid-webhook]
+verify_jwt = false  # External webhook
+
+[functions.jobs-plaid-daily-sync]
+verify_jwt = false  # Scheduled job
+
+[functions.jobs-embeddings-refresh]
+verify_jwt = false  # Scheduled job
+
+[functions.jobs-categorize-queue]
+verify_jwt = false  # Scheduled job
