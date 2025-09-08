@@ -109,6 +109,8 @@ export async function createLinkToken(config: LinkTokenConfig): Promise<string> 
       products: config.products || [Products.Transactions],
       country_codes: config.countryCodes || [CountryCode.Us],
       language: "en",
+      // Add redirect URI for OAuth support
+      redirect_uri: `${process.env.NEXT_PUBLIC_SITE_URL}/api/plaid/oauth/callback`,
     };
 
     if (config.webhookUrl) {

@@ -82,7 +82,7 @@ export function usePerformanceMonitor(userId: string, orgId: string) {
   // FPS monitoring
   const measureFPS = useCallback(() => {
     let frames = 0;
-    let startTime = performance.now();
+    const startTime = performance.now();
     
     function countFrames() {
       frames++;
