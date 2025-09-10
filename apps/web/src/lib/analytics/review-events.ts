@@ -7,7 +7,7 @@ export async function trackReviewEvents(
   eventName: string,
   userId: string,
   orgId: string,
-  properties: Record<string, any> = {}
+  properties: Record<string, unknown> = {}
 ) {
   const posthog = await getPosthogClientServer();
   if (!posthog) {
@@ -37,7 +37,7 @@ export async function trackReviewEvents(
  */
 export const reviewEvents = {
   // Core review page events
-  reviewPageOpened: async (userId: string, orgId: string, filters?: any) =>
+  reviewPageOpened: async (userId: string, orgId: string, filters?: Record<string, unknown>) =>
     await trackReviewEvents('review_page_opened', userId, orgId, {
       filters_applied: !!filters && Object.keys(filters).length > 0,
       active_filters: filters ? Object.keys(filters) : [],
@@ -45,8 +45,8 @@ export const reviewEvents = {
 
   reviewFiltersChanged: async (userId: string, orgId: string, data: {
     filter_type: string;
-    old_value: any;
-    new_value: any;
+    old_value: unknown;
+    new_value: unknown;
     total_active_filters: number;
   }) =>
     await trackReviewEvents('review_filters_changed', userId, orgId, data),
@@ -195,7 +195,7 @@ export function createTimingTracker() {
   
   return {
     stop: () => performance.now() - startTime,
-    track: async (eventName: string, userId: string, orgId: string, additionalProps: any = {}) => {
+    track: async (eventName: string, userId: string, orgId: string, additionalProps: Record<string, unknown> = {}) => {
       const duration = performance.now() - startTime;
       await trackReviewEvents(eventName, userId, orgId, {
         ...additionalProps,

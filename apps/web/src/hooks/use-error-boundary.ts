@@ -6,7 +6,7 @@ import { captureException } from '@nexus/analytics';
  * Provides error handling with analytics tracking
  */
 export function useErrorBoundary() {
-  const captureError = useCallback((error: Error, errorInfo?: any) => {
+  const captureError = useCallback((error: Error, errorInfo?: unknown) => {
     console.error('Error caught by error boundary:', error, errorInfo);
     
     // Track error in analytics
@@ -31,11 +31,11 @@ export function useErrorBoundary() {
     });
   }, []);
 
-  const wrapAsync = useCallback(<T extends (...args: any[]) => Promise<any>>(
+  const wrapAsync = useCallback(<T extends (...args: unknown[]) => Promise<unknown>>(
     asyncFn: T,
     context?: string
   ): T => {
-    return ((...args: any[]) => {
+    return ((...args: unknown[]) => {
       return asyncFn(...args).catch((error: Error) => {
         handleAsyncError(error, context);
         throw error; // Re-throw so calling code can handle it

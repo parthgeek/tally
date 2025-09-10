@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Check, X, Settings, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase';
-import type { TransactionBulkCorrectRequest } from '@nexus/types';
+import type { TransactionBulkCorrectRequest, TransactionId, CategoryId } from '@nexus/types';
 
 interface BulkActionBarProps {
   selectedTransactions: Set<string>;
@@ -32,11 +32,6 @@ export function BulkActionBar({
   const supabase = createClient();
   
   const selectedCount = selectedTransactions.size;
-
-  // Don't render if no transactions selected
-  if (selectedCount === 0) {
-    return null;
-  }
 
   // Helper to get org ID from cookies
   const getCurrentOrgId = () => {
@@ -64,8 +59,8 @@ export function BulkActionBar({
   const bulkCorrectMutation = useMutation({
     mutationFn: async ({ categoryId, createRule = true }: { categoryId: string; createRule?: boolean }) => {
       const request: TransactionBulkCorrectRequest = {
-        tx_ids: Array.from(selectedTransactions) as any[],
-        new_category_id: categoryId as any,
+        tx_ids: Array.from(selectedTransactions) as TransactionId[],
+        new_category_id: categoryId as CategoryId,
         create_rule: createRule,
       };
 
@@ -116,6 +111,11 @@ export function BulkActionBar({
   const filteredCategories = categories.filter(category =>
     category.name.toLowerCase().includes(searchValue.toLowerCase())
   );
+
+  // Don't render if no transactions selected
+  if (selectedCount === 0) {
+    return null;
+  }
 
   return (
     <div className={cn(

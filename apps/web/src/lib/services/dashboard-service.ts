@@ -1,6 +1,7 @@
 import { createServerClient } from "@/lib/supabase";
 import { sumCents, pctDelta, zScore } from "@nexus/shared";
 import type { DashboardDTO, OrgId } from "@nexus/types/contracts";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 interface TimeWindows {
   today: string;
@@ -44,16 +45,41 @@ interface TransactionWithCategory {
   categories: CategoryJoin | null;
 }
 
+// Type for the actual query result with any types from Supabase
+interface RawTransactionWithCategory {
+  category_id: any;
+  amount_cents: any;
+  categories: any;
+}
+
 interface AlertMetrics {
   lowBalance: boolean;
   unusualSpend: boolean;
   needsReviewCount: number;
 }
 
-export class DashboardService {
-  private supabase;
+interface TransactionWithDetails {
+  amount_cents: string;
+  description?: string;
+  merchant_name?: string;
+  categories?: {
+    name: string;
+  } | null;
+}
 
-  constructor(supabase: any) {
+interface RawTransactionWithDetails {
+  amount_cents: any;
+  description: any;
+  merchant_name: any;
+  categories: {
+    name: any;
+  }[];
+}
+
+export class DashboardService {
+  private supabase: SupabaseClient;
+
+  constructor(supabase: SupabaseClient) {
     this.supabase = supabase;
   }
 
@@ -185,10 +211,10 @@ export class DashboardService {
 
     const categoryTotals = new Map<string, { name: string; cents: string }>();
     
-    for (const tx of (categoryExpenses || []) as TransactionWithCategory[]) {
-      const categoryId = tx.category_id || 'uncategorized';
-      const categoryName = tx.categories?.name || 'Uncategorized';
-      const absAmount = (BigInt(tx.amount_cents || '0') * -BigInt(1)).toString();
+    for (const tx of (categoryExpenses || []) as RawTransactionWithCategory[]) {
+      const categoryId = String(tx.category_id || 'uncategorized');
+      const categoryName = String(tx.categories?.name || 'Uncategorized');
+      const absAmount = (BigInt(String(tx.amount_cents || '0')) * -BigInt(1)).toString();
       
       if (categoryTotals.has(categoryId)) {
         const existing = categoryTotals.get(categoryId)!;
@@ -359,10 +385,10 @@ export class DashboardService {
         /\b(rent|utilities|insurance|software|subscription|loan)\b/i,
       ];
 
-      const fixedCostTransactions = transactions.filter((tx: any) => {
-        const description = tx.description?.toLowerCase() || '';
-        const merchantName = tx.merchant_name?.toLowerCase() || '';
-        const categoryName = tx.categories?.name?.toLowerCase() || '';
+      const fixedCostTransactions = (transactions as RawTransactionWithDetails[]).filter((tx: RawTransactionWithDetails) => {
+        const description = String(tx.description || '').toLowerCase();
+        const merchantName = String(tx.merchant_name || '').toLowerCase();
+        const categoryName = String(tx.categories?.[0]?.name || '').toLowerCase();
 
         // Check against description and merchant name patterns
         const matchesPattern = fixedCostPatterns.some(pattern => 
@@ -383,7 +409,7 @@ export class DashboardService {
 
       // Calculate total fixed costs from last 30 days
       const totalFixed30d = sumCents(
-        fixedCostTransactions.map((tx: any) => Math.abs(parseInt(tx.amount_cents)).toString())
+        fixedCostTransactions.map((tx: RawTransactionWithDetails) => Math.abs(parseInt(String(tx.amount_cents))).toString())
       );
 
       // Estimate 14-day fixed costs (roughly half of 30-day)

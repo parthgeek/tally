@@ -199,7 +199,7 @@ export default function ThresholdsPage() {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  You'll receive an alert when your total cash on hand falls below this amount.
+                  You&apos;ll receive an alert when your total cash on hand falls below this amount.
                 </p>
               </div>
 
