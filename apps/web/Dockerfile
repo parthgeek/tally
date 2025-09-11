@@ -37,7 +37,7 @@ COPY --from=deps /app/packages ./packages
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 
 # Copy workspace configuration
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml tsconfig.json ./
 
 # Copy source code for workspace packages
 COPY packages/analytics ./packages/analytics
