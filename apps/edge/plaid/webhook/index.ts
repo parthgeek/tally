@@ -45,12 +45,30 @@ serve(async (req) => {
   try {
     const rawBody = await req.text();
     
-    // Verify webhook signature if webhook secret is configured
+    // Fail closed in production if webhook secret is missing
+    const plaidEnv = Deno.env.get('PLAID_ENV') || Deno.env.get('ENVIRONMENT') || 'development';
     const webhookSecret = Deno.env.get('PLAID_WEBHOOK_SECRET');
+    
+    if (!webhookSecret && (plaidEnv === 'production' || plaidEnv === 'development')) {
+      console.error('PLAID_WEBHOOK_SECRET required in production environment');
+      return new Response('Unauthorized', { status: 401 });
+    }
+    
+    // Verify webhook signature if webhook secret is configured
     if (webhookSecret) {
       const signature = req.headers.get('plaid-verification');
       if (!signature || !await verifyWebhookSignature(rawBody, signature, webhookSecret)) {
-        console.warn('Invalid webhook signature');
+        // Parse webhook for minimal logging - no payload echo
+        try {
+          const webhookData = JSON.parse(rawBody);
+          console.warn('Invalid webhook signature', {
+            webhook_type: webhookData.webhook_type,
+            webhook_code: webhookData.webhook_code,
+            request_id: webhookData.request_id
+          });
+        } catch {
+          console.warn('Invalid webhook signature - unparseable payload');
+        }
         return new Response('Unauthorized', { status: 401 });
       }
     } else {

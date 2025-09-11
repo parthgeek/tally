@@ -39,9 +39,17 @@ export async function getConnectionWithSecrets(
   };
 }
 
-import { decryptAccessTokenWithFallback } from './encryption.ts';
+import { decryptAccessTokenWithFallback, decryptAccessTokenStrict } from './encryption.ts';
 
 export async function decryptAccessToken(encryptedToken: string): Promise<string> {
+  // In production-like environments, use strict decryption by default
+  const environment = Deno.env.get('ENVIRONMENT') || Deno.env.get('PLAID_ENV') || 'development';
+  const allowLegacyFallback = Deno.env.get('ALLOW_LEGACY_TOKEN_FALLBACK') === 'true';
+  
+  if (environment === 'production' && !allowLegacyFallback) {
+    return await decryptAccessTokenStrict(encryptedToken);
+  }
+  
   return await decryptAccessTokenWithFallback(encryptedToken);
 }
 

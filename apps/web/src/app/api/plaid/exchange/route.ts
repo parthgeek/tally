@@ -1,6 +1,8 @@
 import { NextRequest } from "next/server";
-import { withOrgFromRequest, createErrorResponse } from "@/lib/api/with-org";
+import { withOrgFromRequest, createErrorResponse, createValidationErrorResponse } from "@/lib/api/with-org";
 import { createServerClient } from "@/lib/supabase";
+import { checkRateLimit, getRateLimitKey, createRateLimitResponse, RATE_LIMITS } from "@/lib/rate-limit";
+import { validateRequestBody, plaidExchangeSchema } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,13 +15,30 @@ export async function POST(request: NextRequest) {
       return createErrorResponse("Unauthorized", 401);
     }
     
+    // Apply rate limiting
+    const rateLimitKey = getRateLimitKey(request, user.id);
+    const rateLimitResult = await checkRateLimit({
+      key: rateLimitKey,
+      ...RATE_LIMITS.PLAID_EXCHANGE,
+    });
+    
+    if (!rateLimitResult.allowed) {
+      return createRateLimitResponse(rateLimitResult.resetTime);
+    }
+    
     // Get session for access token
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) {
       return createErrorResponse("No session token", 401);
     }
 
-    const body = await request.json();
+    // Validate request body
+    const validationResult = await validateRequestBody(request, plaidExchangeSchema);
+    if (!validationResult.success) {
+      return createValidationErrorResponse(validationResult.error);
+    }
+
+    const body = validationResult.data;
     
     // Proxy to Edge Function with session token
     const response = await fetch(

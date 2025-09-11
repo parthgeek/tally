@@ -1,10 +1,22 @@
 import { NextRequest } from "next/server";
 import { withOrgFromRequest, createErrorResponse } from "@/lib/api/with-org";
 import { createLinkToken, PlaidClientError, PlaidError } from "@/lib/plaid/client";
+import { checkRateLimit, getRateLimitKey, createRateLimitResponse, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
     const { userId, orgId } = await withOrgFromRequest(request);
+    
+    // Apply rate limiting
+    const rateLimitKey = getRateLimitKey(request, userId);
+    const rateLimitResult = await checkRateLimit({
+      key: rateLimitKey,
+      ...RATE_LIMITS.PLAID_LINK_TOKEN,
+    });
+    
+    if (!rateLimitResult.allowed) {
+      return createRateLimitResponse(rateLimitResult.resetTime);
+    }
 
     const linkToken = await createLinkToken({
       userId,

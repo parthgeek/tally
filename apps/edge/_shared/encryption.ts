@@ -13,6 +13,11 @@ async function getEncryptionKey(): Promise<CryptoKey> {
     throw new Error('ENCRYPTION_KEY environment variable is required for token encryption');
   }
 
+  // Enhanced validation for encryption key
+  if (keyString.length < 32) {
+    throw new Error('ENCRYPTION_KEY must be at least 32 characters long for secure encryption');
+  }
+
   // Use the first 32 bytes of the key string (or pad if shorter)
   const keyBytes = new TextEncoder().encode(keyString.padEnd(32, '0').slice(0, 32));
   
@@ -101,11 +106,29 @@ export function isLegacyEncoding(token: string): boolean {
 
 /**
  * Decrypts a token, handling both new and legacy formats
+ * Legacy fallback can be disabled in production via ALLOW_LEGACY_TOKEN_FALLBACK
  */
 export async function decryptAccessTokenWithFallback(encryptedToken: string): Promise<string> {
+  const allowLegacyFallback = Deno.env.get('ALLOW_LEGACY_TOKEN_FALLBACK') === 'true';
+  
   if (isLegacyEncoding(encryptedToken)) {
+    if (!allowLegacyFallback) {
+      throw new Error('Legacy token format detected but fallback is disabled in production');
+    }
     console.warn('Using legacy base64 decoding for access token - consider re-encrypting');
     return atob(encryptedToken);
+  }
+  
+  return await decryptAccessToken(encryptedToken);
+}
+
+/**
+ * Strict decrypt function that only handles AES-GCM tokens
+ * Use in production to ensure no legacy tokens are accepted
+ */
+export async function decryptAccessTokenStrict(encryptedToken: string): Promise<string> {
+  if (isLegacyEncoding(encryptedToken)) {
+    throw new Error('Legacy token format not supported in strict mode');
   }
   
   return await decryptAccessToken(encryptedToken);

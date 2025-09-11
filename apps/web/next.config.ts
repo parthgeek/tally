@@ -12,6 +12,48 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
 
+  // Security headers
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "connect-src 'self' https://*.supabase.co https://us.i.posthog.com https://*.sentry.io https://production.plaid.com https://cdn.plaid.com",
+              "script-src 'self' https://cdn.plaid.com https://us.i.posthog.com https://*.sentry.io 'unsafe-inline' 'unsafe-eval'",
+              "frame-ancestors 'self'",
+              "img-src 'self' data: blob: https://*.posthog.com",
+              "style-src 'self' 'unsafe-inline'",
+              "frame-src https://cdn.plaid.com",
+              "base-uri 'self'",
+              "form-action 'self'",
+              "upgrade-insecure-requests"
+            ].join('; ')
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY'
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin'
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()'
+          }
+        ]
+      }
+    ];
+  },
+
   // PostHog rewrites
   async rewrites() {
     return [
