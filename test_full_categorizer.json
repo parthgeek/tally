@@ -1,0 +1,97 @@
+{
+  "dataset": [
+    {
+      "id": "test-001",
+      "description": "STARBUCKS COFFEE #1234",
+      "amountCents": "-1250",
+      "merchantName": "STARBUCKS",
+      "categoryId": "business_meals",
+      "date": "2024-01-15",
+      "currency": "USD"
+    },
+    {
+      "id": "test-002",
+      "description": "SHELL OIL #5678",
+      "amountCents": "-4500",
+      "merchantName": "SHELL",
+      "categoryId": "travel",
+      "date": "2024-01-16",
+      "currency": "USD"
+    },
+    {
+      "id": "test-003",
+      "description": "SALON SUPPLIES CO - HAIR COLOR",
+      "amountCents": "-8500",
+      "merchantName": "SALON SUPPLIES CO",
+      "categoryId": "supplies",
+      "date": "2024-01-17",
+      "currency": "USD"
+    },
+    {
+      "id": "test-004",
+      "description": "PAYROLL PROCESSING - WEEK 1",
+      "amountCents": "-12000",
+      "merchantName": "ADP",
+      "categoryId": "staff_wages",
+      "date": "2024-01-18",
+      "currency": "USD"
+    },
+    {
+      "id": "test-005",
+      "description": "ELECTRIC BILL - JANUARY",
+      "amountCents": "-2500",
+      "merchantName": "PGE",
+      "categoryId": "rent_utilities",
+      "date": "2024-01-19",
+      "currency": "USD"
+    },
+    {
+      "id": "test-006",
+      "description": "SQUARE SUBSCRIPTION FEE",
+      "amountCents": "-15000",
+      "merchantName": "SQUARE",
+      "categoryId": "software",
+      "date": "2024-01-20",
+      "currency": "USD"
+    },
+    {
+      "id": "test-007",
+      "description": "FACEBOOK ADS - PROMOTION",
+      "amountCents": "-3500",
+      "merchantName": "FACEBOOK",
+      "categoryId": "marketing",
+      "date": "2024-01-21",
+      "currency": "USD"
+    },
+    {
+      "id": "test-008",
+      "description": "INSURANCE PREMIUM - LIABILITY",
+      "amountCents": "-8500",
+      "merchantName": "STATE FARM",
+      "categoryId": "insurance",
+      "date": "2024-01-22",
+      "currency": "USD"
+    },
+    {
+      "id": "test-009",
+      "description": "OFFICE SUPPLIES - PENS & PAPER",
+      "amountCents": "-1200",
+      "merchantName": "OFFICE DEPOT",
+      "categoryId": "office_supplies",
+      "date": "2024-01-23",
+      "currency": "USD"
+    },
+    {
+      "id": "test-010",
+      "description": "RENT PAYMENT - JANUARY",
+      "amountCents": "-45000",
+      "merchantName": "PROPERTY MANAGEMENT LLC",
+      "categoryId": "rent_utilities",
+      "date": "2024-01-24",
+      "currency": "USD"
+    }
+  ],
+  "options": {
+    "mode": "pass2"
+  }
+}

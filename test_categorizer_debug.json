@@ -1,0 +1,34 @@
+{
+  "dataset": [
+    {
+      "id": "test-001",
+      "description": "STARBUCKS COFFEE #1234",
+      "amountCents": "-1250",
+      "merchantName": "STARBUCKS",
+      "categoryId": "business_meals",
+      "date": "2024-01-15",
+      "currency": "USD"
+    },
+    {
+      "id": "test-002",
+      "description": "SHELL OIL #5678",
+      "amountCents": "-4500",
+      "merchantName": "SHELL",
+      "categoryId": "travel",
+      "date": "2024-01-16",
+      "currency": "USD"
+    },
+    {
+      "id": "test-003",
+      "description": "SALON SUPPLIES CO - HAIR COLOR",
+      "amountCents": "-8500",
+      "merchantName": "SALON SUPPLIES CO",
+      "categoryId": "supplies",
+      "date": "2024-01-17",
+      "currency": "USD"
+    }
+  ],
+  "options": {
+    "mode": "pass2"
+  }
+}

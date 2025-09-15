@@ -96,6 +96,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
               throw new Error('GEMINI_API_KEY not configured - Pass-2 unavailable');
             }
 
+
             const llmStart = Date.now();
             const llmResult = await scoreWithLLM(normalizedTx, {
               ...ctx,
