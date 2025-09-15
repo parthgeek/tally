@@ -15,6 +15,7 @@ COPY package.json pnpm-lock.yaml ./
 
 # Copy package.json files for workspace packages that web depends on
 COPY packages/analytics/package.json ./packages/analytics/
+COPY packages/categorizer/package.json ./packages/categorizer/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/types/package.json ./packages/types/
 
@@ -49,7 +50,8 @@ ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 # Copy source code for workspace packages
 COPY packages/analytics ./packages/analytics
-COPY packages/shared ./packages/shared  
+COPY packages/categorizer ./packages/categorizer
+COPY packages/shared ./packages/shared
 COPY packages/types ./packages/types
 
 # Copy web app source
@@ -57,6 +59,7 @@ COPY apps/web ./apps/web
 
 # Build workspace packages first
 RUN pnpm --filter "@nexus/analytics" build
+RUN pnpm --filter "@nexus/categorizer" build
 RUN pnpm --filter "@nexus/shared" build
 RUN pnpm --filter "@nexus/types" build
 
