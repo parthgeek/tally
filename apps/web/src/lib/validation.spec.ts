@@ -48,7 +48,7 @@ describe('plaidExchangeSchema', () => {
     expect(result.success).toBe(false);
     
     if (!result.success) {
-      expect(result.error.issues[0].path).toContain('public_token');
+      expect(result.error.issues[0]?.path).toContain('public_token');
     }
   });
 
@@ -61,7 +61,7 @@ describe('plaidExchangeSchema', () => {
     expect(result.success).toBe(false);
     
     if (!result.success) {
-      expect(result.error.issues[0].code).toBe('too_small');
+      expect(result.error.issues[0]?.code).toBe('too_small');
     }
   });
 
@@ -74,7 +74,7 @@ describe('plaidExchangeSchema', () => {
     expect(result.success).toBe(false);
     
     if (!result.success) {
-      expect(result.error.issues[0].code).toBe('too_big');
+      expect(result.error.issues[0]?.code).toBe('too_big');
     }
   });
 

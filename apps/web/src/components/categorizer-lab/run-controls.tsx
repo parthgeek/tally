@@ -82,7 +82,7 @@ export function RunControls({ dataset, onRunStart, isRunning }: RunControlsProps
                 id="engine-mode"
                 value={options.mode}
                 onChange={(e) => handleOptionChange('mode', e.target.value)}
-                className="w-full mt-1 rounded-md border border-gray-300 bg-white py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full mt-1 rounded-md border border-gray-300 bg-white text-black py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 disabled={isRunning}
               >
                 <option value="pass1">Pass-1 Only (Rules)</option>
@@ -210,7 +210,7 @@ export function RunControls({ dataset, onRunStart, isRunning }: RunControlsProps
                 Pass-2: LLM
               </Badge>
             )}
-            <Badge variant="outline">
+            <Badge variant="outline" data-testid="transaction-count-badge">
               {dataset.length} transactions
             </Badge>
           </div>

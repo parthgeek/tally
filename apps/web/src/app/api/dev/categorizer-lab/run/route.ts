@@ -6,14 +6,21 @@ import {
   type LabRunResponse,
   type TransactionResult
 } from '@/lib/categorizer-lab/types';
-import { 
-  mapLabTransactionToNormalized, 
+import {
+  mapLabTransactionToNormalized,
   createLabCategorizationContext,
-  extractTimings,
-  mapCategorizationResultToLab 
+  mapCategorizationResultToLab
 } from '@/lib/categorizer-lab/mappers';
 import { calculateMetrics } from '@/lib/categorizer-lab/metrics';
-import type { NormalizedTransaction, CategorizationContext, CategorizationResult } from '@nexus/categorizer';
+import {
+  enhancedPass1Categorize,
+  createDefaultPass1Context,
+  scoreWithLLM,
+  type CategorizationContext
+} from '@nexus/categorizer';
+
+// Force Node.js runtime for Supabase compatibility and workspace dependencies
+export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   // Guard: Only available in development or when explicitly enabled
@@ -39,107 +46,170 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const labOrgId = 'lab-org-' + Date.now();
     const ctx = createLabCategorizationContext(labOrgId) as CategorizationContext;
     
-    // Process each transaction
+    // Process each transaction using new hybrid engine
     for (const labTx of dataset) {
-      const startTime = Date.now();
-      let pass1Time: number | undefined;
-      let pass2Time: number | undefined;
-      
       try {
         // Convert to normalized format
         const normalizedTx = mapLabTransactionToNormalized(labTx, labOrgId);
-        
-        let finalResult: Record<string, unknown> = {};
-        let engine: 'pass1' | 'llm';
-        
+
+        let categorizationResult: {
+          categoryId?: string;
+          confidence?: number;
+          rationale: string[];
+        };
+        let engine: 'pass1' | 'llm' = 'pass1';
+        let timings = { pass1: 0, pass2: 0, total: 0 };
+
+        const startTime = Date.now();
+
         switch (options.mode) {
           case 'pass1': {
+            // Pass-1 only: Use enhanced Pass-1 categorizer
+            const pass1Context = createDefaultPass1Context(ctx.orgId, null);
             const pass1Start = Date.now();
-            const pass1Result = await runPass1(normalizedTx, ctx);
-            pass1Time = Date.now() - pass1Start;
-            
-            if (pass1Result.categoryId) finalResult.categoryId = pass1Result.categoryId;
-            if (pass1Result.confidence) finalResult.confidence = pass1Result.confidence;
-            finalResult.rationale = pass1Result.rationale || [];
+            const pass1Result = await enhancedPass1Categorize(normalizedTx, {
+              ...ctx,
+              ...pass1Context
+            });
+            const pass1End = Date.now();
+
+            categorizationResult = {
+              categoryId: pass1Result.categoryId as string,
+              rationale: pass1Result.rationale
+            };
+            if (pass1Result.confidence !== undefined) {
+              categorizationResult.confidence = pass1Result.confidence;
+            }
+
+            timings = {
+              pass1: pass1End - pass1Start,
+              pass2: 0,
+              total: pass1End - startTime
+            };
             engine = 'pass1';
             break;
           }
-          
+
           case 'pass2': {
-            // Check for API key before attempting pass2
+            // Pass-2 only: Use LLM directly
             if (!process.env.GEMINI_API_KEY) {
               throw new Error('GEMINI_API_KEY not configured - Pass-2 unavailable');
             }
-            
-            const pass2Start = Date.now();
-            const pass2Result = await runPass2(normalizedTx, ctx);
-            pass2Time = Date.now() - pass2Start;
-            
-            if (pass2Result.categoryId) finalResult.categoryId = pass2Result.categoryId;
-            if (pass2Result.confidence) finalResult.confidence = pass2Result.confidence;
-            finalResult.rationale = pass2Result.rationale ? [pass2Result.rationale] : [];
+
+            const llmStart = Date.now();
+            const llmResult = await scoreWithLLM(normalizedTx, {
+              ...ctx,
+              db: null, // Lab environment doesn't need real DB
+              config: {
+                geminiApiKey: process.env.GEMINI_API_KEY,
+                model: 'gemini-2.5-flash-lite'
+              }
+            });
+            const llmEnd = Date.now();
+
+            categorizationResult = {
+              categoryId: llmResult.categoryId as string,
+              confidence: llmResult.confidence,
+              rationale: llmResult.rationale
+            };
+
+            timings = {
+              pass1: 0,
+              pass2: llmEnd - llmStart,
+              total: llmEnd - startTime
+            };
             engine = 'llm';
             break;
           }
-          
+
           case 'hybrid': {
-            // Run Pass-1 first
+            // Hybrid mode: Pass-1 first, then LLM if confidence too low
+            if (!process.env.GEMINI_API_KEY) {
+              throw new Error('GEMINI_API_KEY not configured - Pass-2 unavailable');
+            }
+
+            // Try Pass-1 first
+            const pass1Context = createDefaultPass1Context(ctx.orgId, null);
             const pass1Start = Date.now();
-            const pass1Result = await runPass1(normalizedTx, ctx);
-            pass1Time = Date.now() - pass1Start;
-            
-            if (pass1Result.confidence && pass1Result.confidence >= options.hybridThreshold) {
-              // Use Pass-1 result
-              if (pass1Result.categoryId) finalResult.categoryId = pass1Result.categoryId;
-              if (pass1Result.confidence) finalResult.confidence = pass1Result.confidence;
-              finalResult.rationale = pass1Result.rationale || [];
+            const pass1Result = await enhancedPass1Categorize(normalizedTx, {
+              ...ctx,
+              ...pass1Context
+            });
+            const pass1End = Date.now();
+
+            const threshold = options.hybridThreshold || 0.85;
+
+            if (pass1Result.confidence && pass1Result.confidence >= threshold) {
+              // Pass-1 confidence is high enough
+              categorizationResult = {
+                categoryId: pass1Result.categoryId as string,
+                confidence: pass1Result.confidence,
+                rationale: pass1Result.rationale
+              };
               engine = 'pass1';
+              timings = {
+                pass1: pass1End - pass1Start,
+                pass2: 0,
+                total: pass1End - startTime
+              };
             } else {
-              // Check for API key before attempting pass2 in hybrid mode
-              if (!process.env.GEMINI_API_KEY) {
-                throw new Error('GEMINI_API_KEY not configured - Pass-2 unavailable');
-              }
-              
-              // Use Pass-2 (LLM)
-              const pass2Start = Date.now();
-              const pass2Result = await runPass2(normalizedTx, ctx);
-              pass2Time = Date.now() - pass2Start;
-              
-              if (pass2Result.categoryId) finalResult.categoryId = pass2Result.categoryId;
-              if (pass2Result.confidence) finalResult.confidence = pass2Result.confidence;
-              finalResult.rationale = pass2Result.rationale ? [pass2Result.rationale] : [];
+              // Use LLM for better accuracy
+              const llmStart = Date.now();
+              const llmResult = await scoreWithLLM(normalizedTx, {
+                ...ctx,
+                db: null, // Lab environment doesn't need real DB
+                config: {
+                  geminiApiKey: process.env.GEMINI_API_KEY,
+                  model: 'gemini-2.5-flash-lite'
+                }
+              });
+              const llmEnd = Date.now();
+
+              categorizationResult = {
+                categoryId: llmResult.categoryId as string,
+                confidence: llmResult.confidence,
+                rationale: llmResult.rationale
+              };
+
               engine = 'llm';
+              timings = {
+                pass1: pass1End - pass1Start,
+                pass2: llmEnd - llmStart,
+                total: llmEnd - startTime
+              };
             }
             break;
           }
-          
+
           default:
             throw new Error(`Unsupported engine mode: ${options.mode}`);
         }
-        
-        const timings = extractTimings(startTime, pass1Time, pass2Time);
-        
+
+        // Map to lab result format
         const result = mapCategorizationResultToLab(
           labTx.id,
-          finalResult,
+          categorizationResult,
           engine,
-          timings
+          {
+            totalMs: timings.total,
+            pass1Ms: timings.pass1,
+            pass2Ms: timings.pass2
+          }
         );
-        
+
         results.push(result);
-        
+
       } catch (error) {
-        const timings = extractTimings(startTime, pass1Time, pass2Time);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        
+
         const result = mapCategorizationResultToLab(
           labTx.id,
           {},
           'pass1', // Default engine for errors
-          timings,
+          { totalMs: 0, pass1Ms: 0 }, // Zero timings for errors
           errorMessage
         );
-        
+
         results.push(result);
         errors.push(`Transaction ${labTx.id}: ${errorMessage}`);
       }
@@ -198,88 +268,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-/**
- * Run Pass-1 categorization with minimal context
- */
-async function runPass1(
-  tx: NormalizedTransaction,
-  ctx: CategorizationContext
-): Promise<{ categoryId?: string | undefined; confidence?: number | undefined; rationale?: string[] | undefined }> {
-  try {
-    // Dynamic import to handle missing package gracefully
-    const { pass1Categorize } = await import('@nexus/categorizer');
-    
-    // Create minimal context for Pass-1
-    const minimalCtx = {
-      ...ctx,
-      // Provide empty caches to avoid DB dependencies
-      caches: {
-        vendorRules: new Map(),
-        vendorEmbeddings: new Map(),
-      },
-      // Mock DB client that doesn't make real queries
-      db: {
-        from: () => ({
-          select: () => ({
-            eq: () => ({
-              eq: () => Promise.resolve({ data: [], error: null })
-            })
-          })
-        })
-      }
-    } as CategorizationContext & { db: any; caches: any };
-    
-    const result = await pass1Categorize(tx, minimalCtx);
-    
-    return {
-      categoryId: result.categoryId || undefined,
-      confidence: result.confidence || undefined,
-      rationale: result.rationale || [],
-    };
-  } catch (error) {
-    // Propagate error instead of fallback mock - let caller handle it
-    throw error;
-  }
-}
-
-/**
- * Run Pass-2 (LLM) categorization
- */
-async function runPass2(
-  tx: NormalizedTransaction,
-  ctx: CategorizationContext
-): Promise<{ categoryId?: string | undefined; confidence?: number | undefined; rationale?: string | undefined }> {
-  try {
-    // Dynamic import to handle missing package gracefully
-    const { scoreWithLLM } = await import('@nexus/categorizer');
-    
-    // Create context with required properties for LLM
-    const llmCtx = {
-      ...ctx,
-      db: {
-        from: () => ({
-          select: () => ({
-            eq: () => Promise.resolve({ data: [], error: null })
-          })
-        })
-      },
-      config: {
-        geminiApiKey: process.env.GEMINI_API_KEY,
-      }
-    } as CategorizationContext & { db: any; config: { geminiApiKey?: string } };
-    
-    const result = await scoreWithLLM(tx, llmCtx);
-    
-    return {
-      categoryId: result.categoryId || undefined,
-      confidence: result.confidence || undefined,
-      rationale: Array.isArray(result.rationale) ? result.rationale.join('; ') : (result.rationale || ''),
-    };
-  } catch (error) {
-    // Propagate error instead of fallback mock
-    throw error;
-  }
-}
 
 // Health check endpoint
 export async function GET(): Promise<NextResponse> {

@@ -79,15 +79,18 @@ export function DatasetLoader({ onDatasetLoaded, disabled }: DatasetLoaderProps)
     }
   };
 
-  const handleSyntheticData = () => {
+  const handleSyntheticData = async () => {
     setIsLoading(true);
     setError(null);
 
     try {
       const transactions = generateSyntheticData(syntheticOptions);
-      const summary = createDatasetSummary(transactions);
       
-      console.log('Synthetic dataset generated:', summary);
+      if (!transactions || transactions.length === 0) {
+        throw new Error('No transactions generated - check synthetic data configuration');
+      }
+      
+      const summary = createDatasetSummary(transactions);
       onDatasetLoaded(transactions);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate synthetic data');
@@ -122,7 +125,7 @@ export function DatasetLoader({ onDatasetLoaded, disabled }: DatasetLoaderProps)
             id="upload-method"
             value={uploadMethod}
             onChange={(e) => setUploadMethod(e.target.value as typeof uploadMethod)}
-            className="w-full mt-1 rounded-md border border-gray-300 bg-white py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full mt-1 rounded-md border border-gray-300 bg-white text-black py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             disabled={disabled}
           >
             <option value="synthetic">Generate Synthetic Data</option>
@@ -158,7 +161,7 @@ export function DatasetLoader({ onDatasetLoaded, disabled }: DatasetLoaderProps)
                 id="data-format"
                 value={dataFormat}
                 onChange={(e) => setDataFormat(e.target.value as 'json' | 'csv')}
-                className="w-full mt-1 rounded-md border border-gray-300 bg-white py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full mt-1 rounded-md border border-gray-300 bg-white text-black py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 disabled={disabled}
               >
                 <option value="json">JSON</option>
@@ -172,7 +175,7 @@ export function DatasetLoader({ onDatasetLoaded, disabled }: DatasetLoaderProps)
                 value={pastedData}
                 onChange={(e) => setPastedData(e.target.value)}
                 rows={10}
-                className="w-full mt-1 rounded-md border border-gray-300 py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full mt-1 rounded-md border border-gray-300 bg-white text-black py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 placeholder={dataFormat === 'json' ? 
                   '[\n  {\n    "id": "tx-1",\n    "description": "STARBUCKS STORE #123",\n    "amountCents": "-500",\n    "categoryId": "meals"\n  }\n]' :
                   'id,description,amount_cents,category_id\ntx-1,STARBUCKS STORE #123,-500,meals'
@@ -234,7 +237,7 @@ export function DatasetLoader({ onDatasetLoaded, disabled }: DatasetLoaderProps)
                     ...prev,
                     mccMix: e.target.value as SyntheticOptions['mccMix']
                   }))}
-                  className="w-full mt-1 rounded-md border border-gray-300 bg-white py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full mt-1 rounded-md border border-gray-300 bg-white text-black py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   disabled={disabled}
                 >
                   <option value="balanced">Balanced</option>

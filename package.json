@@ -8,6 +8,7 @@
 	"scripts": {
 		"dev": "pnpm --filter web dev",
 		"build": "pnpm -r build",
+		"build:railway": "pnpm --filter @nexus/categorizer build && pnpm --filter web build",
 		"test": "pnpm -r test",
 		"test:categorization": "pnpm --filter @nexus/categorizer test",
 		"test:e2e": "vitest run --config vitest.e2e.config.ts",

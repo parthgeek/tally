@@ -1,6 +1,7 @@
-import { describe, expect, test, beforeEach } from 'vitest';
+import { describe, expect, test, beforeEach, vi } from 'vitest';
 import { POST as exchangeHandler } from '@/app/api/plaid/exchange/route';
 import { POST as linkTokenHandler } from '@/app/api/plaid/link-token/route';
+import { NextRequest } from 'next/server';
 
 // Mock the dependencies
 const mockSupabase = {
@@ -65,7 +66,7 @@ describe('API Route Security', () => {
       // This test would require setting up the rate limiter with a very low limit
       // and making multiple requests to trigger the limit
       
-      const request = new Request('http://localhost:3000/api/plaid/link-token', {
+      const request = new NextRequest('http://localhost:3000/api/plaid/link-token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -82,7 +83,7 @@ describe('API Route Security', () => {
     });
 
     test('exchange endpoint respects rate limits', async () => {
-      const request = new Request('http://localhost:3000/api/plaid/exchange', {
+      const request = new NextRequest('http://localhost:3000/api/plaid/exchange', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -102,7 +103,7 @@ describe('API Route Security', () => {
 
   describe('Input Validation', () => {
     test('exchange endpoint validates request body', async () => {
-      const invalidRequest = new Request('http://localhost:3000/api/plaid/exchange', {
+      const invalidRequest = new NextRequest('http://localhost:3000/api/plaid/exchange', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -119,7 +120,7 @@ describe('API Route Security', () => {
     });
 
     test('exchange endpoint rejects too short public_token', async () => {
-      const invalidRequest = new Request('http://localhost:3000/api/plaid/exchange', {
+      const invalidRequest = new NextRequest('http://localhost:3000/api/plaid/exchange', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -136,7 +137,7 @@ describe('API Route Security', () => {
     });
 
     test('exchange endpoint rejects too long public_token', async () => {
-      const invalidRequest = new Request('http://localhost:3000/api/plaid/exchange', {
+      const invalidRequest = new NextRequest('http://localhost:3000/api/plaid/exchange', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -153,7 +154,7 @@ describe('API Route Security', () => {
     });
 
     test('exchange endpoint accepts valid request', async () => {
-      const validRequest = new Request('http://localhost:3000/api/plaid/exchange', {
+      const validRequest = new NextRequest('http://localhost:3000/api/plaid/exchange', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -179,7 +180,7 @@ describe('API Route Security', () => {
     });
 
     test('exchange endpoint handles malformed JSON', async () => {
-      const invalidRequest = new Request('http://localhost:3000/api/plaid/exchange', {
+      const invalidRequest = new NextRequest('http://localhost:3000/api/plaid/exchange', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: 'invalid json {',
@@ -196,12 +197,12 @@ describe('API Route Security', () => {
   describe('Authentication', () => {
     test('requires valid session for exchange endpoint', async () => {
       // Mock no session
-      mockSupabase.auth.getSession = () => Promise.resolve({
+      (mockSupabase.auth.getSession as any) = () => Promise.resolve({
         data: { session: null },
         error: null,
       });
 
-      const request = new Request('http://localhost:3000/api/plaid/exchange', {
+      const request = new NextRequest('http://localhost:3000/api/plaid/exchange', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -218,12 +219,12 @@ describe('API Route Security', () => {
 
     test('requires valid user for both endpoints', async () => {
       // Mock no user
-      mockSupabase.auth.getUser = () => Promise.resolve({
+      (mockSupabase.auth.getUser as any) = () => Promise.resolve({
         data: { user: null },
         error: new Error('No user'),
       });
 
-      const request = new Request('http://localhost:3000/api/plaid/link-token', {
+      const request = new NextRequest('http://localhost:3000/api/plaid/link-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -243,7 +244,7 @@ describe('API Route Security', () => {
       // Note: Security headers are added by Next.js config, not individual routes
       // This test documents the expected behavior rather than testing implementation
       
-      const request = new Request('http://localhost:3000/api/plaid/link-token', {
+      const request = new NextRequest('http://localhost:3000/api/plaid/link-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });

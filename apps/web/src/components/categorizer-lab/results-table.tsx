@@ -5,6 +5,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { RationalePopover, type RationaleData } from './rationale-popover';
+import { InfoIcon, AlertTriangleIcon } from 'lucide-react';
 import type { LabTransaction, TransactionResult } from '@/lib/categorizer-lab/types';
 
 interface ResultsTableProps {
@@ -105,12 +107,67 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
   const getAccuracyIndicator = (result: TransactionResult): React.JSX.Element | null => {
     const original = originalMap.get(result.id);
     if (!original?.categoryId || !result.predictedCategoryId) return null;
-    
+
     const isCorrect = original.categoryId === result.predictedCategoryId;
     return (
       <Badge variant={isCorrect ? 'default' : 'destructive'} className="text-xs">
         {isCorrect ? '✓' : '✗'}
       </Badge>
+    );
+  };
+
+  const getRationaleView = (result: TransactionResult): React.JSX.Element => {
+    if (result.error) {
+      return (
+        <Badge variant="destructive" className="text-xs">
+          <AlertTriangleIcon className="w-3 h-3 mr-1" />
+          Error
+        </Badge>
+      );
+    }
+
+    // Extract rationale data from result
+    const rationaleData: RationaleData = {
+      rationale: result.rationale || [],
+      engine: result.engine as 'pass1' | 'llm',
+      // Check if this is an enhanced result with additional data
+      signals: (result as any).signals || undefined,
+      guardrailsApplied: (result as any).guardrailsApplied || false,
+      guardrailViolations: (result as any).guardrailViolations || [],
+      pass1Context: (result as any).pass1Context || undefined
+    };
+
+    // Only add confidence if it exists
+    if (result.confidence !== undefined) {
+      rationaleData.confidence = result.confidence;
+    }
+
+    // Count available details for summary
+    const detailsCount = [
+      rationaleData.rationale.length > 0,
+      rationaleData.signals && rationaleData.signals.length > 0,
+      rationaleData.pass1Context,
+      rationaleData.guardrailsApplied
+    ].filter(Boolean).length;
+
+    if (detailsCount === 0) {
+      return (
+        <span className="text-gray-400 text-xs">No details</span>
+      );
+    }
+
+    return (
+      <RationalePopover data={rationaleData}>
+        <div className="flex items-center gap-1 text-blue-600 hover:text-blue-800">
+          <InfoIcon className="w-3 h-3" />
+          <span className="text-xs">
+            {detailsCount} detail{detailsCount > 1 ? 's' : ''}
+          </span>
+          {rationaleData.guardrailsApplied && (
+            <AlertTriangleIcon className="w-3 h-3 text-amber-500" />
+          )}
+        </div>
+      </RationalePopover>
     );
   };
 
@@ -150,7 +207,7 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
             <select
               value={filterEngine}
               onChange={(e) => setFilterEngine(e.target.value as typeof filterEngine)}
-              className="w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 bg-white text-black py-2 px-3 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="all">All Engines</option>
               <option value="pass1">Pass-1 Only</option>
@@ -161,7 +218,7 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
-              className="w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 bg-white text-black py-2 px-3 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="all">All Status</option>
               <option value="success">Success Only</option>
@@ -179,9 +236,9 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-gray-50">
+              <tr className="border-b bg-gray-50 text-black">
                 <th 
-                  className="text-left p-3 cursor-pointer hover:bg-gray-100"
+                  className="text-left p-3 cursor-pointer hover:bg-gray-100 hover:text-black"
                   onClick={() => handleSort('id')}
                 >
                   Transaction ID {sortBy === 'id' && (sortDesc ? '↓' : '↑')}
@@ -191,14 +248,15 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
                 <th className="text-left p-3">Ground Truth</th>
                 <th className="text-left p-3">Predicted</th>
                 <th 
-                  className="text-left p-3 cursor-pointer hover:bg-gray-100"
+                  className="text-left p-3 cursor-pointer hover:bg-gray-100 hover:text-black"
                   onClick={() => handleSort('confidence')}
                 >
                   Confidence {sortBy === 'confidence' && (sortDesc ? '↓' : '↑')}
                 </th>
                 <th className="text-left p-3">Engine</th>
-                <th 
-                  className="text-left p-3 cursor-pointer hover:bg-gray-100"
+                <th className="text-left p-3">Rationale</th>
+                <th
+                  className="text-left p-3 cursor-pointer hover:bg-gray-100 hover:text-black"
                   onClick={() => handleSort('timing')}
                 >
                   Timing {sortBy === 'timing' && (sortDesc ? '↓' : '↑')}
@@ -210,7 +268,7 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
               {filteredResults.map((result) => {
                 const original = originalMap.get(result.id);
                 return (
-                  <tr key={result.id} className="border-b hover:bg-gray-50">
+                  <tr key={result.id} className="border-b hover:bg-gray-50 hover:text-black">
                     <td className="p-3 font-mono text-xs">{result.id}</td>
                     <td className="p-3 max-w-xs">
                       <div className="truncate" title={original?.description}>
@@ -257,6 +315,9 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
                       >
                         {result.engine === 'llm' ? 'LLM' : 'Pass-1'}
                       </Badge>
+                    </td>
+                    <td className="p-3">
+                      {getRationaleView(result)}
                     </td>
                     <td className="p-3 font-mono text-xs">
                       <div>{result.timings.totalMs}ms</div>

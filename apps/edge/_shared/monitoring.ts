@@ -205,3 +205,254 @@ export async function trackConnection(
     });
   }
 }
+
+/**
+ * Enhanced categorizer metrics tracking
+ */
+
+export interface CategorizerMetrics {
+  transactionId: string;
+  orgId?: string;
+  engine: 'pass1' | 'llm' | 'hybrid';
+  mode: 'pass1' | 'pass2' | 'hybrid' | 'shadow';
+  result: {
+    categoryId?: string;
+    confidence?: number;
+    success: boolean;
+    error?: string;
+  };
+  timing: {
+    totalMs: number;
+    pass1Ms?: number;
+    pass2Ms?: number;
+  };
+  signals?: Array<{
+    type: string;
+    evidence: string;
+    confidence: number;
+    strength: string;
+  }>;
+  guardrails?: {
+    applied: boolean;
+    violations: string[];
+    preGuardrailsPassed: boolean;
+    postGuardrailsPassed: boolean;
+  };
+  pass1Context?: {
+    confidence: number;
+    topSignals: string[];
+    mccMapping?: string;
+    vendorMatch?: string;
+  };
+  featureFlags?: Record<string, boolean | number>;
+}
+
+/**
+ * Track categorizer transaction processing
+ */
+export async function trackCategorizerTransaction(metrics: CategorizerMetrics): Promise<void> {
+  const baseProperties = {
+    transaction_id: metrics.transactionId,
+    engine: metrics.engine,
+    mode: metrics.mode,
+    success: metrics.result.success,
+    category_id: metrics.result.categoryId,
+    confidence: metrics.result.confidence,
+    total_latency_ms: metrics.timing.totalMs,
+    pass1_latency_ms: metrics.timing.pass1Ms,
+    pass2_latency_ms: metrics.timing.pass2Ms,
+    error_message: metrics.result.error,
+  };
+
+  // Track main categorization event
+  await trackEvent('categorizer_transaction_processed', baseProperties, metrics.orgId);
+
+  // Track engine-specific metrics
+  if (metrics.engine === 'pass1' || metrics.mode === 'hybrid') {
+    await trackEvent('categorizer_pass1_execution', {
+      ...baseProperties,
+      signals_count: metrics.signals?.length || 0,
+      top_signal_types: metrics.signals?.slice(0, 3).map(s => s.type) || [],
+      pass1_confidence: metrics.pass1Context?.confidence,
+      mcc_mapping_used: !!metrics.pass1Context?.mccMapping,
+      vendor_match_used: !!metrics.pass1Context?.vendorMatch,
+    }, metrics.orgId);
+  }
+
+  if (metrics.engine === 'llm' || (metrics.mode === 'hybrid' && metrics.timing.pass2Ms)) {
+    await trackEvent('categorizer_llm_execution', {
+      ...baseProperties,
+      pass1_context_provided: !!metrics.pass1Context,
+      pass1_confidence: metrics.pass1Context?.confidence,
+      llm_latency_ms: metrics.timing.pass2Ms,
+    }, metrics.orgId);
+  }
+
+  // Track guardrail metrics
+  if (metrics.guardrails) {
+    await trackEvent('categorizer_guardrails_executed', {
+      ...baseProperties,
+      guardrails_applied: metrics.guardrails.applied,
+      violations_count: metrics.guardrails.violations.length,
+      pre_guardrails_passed: metrics.guardrails.preGuardrailsPassed,
+      post_guardrails_passed: metrics.guardrails.postGuardrailsPassed,
+      violation_types: metrics.guardrails.violations,
+    }, metrics.orgId);
+  }
+
+  // Track feature flag usage
+  if (metrics.featureFlags) {
+    await trackEvent('categorizer_feature_flags_used', {
+      ...baseProperties,
+      ...metrics.featureFlags,
+    }, metrics.orgId);
+  }
+
+  // Track errors
+  if (!metrics.result.success && metrics.result.error) {
+    await captureException(metrics.result.error, 'error', {
+      tags: {
+        component: 'categorizer',
+        engine: metrics.engine,
+        mode: metrics.mode,
+        transaction_id: metrics.transactionId,
+      },
+      extra: {
+        timing: metrics.timing,
+        guardrails: metrics.guardrails,
+        pass1Context: metrics.pass1Context,
+      },
+      user: metrics.orgId ? { id: metrics.orgId } : undefined,
+    });
+  }
+}
+
+/**
+ * Track batch categorization metrics
+ */
+export async function trackCategorizerBatch(
+  batchId: string,
+  batchMetrics: {
+    totalTransactions: number;
+    successCount: number;
+    errorCount: number;
+    pass1OnlyCount: number;
+    llmUsedCount: number;
+    averageLatencyMs: number;
+    averageConfidence: number;
+    confidenceHistogram: Array<{ bin: string; count: number }>;
+    guardrailViolations: number;
+    totalCostUsd?: number;
+  },
+  orgId?: string
+): Promise<void> {
+  await trackEvent('categorizer_batch_completed', {
+    batch_id: batchId,
+    total_transactions: batchMetrics.totalTransactions,
+    success_count: batchMetrics.successCount,
+    error_count: batchMetrics.errorCount,
+    success_rate: batchMetrics.successCount / batchMetrics.totalTransactions,
+    pass1_only_count: batchMetrics.pass1OnlyCount,
+    llm_used_count: batchMetrics.llmUsedCount,
+    pass1_hit_rate: batchMetrics.pass1OnlyCount / batchMetrics.totalTransactions,
+    llm_usage_rate: batchMetrics.llmUsedCount / batchMetrics.totalTransactions,
+    average_latency_ms: batchMetrics.averageLatencyMs,
+    average_confidence: batchMetrics.averageConfidence,
+    guardrail_violations: batchMetrics.guardrailViolations,
+    total_cost_usd: batchMetrics.totalCostUsd,
+  }, orgId);
+
+  // Track confidence distribution
+  for (const bin of batchMetrics.confidenceHistogram) {
+    if (bin.count > 0) {
+      await trackEvent('categorizer_confidence_distribution', {
+        batch_id: batchId,
+        confidence_bin: bin.bin,
+        transaction_count: bin.count,
+        percentage_of_batch: (bin.count / batchMetrics.totalTransactions) * 100,
+      }, orgId);
+    }
+  }
+}
+
+/**
+ * Track categorizer engine performance over time
+ */
+export async function trackCategorizerPerformance(
+  timeWindow: string, // e.g., 'hourly', 'daily'
+  performanceMetrics: {
+    totalTransactions: number;
+    averageLatencyMs: number;
+    p95LatencyMs: number;
+    p99LatencyMs: number;
+    errorRate: number;
+    pass1HitRate: number;
+    llmUsageRate: number;
+    averageConfidence: number;
+    confidenceVariance: number;
+    guardrailEffectiveness: number; // % of violations caught
+    costPerTransaction?: number;
+  },
+  orgId?: string
+): Promise<void> {
+  await trackEvent('categorizer_performance_summary', {
+    time_window: timeWindow,
+    ...performanceMetrics,
+  }, orgId);
+}
+
+/**
+ * Track A/B test metrics for categorizer improvements
+ */
+export async function trackCategorizerABTest(
+  testName: string,
+  variant: 'control' | 'treatment',
+  transactionId: string,
+  metrics: {
+    categoryId?: string;
+    confidence?: number;
+    latencyMs: number;
+    accuracy?: number; // If ground truth available
+    userSatisfaction?: number; // If feedback available
+  },
+  orgId?: string
+): Promise<void> {
+  await trackEvent('categorizer_ab_test_result', {
+    test_name: testName,
+    variant,
+    transaction_id: transactionId,
+    category_id: metrics.categoryId,
+    confidence: metrics.confidence,
+    latency_ms: metrics.latencyMs,
+    accuracy: metrics.accuracy,
+    user_satisfaction: metrics.userSatisfaction,
+  }, orgId);
+}
+
+/**
+ * Track categorizer shadow mode comparison
+ */
+export async function trackCategorizerShadowMode(
+  transactionId: string,
+  comparison: {
+    legacyCategoryId?: string;
+    legacyConfidence?: number;
+    newCategoryId?: string;
+    newConfidence?: number;
+    categoriesMatch: boolean;
+    confidenceDelta: number;
+    latencyDelta: number;
+  },
+  orgId?: string
+): Promise<void> {
+  await trackEvent('categorizer_shadow_mode_comparison', {
+    transaction_id: transactionId,
+    legacy_category_id: comparison.legacyCategoryId,
+    legacy_confidence: comparison.legacyConfidence,
+    new_category_id: comparison.newCategoryId,
+    new_confidence: comparison.newConfidence,
+    categories_match: comparison.categoriesMatch,
+    confidence_delta: comparison.confidenceDelta,
+    latency_delta: comparison.latencyDelta,
+  }, orgId);
+}

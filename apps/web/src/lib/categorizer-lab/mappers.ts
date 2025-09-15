@@ -69,9 +69,9 @@ export function extractTimings(
 export function mapCategorizationResultToLab(
   transactionId: string,
   result: {
-    categoryId?: string;
-    confidence?: number;
-    rationale?: string[];
+    categoryId?: string | undefined;
+    confidence?: number | undefined;
+    rationale?: string[] | undefined;
   },
   engine: 'pass1' | 'llm',
   timings: { totalMs: number; pass1Ms?: number; pass2Ms?: number },

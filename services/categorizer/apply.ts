@@ -1,6 +1,7 @@
-import type { CategorizationResult, CategorizationContext, TransactionId } from '@nexus/types';
+import type { CategorizationResult, CategorizationContext, TransactionId, OrgId } from '../../packages/types/src/index.js';
 
 interface DecisionContext extends CategorizationContext {
+  orgId: OrgId; // Ensure orgId is available
   db: any; // Supabase client
   analytics?: {
     captureEvent?: (event: string, properties: any) => void;

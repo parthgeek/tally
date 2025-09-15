@@ -1,6 +1,14 @@
-@import "tailwindcss";
+/*
+ * Tailwind CSS directives
+ * Note: CSS linter warnings about unknown @tailwind at-rules are expected and can be ignored.
+ * These are valid Tailwind CSS directives that are processed by PostCSS.
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
+@layer base {
+  :root {
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
 
@@ -30,10 +38,10 @@
   --ring: 222.2 84% 4.9%;
 
   --radius: 0.5rem;
-}
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+  @media (prefers-color-scheme: dark) {
+    :root {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
@@ -61,15 +69,15 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+    }
   }
-}
 
+  * {
+    border-color: hsl(var(--border));
+  }
 
-* {
-  border-color: hsl(var(--border));
-}
-
-body {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
 }

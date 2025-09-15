@@ -137,7 +137,7 @@ export function MetricsSummary({ metrics }: MetricsSummaryProps) {
                     .sort((a, b) => b.support - a.support)
                     .slice(0, 5)
                     .map((cat) => (
-                      <div key={cat.categoryId} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <div key={cat.categoryId} className="flex items-center justify-between p-2 bg-gray-50 text-black rounded">
                         <div>
                           <Badge variant="outline" className="text-xs">
                             {cat.categoryId}
@@ -211,7 +211,7 @@ export function MetricsSummary({ metrics }: MetricsSummaryProps) {
       </Card>
 
       {/* Summary Insights */}
-      <Card className="p-6 bg-blue-50 border-blue-200">
+      <Card className="p-6 bg-blue-50 border-blue-200 text-black">
         <h3 className="text-lg font-semibold mb-3 text-blue-800">Key Insights</h3>
         <ul className="space-y-2 text-sm text-blue-700">
           <li>

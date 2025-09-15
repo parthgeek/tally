@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Categorizer Lab Debug</title>
+    <script>
+        function testClick() {
+            console.log('Testing synthetic data generation...');
+            
+            fetch('http://localhost:3001/api/dev/categorizer-lab/run', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    dataset: [
+                        { id: "synthetic-1", description: "STARBUCKS STORE", amountCents: "-550", merchantName: "Starbucks" },
+                        { id: "synthetic-2", description: "WALMART SUPERCENTER", amountCents: "-2500", merchantName: "Walmart" }
+                    ],
+                    options: {
+                        mode: "hybrid",
+                        batchSize: 2,
+                        concurrency: 1,
+                        timeoutMs: 30000,
+                        useLLM: true,
+                        hybridThreshold: 0.85
+                    }
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('API Response:', data);
+                document.getElementById('results').innerHTML = `
+                    <h3>Results:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('results').innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            });
+        }
+        
+        function visitActualPage() {
+            window.open('http://localhost:3001/categorizer-lab', '_blank');
+        }
+    </script>
+</head>
+<body>
+    <h1>Categorizer Lab Frontend Debug</h1>
+    
+    <button onclick="testClick()" style="padding: 10px; margin: 10px; background: blue; color: white;">
+        Test API Direct Call
+    </button>
+    
+    <button onclick="visitActualPage()" style="padding: 10px; margin: 10px; background: green; color: white;">
+        Visit Actual Page
+    </button>
+    
+    <div id="results"></div>
+    
+    <script>
+        console.log('Debug page loaded. Dev server should be on port 3001');
+    </script>
+</body>
+</html>

@@ -20,20 +20,50 @@ export function Charts({ metrics }: ChartsProps) {
 
   return (
     <div className="space-y-6">
-      {/* Confidence Histogram */}
+      {/* Enhanced Confidence Histogram */}
       <Card className="p-6">
         <h3 className="text-lg font-semibold mb-4">Confidence Distribution</h3>
-        <div className="space-y-3">
-          {metrics.confidence.histogram.map((bin, _index) => {
+
+        {/* Summary stats */}
+        <div className="mb-6 grid grid-cols-3 gap-4 text-center">
+          <div className="bg-blue-50 rounded-lg p-3">
+            <div className="text-2xl font-bold text-blue-600">
+              {metrics.confidence.mean ? (metrics.confidence.mean * 100).toFixed(1) : '—'}%
+            </div>
+            <div className="text-sm text-gray-600">Average</div>
+          </div>
+          <div className="bg-green-50 rounded-lg p-3">
+            <div className="text-2xl font-bold text-green-600">
+              {getP95FromHistogram(metrics.confidence.histogram).toFixed(1)}%
+            </div>
+            <div className="text-sm text-gray-600">95th Percentile</div>
+          </div>
+          <div className="bg-purple-50 rounded-lg p-3">
+            <div className="text-2xl font-bold text-purple-600">
+              {getConfidenceSpread(metrics.confidence.histogram)}%
+            </div>
+            <div className="text-sm text-gray-600">Spread</div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {metrics.confidence.histogram.map((bin, index) => {
             const maxCount = Math.max(...metrics.confidence.histogram.map(b => b.count));
             const widthPercent = maxCount > 0 ? (bin.count / maxCount) * 100 : 0;
-            
+            const isLowConfidence = bin.bin.includes('0.') && bin.bin < '0.5';
+            const isHighConfidence = bin.bin.includes('0.9') || bin.bin.includes('1.0');
+
             return (
               <div key={bin.bin} className="flex items-center space-x-3">
-                <div className="w-16 text-sm text-gray-600">{bin.bin}</div>
+                <div className="w-20 text-sm text-gray-600 font-mono text-right">
+                  {bin.bin}
+                </div>
                 <div className="flex-1 bg-gray-200 rounded-full h-6 relative">
-                  <div 
-                    className="bg-blue-500 h-6 rounded-full flex items-center justify-end pr-2"
+                  <div
+                    className={`h-6 rounded-full flex items-center justify-end pr-2 ${
+                      isLowConfidence ? 'bg-red-400' :
+                      isHighConfidence ? 'bg-green-500' : 'bg-blue-500'
+                    }`}
                     style={{ width: `${widthPercent}%` }}
                   >
                     {bin.count > 0 && (
@@ -41,9 +71,19 @@ export function Charts({ metrics }: ChartsProps) {
                     )}
                   </div>
                 </div>
+                <div className="w-12 text-xs text-gray-500">
+                  {maxCount > 0 ? ((bin.count / maxCount) * 100).toFixed(0) : 0}%
+                </div>
               </div>
             );
           })}
+        </div>
+
+        {/* Confidence quality indicator */}
+        <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+          <div className="text-sm text-gray-600">
+            Quality: {getConfidenceQuality(metrics.confidence.histogram)}
+          </div>
         </div>
       </Card>
 
@@ -201,13 +241,94 @@ export function Charts({ metrics }: ChartsProps) {
       )}
 
       {/* Notes about charts */}
-      <Card className="p-4 bg-gray-50">
+      <Card className="p-4 bg-gray-50 text-black">
         <div className="text-sm text-gray-600">
-          <p><strong>Note:</strong> These are simplified visualizations for the lab environment. 
-          In a production dashboard, you would typically use a charting library like Chart.js, 
+          <p><strong>Note:</strong> These are simplified visualizations for the lab environment.
+          In a production dashboard, you would typically use a charting library like Chart.js,
           D3.js, or Recharts for more sophisticated visualizations.</p>
         </div>
       </Card>
     </div>
   );
+}
+
+/**
+ * Calculate 95th percentile from confidence histogram
+ */
+function getP95FromHistogram(histogram: Array<{ bin: string; count: number }>): number {
+  const totalCount = histogram.reduce((sum, h) => sum + h.count, 0);
+  if (totalCount === 0) return 0;
+
+  const p95Target = totalCount * 0.95;
+  let cumulativeCount = 0;
+
+  // Sort histogram by bin value
+  const sortedHistogram = histogram
+    .map(h => ({ ...h, binValue: parseFloat(h.bin) }))
+    .sort((a, b) => a.binValue - b.binValue);
+
+  for (const bin of sortedHistogram) {
+    cumulativeCount += bin.count;
+    if (cumulativeCount >= p95Target) {
+      return bin.binValue * 100;
+    }
+  }
+
+  return 0;
+}
+
+/**
+ * Calculate confidence spread (difference between highest and lowest bins with data)
+ */
+function getConfidenceSpread(histogram: Array<{ bin: string; count: number }>): number {
+  const binsWithData = histogram.filter(h => h.count > 0);
+  if (binsWithData.length === 0) return 0;
+
+  const binValues = binsWithData.map(h => parseFloat(h.bin));
+  const min = Math.min(...binValues);
+  const max = Math.max(...binValues);
+
+  return Math.round((max - min) * 100);
+}
+
+/**
+ * Assess confidence distribution quality
+ */
+function getConfidenceQuality(histogram: Array<{ bin: string; count: number }>): string {
+  const totalTransactions = histogram.reduce((sum, h) => sum + h.count, 0);
+  if (totalTransactions === 0) return 'No data';
+
+  // Count high confidence transactions (>= 0.8)
+  const highConfidenceCount = histogram
+    .filter(h => parseFloat(h.bin) >= 0.8)
+    .reduce((sum, h) => sum + h.count, 0);
+
+  // Count medium confidence transactions (0.5 - 0.8)
+  const mediumConfidenceCount = histogram
+    .filter(h => parseFloat(h.bin) >= 0.5 && parseFloat(h.bin) < 0.8)
+    .reduce((sum, h) => sum + h.count, 0);
+
+  // Count low confidence transactions (< 0.5)
+  const lowConfidenceCount = histogram
+    .filter(h => parseFloat(h.bin) < 0.5)
+    .reduce((sum, h) => sum + h.count, 0);
+
+  const highPct = (highConfidenceCount / totalTransactions) * 100;
+  const lowPct = (lowConfidenceCount / totalTransactions) * 100;
+
+  // Check for uniform distribution (all in one bucket)
+  const maxBinCount = Math.max(...histogram.map(h => h.count));
+  const isUniform = (maxBinCount / totalTransactions) > 0.8;
+
+  if (isUniform) {
+    return '⚠️ Too uniform - lacks confidence variance';
+  } else if (highPct >= 60) {
+    return `✅ Excellent (${highPct.toFixed(0)}% high confidence)`;
+  } else if (highPct >= 40) {
+    return `👍 Good (${highPct.toFixed(0)}% high confidence)`;
+  } else if (lowPct >= 30) {
+    return `⚠️ Poor (${lowPct.toFixed(0)}% low confidence)`;
+  } else {
+    return `📊 Mixed distribution`;
+  }
 }

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { isCategorizerLabEnabled } from '@/lib/flags';
 
+// Force Node.js runtime for consistency
+export const runtime = 'nodejs';
+
 export async function GET(): Promise<NextResponse> {
   if (!isCategorizerLabEnabled()) {
     return NextResponse.json(
