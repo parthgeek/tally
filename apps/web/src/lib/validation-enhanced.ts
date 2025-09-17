@@ -27,7 +27,7 @@ const createStringSchema = (options: {
   }
 
   if (options.sanitize) {
-    schema = schema.transform(val => val.trim().replace(/[<>"`]/g, ''));
+    return schema.transform(val => val.trim().replace(/[<>"`]/g, ''));
   }
 
   return schema;
@@ -96,7 +96,7 @@ export const validators = {
   fileUpload: z.object({
     name: z.string().min(1).max(255).regex(/^[a-zA-Z0-9._-]+$/, 'Invalid filename'),
     type: z.enum(['image/jpeg', 'image/png', 'application/pdf'], {
-      errorMap: () => ({ message: 'Only JPEG, PNG, and PDF files allowed' }),
+      message: 'Only JPEG, PNG, and PDF files allowed',
     }),
     size: z.number().max(10 * 1024 * 1024, 'File too large (max 10MB)'),
   }),
@@ -393,7 +393,7 @@ export async function validateRequestBody<T>(
     if (!result.success) {
       if (logErrors) {
         console.warn('Request validation failed:', {
-          errors: result.error.errors,
+          errors: result.error.issues,
           path: request.url,
         });
       }
@@ -401,7 +401,7 @@ export async function validateRequestBody<T>(
       return {
         success: false,
         error: 'Validation failed',
-        details: result.error.errors,
+        details: result.error.issues,
       };
     }
 
@@ -472,7 +472,7 @@ export function validateQueryParams<T>(
       return {
         success: false,
         error: 'Query parameter validation failed',
-        details: result.error.errors,
+        details: result.error.issues,
       };
     }
 

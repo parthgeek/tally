@@ -193,14 +193,13 @@ describe('Redis Rate Limiting', () => {
     });
 
     test('should return dev config in development environment', () => {
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
+      vi.stubEnv('NODE_ENV', 'development');
 
       const config = getRateLimitConfig('PLAID_EXCHANGE');
 
       expect(config).toEqual(RATE_LIMITS.DEV_DEFAULT);
 
-      process.env.NODE_ENV = originalEnv;
+      vi.unstubAllEnvs();
     });
   });
 

@@ -420,14 +420,17 @@ export class SecurityMonitor {
     console.log('SECURITY_EVENT:', JSON.stringify(logEntry));
 
     // Send to application monitoring
-    captureMessage(`Security event: ${event.type}`, {
-      level: event.severity === 'critical' ? 'error' : 'warning',
-      tags: {
-        security_event: event.type,
-        severity: event.severity,
-      },
-      extra: logEntry,
-    });
+    captureMessage(
+      `Security event: ${event.type}`,
+      event.severity === 'critical' ? 'error' : 'warning',
+      {
+        tags: {
+          security_event: event.type,
+          severity: event.severity,
+        },
+        extra: logEntry,
+      }
+    );
   }
 
   /**

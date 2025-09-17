@@ -56,11 +56,14 @@ export class WebhookSecurity {
       const requestId = request.headers.get('plaid-request-id');
 
       if (!signature) {
-        return {
+        const result: WebhookVerificationResult = {
           valid: false,
           error: 'Missing Plaid signature header',
-          requestId,
         };
+        if (requestId) {
+          result.requestId = requestId;
+        }
+        return result;
       }
 
       // Environment-specific verification
@@ -70,21 +73,27 @@ export class WebhookSecurity {
       // Fail closed in production if secret is missing
       if (!webhookSecret && (plaidEnv === 'production' || plaidEnv === 'development')) {
         console.error('PLAID_WEBHOOK_SECRET required in production environment');
-        return {
+        const result: WebhookVerificationResult = {
           valid: false,
           error: 'Webhook verification not configured',
-          requestId,
         };
+        if (requestId) {
+          result.requestId = requestId;
+        }
+        return result;
       }
 
       // Skip verification in sandbox if no secret is configured
       if (!webhookSecret && plaidEnv === 'sandbox') {
         console.warn('Plaid webhook signature verification skipped in sandbox mode');
-        return {
+        const result: WebhookVerificationResult = {
           valid: true,
           source: 'plaid-sandbox',
-          requestId,
         };
+        if (requestId) {
+          result.requestId = requestId;
+        }
+        return result;
       }
 
       // Verify HMAC signature
@@ -96,11 +105,14 @@ export class WebhookSecurity {
 
       if (!isValid) {
         console.warn('Invalid Plaid webhook signature', { requestId });
-        return {
+        const result: WebhookVerificationResult = {
           valid: false,
           error: 'Invalid signature',
-          requestId,
         };
+        if (requestId) {
+          result.requestId = requestId;
+        }
+        return result;
       }
 
       // Validate payload structure
@@ -114,18 +126,24 @@ export class WebhookSecurity {
       );
 
       if (!validationResult.success) {
-        return {
+        const result: WebhookVerificationResult = {
           valid: false,
           error: 'Invalid webhook payload',
-          requestId,
         };
+        if (requestId) {
+          result.requestId = requestId;
+        }
+        return result;
       }
 
-      return {
+      const result: WebhookVerificationResult = {
         valid: true,
         source: 'plaid',
-        requestId,
       };
+      if (requestId) {
+        result.requestId = requestId;
+      }
+      return result;
 
     } catch (error) {
       console.error('Plaid webhook verification error:', error);
@@ -160,7 +178,9 @@ export class WebhookSecurity {
 
       for (const element of elements) {
         const [key, value] = element.split('=');
-        signatureElements[key] = value;
+        if (key && value) {
+          signatureElements[key] = value;
+        }
       }
 
       const timestamp = signatureElements.t;
@@ -235,11 +255,16 @@ export class WebhookSecurity {
 
       const isValid = await this.verifyHmacSha256(squareSecret, payload, signature);
 
-      return {
+      const result: WebhookVerificationResult = {
         valid: isValid,
         source: 'square',
-        error: isValid ? undefined : 'Invalid Square signature',
       };
+
+      if (!isValid) {
+        result.error = 'Invalid Square signature';
+      }
+
+      return result;
 
     } catch (error) {
       console.error('Square webhook verification error:', error);
@@ -284,8 +309,8 @@ export class WebhookSecurity {
       const value = request.headers.get(header);
       if (value) {
         // Handle comma-separated IPs (take the first one)
-        const ip = value.split(',')[0].trim();
-        if (this.isValidIP(ip)) {
+        const ip = value.split(',')[0]?.trim();
+        if (ip && this.isValidIP(ip)) {
           return ip;
         }
       }

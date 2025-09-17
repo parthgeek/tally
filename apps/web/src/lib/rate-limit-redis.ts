@@ -59,7 +59,6 @@ class ProductionRedisRateLimiter implements RedisRateLimiter {
 
   constructor(redisUrl?: string) {
     this.redis = new Redis(redisUrl || process.env.REDIS_URL || 'redis://localhost:6379', {
-      retryDelayOnFailover: 100,
       maxRetriesPerRequest: 3,
       lazyConnect: true,
       // Fail fast on connection issues for development
@@ -96,6 +95,10 @@ class ProductionRedisRateLimiter implements RedisRateLimiter {
 
   async cleanup(): Promise<void> {
     await this.redis.quit();
+  }
+
+  async ping(): Promise<void> {
+    await this.redis.ping();
   }
 }
 
@@ -173,7 +176,7 @@ class HybridRateLimiter {
 
     try {
       // Simple ping to test connectivity
-      await this.redisLimiter.redis.ping();
+      await this.redisLimiter.ping();
       this.useRedis = true;
       console.log('Redis rate limiter initialized successfully');
     } catch (error) {
