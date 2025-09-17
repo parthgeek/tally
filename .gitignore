@@ -69,3 +69,11 @@ coverage/
 # Supabase local development
 .env.local
 supabase/.temp/
+
+# Debug and test HTML files
+debug_*.html
+test_*.html
+*_debug.html
+
+# Stylelint config files (if not used)
+.stylelintrc.*

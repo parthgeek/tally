@@ -12,15 +12,34 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
-  // TypeScript configuration
+  // TypeScript configuration for main source files
   {
     files: ["**/*.ts", "**/*.tsx"],
+    ignores: ["**/*.spec.ts", "**/*.test.ts"],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
         ecmaVersion: 2022,
         sourceType: "module",
         project: ["./tsconfig.json", "./apps/*/tsconfig.json", "./packages/*/tsconfig.json"],
+      },
+    },
+    plugins: {
+      "@typescript-eslint": typescriptEslint,
+    },
+    rules: {
+      "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+      "@typescript-eslint/no-explicit-any": "warn",
+    },
+  },
+  // TypeScript configuration for test files (without project references)
+  {
+    files: ["**/*.spec.ts", "**/*.test.ts"],
+    languageOptions: {
+      parser: typescriptParser,
+      parserOptions: {
+        ecmaVersion: 2022,
+        sourceType: "module",
       },
     },
     plugins: {
@@ -50,6 +69,17 @@ const eslintConfig = [
       "**/playwright-report/**",
       "**/next-env.d.ts",
       "**/tsconfig.tsbuildinfo",
+      // Edge functions and services (no tsconfig.json)
+      "apps/edge/**",
+      "services/**",
+      "scripts/**",
+      "tests/**",
+      // Config files not in TypeScript projects
+      "**/vitest.config.ts",
+      "**/vitest.*.config.ts",
+      // Debug files
+      "debug_*.html",
+      "test_*.html",
     ],
   },
 ];
