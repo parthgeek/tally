@@ -27,3 +27,6 @@ verify_jwt = false  # Scheduled job
 
 [functions.jobs-categorize-queue]
 verify_jwt = false  # Scheduled job
+
+[functions.plaid-disconnect]
+verify_jwt = true  # User-initiated action

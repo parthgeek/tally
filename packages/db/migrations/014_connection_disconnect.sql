@@ -4,6 +4,12 @@
 -- Add disconnected_at timestamp to connections table
 ALTER TABLE connections ADD COLUMN IF NOT EXISTS disconnected_at timestamptz NULL;
 
+-- First, update any existing rows with invalid status values to valid ones
+-- This prevents the constraint violation error
+UPDATE connections 
+SET status = 'active' 
+WHERE status NOT IN ('active', 'inactive', 'error', 'pending', 'disconnected');
+
 -- Update status constraint to include 'disconnected' status
 ALTER TABLE connections DROP CONSTRAINT IF EXISTS connections_status_check;
 ALTER TABLE connections ADD CONSTRAINT connections_status_check

@@ -83,7 +83,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Call the appropriate Edge Function based on provider
-    const edgeFunctionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/plaid/disconnect`;
+    const edgeFunctionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/plaid-disconnect`;
 
     const response = await fetch(edgeFunctionUrl, {
       method: 'DELETE',

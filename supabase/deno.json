@@ -1,0 +1,26 @@
+{
+  "tasks": {
+    "test": "deno test --allow-net --allow-env --allow-read --no-check",
+    "test:watch": "deno test --allow-net --allow-env --allow-read --no-check --watch",
+    "test:coverage": "deno test --allow-net --allow-env --allow-read --no-check --coverage=coverage",
+    "test:specific": "deno test --allow-net --allow-env --allow-read --no-check"
+  },
+  "imports": {
+    "std/": "https://deno.land/std@0.168.0/",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2",
+    "@google/generative-ai": "https://esm.sh/@google/generative-ai@0.24.1"
+  },
+  "compilerOptions": {
+    "lib": ["deno.window"]
+  },
+  "fmt": {
+    "files": {
+      "include": ["./"]
+    }
+  },
+  "lint": {
+    "files": {
+      "include": ["./"]
+    }
+  }
+}

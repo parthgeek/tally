@@ -119,7 +119,7 @@ describe('DELETE /api/connections/disconnect', () => {
       expect(data.success).toBe(true);
       expect(data.message).toBe('Bank account disconnected successfully');
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/functions/v1/plaid/disconnect'),
+        expect.stringContaining('/functions/v1/plaid-disconnect'),
         expect.objectContaining({
           method: 'DELETE',
           headers: expect.objectContaining({
