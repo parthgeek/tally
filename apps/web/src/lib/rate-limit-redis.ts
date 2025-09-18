@@ -307,6 +307,9 @@ export const RATE_LIMITS = {
   PLAID_EXCHANGE: { limit: 5, windowMs: 60 * 1000 }, // 5 per minute
   PLAID_WEBHOOK: { limit: 100, windowMs: 60 * 1000 }, // 100 per minute
 
+  // Connection management - careful limits for security
+  CONNECTION_DISCONNECT: { limit: 10, windowMs: 5 * 60 * 1000 }, // 10 per 5 minutes
+
   // Financial operations - careful limits
   TRANSACTION_CORRECTION: { limit: 50, windowMs: 60 * 1000 }, // 50 per minute
   BULK_OPERATIONS: { limit: 10, windowMs: 60 * 1000 }, // 10 per minute

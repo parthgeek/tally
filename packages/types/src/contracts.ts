@@ -37,7 +37,7 @@ const connectionsListRequestSchema = z.object({
 const connectionSchema = z.object({
   id: connectionIdSchema,
   provider: z.enum(["plaid", "square", "manual"]),
-  status: z.enum(["active", "inactive", "error", "pending"]),
+  status: z.enum(["active", "inactive", "error", "pending", "disconnected"]),
   scopes: z.array(z.string()),
   createdAt: z.string().datetime(),
 });
@@ -63,6 +63,19 @@ const connectionsCreateResponseSchema = z.object({
 
 export type ConnectionsCreateRequest = z.infer<typeof connectionsCreateRequestSchema>;
 export type ConnectionsCreateResponse = z.infer<typeof connectionsCreateResponseSchema>;
+
+// DELETE /connections/disconnect
+const connectionDisconnectRequestSchema = z.object({
+  connectionId: connectionIdSchema,
+});
+
+const connectionDisconnectResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string().optional(),
+});
+
+export type ConnectionDisconnectRequest = z.infer<typeof connectionDisconnectRequestSchema>;
+export type ConnectionDisconnectResponse = z.infer<typeof connectionDisconnectResponseSchema>;
 
 // GET /transactions.list
 const transactionsListRequestSchema = z.object({
@@ -227,6 +240,8 @@ export {
   connectionsListResponseSchema,
   connectionsCreateRequestSchema,
   connectionsCreateResponseSchema,
+  connectionDisconnectRequestSchema,
+  connectionDisconnectResponseSchema,
   transactionsListRequestSchema,
   transactionsListResponseSchema,
   categorizeRunRequestSchema,

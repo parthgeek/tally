@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { ConnectBankButton } from '@/components/connect-bank-button';
+import { DisconnectBankButton } from '@/components/disconnect-bank-button';
 import { createClient } from '@/lib/supabase';
+import type { ConnectionId } from '@nexus/types/contracts';
 
 interface Account {
   id: string;
@@ -119,13 +121,25 @@ export default function ConnectionsPage() {
                   Connected {new Date(connection.created_at).toLocaleDateString()}
                 </p>
               </div>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                connection.status === 'active' 
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-red-100 text-red-800'
-              }`}>
-                {connection.status}
-              </span>
+              <div className="flex items-center gap-3">
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  connection.status === 'active'
+                    ? 'bg-green-100 text-green-800'
+                    : connection.status === 'disconnected'
+                    ? 'bg-gray-100 text-gray-800'
+                    : 'bg-red-100 text-red-800'
+                }`}>
+                  {connection.status}
+                </span>
+                {connection.status === 'active' && (
+                  <DisconnectBankButton
+                    connectionId={connection.id as ConnectionId}
+                    bankName={connection.provider}
+                    accountCount={connection.accounts.length}
+                    onSuccess={() => fetchConnections()}
+                  />
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
