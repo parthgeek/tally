@@ -88,7 +88,7 @@ class ProductionRedisRateLimiter implements RedisRateLimiter {
         resetTime: result[2],
       };
     } catch (error) {
-      console.error('Redis rate limit check failed:', error);
+      console.warn('Redis rate limit check failed, will use fallback:', error);
       throw error; // Let fallback handler catch this
     }
   }
@@ -175,8 +175,13 @@ class HybridRateLimiter {
     if (!this.redisLimiter) return;
 
     try {
-      // Simple ping to test connectivity
-      await this.redisLimiter.ping();
+      // Simple ping to test connectivity with timeout
+      await Promise.race([
+        this.redisLimiter.ping(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Redis ping timeout')), 3000)
+        )
+      ]);
       this.useRedis = true;
       console.log('Redis rate limiter initialized successfully');
     } catch (error) {
@@ -192,10 +197,12 @@ class HybridRateLimiter {
       } catch (error) {
         console.warn('Redis rate limit failed, falling back to memory:', error);
         this.useRedis = false; // Disable Redis for subsequent requests
+        // Ensure we always fallback to memory limiter on Redis failure
         return await this.memoryLimiter.checkRateLimit(config);
       }
     }
 
+    // Default to memory limiter when Redis is not available
     return await this.memoryLimiter.checkRateLimit(config);
   }
 
@@ -229,8 +236,15 @@ function getRateLimiter(): HybridRateLimiter {
  * Enhanced rate limiting with automatic Redis/memory hybrid approach
  */
 export async function checkRateLimit(config: RateLimitConfig): Promise<RateLimitResult> {
-  const limiter = getRateLimiter();
+  const limiter = getGlobalRateLimiter();
   return await limiter.checkRateLimit(config);
+}
+
+/**
+ * Get the global rate limiter instance for health checks
+ */
+export function getGlobalRateLimiter(): HybridRateLimiter {
+  return getRateLimiter();
 }
 
 /**

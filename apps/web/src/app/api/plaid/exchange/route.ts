@@ -15,15 +15,20 @@ export async function POST(request: NextRequest) {
       return createErrorResponse("Unauthorized", 401);
     }
     
-    // Apply rate limiting
-    const rateLimitKey = getRateLimitKey(request, user.id);
-    const rateLimitResult = await checkRateLimit({
-      key: rateLimitKey,
-      ...getRateLimitConfig('PLAID_EXCHANGE'),
-    });
-    
-    if (!rateLimitResult.allowed) {
-      return createRateLimitResponse(rateLimitResult.resetTime);
+    // Apply rate limiting with error recovery
+    try {
+      const rateLimitKey = getRateLimitKey(request, user.id);
+      const rateLimitResult = await checkRateLimit({
+        key: rateLimitKey,
+        ...getRateLimitConfig('PLAID_EXCHANGE'),
+      });
+
+      if (!rateLimitResult.allowed) {
+        return createRateLimitResponse(rateLimitResult.resetTime);
+      }
+    } catch (rateLimitError) {
+      console.warn('Rate limiting failed, proceeding with request:', rateLimitError);
+      // Continue without rate limiting if the rate limiter fails
     }
     
     // Get session for access token
@@ -54,7 +59,14 @@ export async function POST(request: NextRequest) {
     );
 
     if (!response.ok) {
-      throw new Error('Edge function call failed');
+      const errorText = await response.text();
+      console.error('Edge function failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+      throw new Error(`Edge function call failed: ${response.status} ${response.statusText}`);
     }
 
     const result = await response.json();

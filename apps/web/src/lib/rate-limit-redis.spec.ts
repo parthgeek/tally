@@ -246,6 +246,99 @@ describe('Redis Rate Limiting', () => {
     });
   });
 
+  describe('Redis failure scenarios', () => {
+    test('should gracefully handle Redis connection failures', async () => {
+      // Mock Redis to throw connection error
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('REDIS_URL', 'redis://invalid:6379');
+
+      const config = { key: 'test:redis-fail', limit: 2, windowMs: 60000 };
+
+      // Should not throw error, should fallback to memory
+      const result = await checkRateLimit(config);
+      expect(result.allowed).toBe(true);
+
+      vi.unstubAllEnvs();
+    });
+
+    test('should handle Redis timeout gracefully', async () => {
+      const Redis = (await import('ioredis')).default;
+      const mockRedis = new Redis();
+
+      // Mock ping to timeout
+      vi.spyOn(mockRedis, 'ping').mockImplementation(() =>
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Redis timeout')), 5000)
+        )
+      );
+
+      const config = { key: 'test:timeout', limit: 2, windowMs: 60000 };
+
+      // Should fallback to memory on timeout
+      const result = await checkRateLimit(config);
+      expect(result.allowed).toBe(true);
+    });
+
+    test('should handle Redis eval failures during rate checking', async () => {
+      const Redis = (await import('ioredis')).default;
+      const mockRedis = new Redis();
+
+      // Mock successful ping but failing eval
+      vi.spyOn(mockRedis, 'ping').mockResolvedValue('PONG');
+      vi.spyOn(mockRedis, 'eval').mockRejectedValue(new Error('Redis eval failed'));
+
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('REDIS_URL', 'redis://localhost:6379');
+
+      const config = { key: 'test:eval-fail', limit: 2, windowMs: 60000 };
+
+      // Should fallback to memory when eval fails
+      const result = await checkRateLimit(config);
+      expect(result.allowed).toBe(true);
+
+      vi.unstubAllEnvs();
+    });
+
+    test('should disable Redis permanently after multiple failures', async () => {
+      const Redis = (await import('ioredis')).default;
+      const mockRedis = new Redis();
+
+      // Mock Redis to always fail
+      vi.spyOn(mockRedis, 'eval').mockRejectedValue(new Error('Connection lost'));
+
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('REDIS_URL', 'redis://localhost:6379');
+
+      const config = { key: 'test:permanent-fail', limit: 2, windowMs: 60000 };
+
+      // First request should attempt Redis and fallback
+      const result1 = await checkRateLimit(config);
+      expect(result1.allowed).toBe(true);
+
+      // Subsequent requests should use memory directly
+      const result2 = await checkRateLimit(config);
+      expect(result2.allowed).toBe(true);
+
+      const result3 = await checkRateLimit(config);
+      expect(result3.allowed).toBe(false); // Memory limit reached
+
+      vi.unstubAllEnvs();
+    });
+
+    test('should handle network DNS resolution failures', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('REDIS_URL', 'redis://redis.railway.internal:6379');
+
+      const config = { key: 'test:dns-fail', limit: 2, windowMs: 60000 };
+
+      // Should not crash on DNS failure, should use memory fallback
+      const result = await checkRateLimit(config);
+      expect(result.allowed).toBe(true);
+
+      vi.unstubAllEnvs();
+    });
+  });
+
   describe('Edge cases', () => {
     test('should handle zero limit gracefully', async () => {
       const config = { key: 'test:zero', limit: 0, windowMs: 60000 };
