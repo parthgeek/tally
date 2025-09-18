@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const linkToken = await createLinkToken({
       userId,
       orgId,
-      webhookUrl: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/plaid/webhook`,
+      webhookUrl: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/plaid-webhook`,
     });
 
     return Response.json({ linkToken });

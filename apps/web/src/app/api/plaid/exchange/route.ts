@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     
     // Proxy to Edge Function with session token
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/plaid/exchange`,
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/plaid-exchange`,
       {
         method: 'POST',
         headers: {
