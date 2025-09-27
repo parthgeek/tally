@@ -27,7 +27,7 @@ export interface TransactionsFilterChangedProps {
  */
 export interface TransactionCategoryCorrectedProps {
   old_category_id: string | null;
-  new_category_id: string;
+  new_category_id: string | null;
   confidence: number | null;
   tx_amount_cents: number;
   org_id: string;

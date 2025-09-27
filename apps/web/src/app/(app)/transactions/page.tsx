@@ -395,7 +395,7 @@ export default function TransactionsPage() {
     try {
       const { data, error } = await supabase
         .from('categories')
-        .select('id, name')
+        .select('id, name, org_id')
         .or(`org_id.is.null,org_id.eq.${currentOrgId}`)
         .order('name');
 
@@ -404,7 +404,24 @@ export default function TransactionsPage() {
         return;
       }
 
-      setCategories(data || []);
+      // Deduplicate categories, prioritizing org-specific categories over global ones
+      const categoriesMap = new Map<string, { category: Category; orgSpecific: boolean }>();
+      (data || []).forEach((category: any) => {
+        const existing = categoriesMap.get(category.name);
+        const isOrgSpecific = category.org_id === currentOrgId;
+
+        if (!existing || (isOrgSpecific && !existing.orgSpecific)) {
+          categoriesMap.set(category.name, {
+            category: { id: category.id, name: category.name },
+            orgSpecific: isOrgSpecific
+          });
+        }
+      });
+
+      const deduplicatedCategories = Array.from(categoriesMap.values())
+        .map(item => item.category)
+        .sort((a, b) => a.name.localeCompare(b.name));
+      setCategories(deduplicatedCategories);
     } catch (error) {
       console.error('Failed to fetch categories:', error);
     }
@@ -609,7 +626,9 @@ export default function TransactionsPage() {
                             disabled={isUpdating}
                           >
                             <SelectTrigger className="h-8 text-xs min-w-[120px]">
-                              <SelectValue placeholder="Uncategorized" />
+                              <SelectValue>
+                                {transaction.category_name || "Uncategorized"}
+                              </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="__none__">Uncategorized</SelectItem>
