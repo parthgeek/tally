@@ -78,6 +78,7 @@ export default function TransactionsPage() {
   const [shownLowConfWarnings, setShownLowConfWarnings] = useState<Set<string>>(new Set());
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentOrgId, setCurrentOrgId] = useState<string | null>(null);
+  const [categorizingTransactions, setCategorizingTransactions] = useState(false);
 
   const supabase = createClient();
   const posthog = getPosthogClientBrowser();
@@ -301,6 +302,45 @@ export default function TransactionsPage() {
     fetchTransactions();
     fetchCategories();
   }, []);
+
+  const runCategorization = useCallback(async () => {
+    if (!currentOrgId || categorizingTransactions) return;
+
+    setCategorizingTransactions(true);
+
+    try {
+      const response = await fetch('/api/categorize/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to run categorization');
+      }
+
+      const result = await response.json();
+
+      toast({
+        title: "Categorization Complete",
+        description: result.message || `Processed ${result.processed || 0} transactions`,
+      });
+
+      // Refresh the data to show updated categories
+      fetchTransactions();
+
+    } catch (error) {
+      console.error('Failed to run categorization:', error);
+      toast({
+        title: "Error",
+        description: "Failed to run categorization. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setCategorizingTransactions(false);
+    }
+  }, [currentOrgId, categorizingTransactions, toast]);
 
   // Track low confidence warnings shown
   useEffect(() => {
@@ -567,6 +607,13 @@ export default function TransactionsPage() {
             <div className="flex space-x-2">
               <Button variant="outline" onClick={clearFilters}>Clear Filters</Button>
               <Button variant="outline" onClick={refreshData}>Refresh</Button>
+              <Button
+                variant="outline"
+                onClick={runCategorization}
+                disabled={categorizingTransactions}
+              >
+                {categorizingTransactions ? 'Categorizing...' : 'Run Categorization'}
+              </Button>
             </div>
           </div>
         </div>

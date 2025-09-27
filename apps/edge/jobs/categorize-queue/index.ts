@@ -178,11 +178,13 @@ async function runPass1Categorization(supabase: any, tx: any, orgId: string): Pr
   const rationale: string[] = [];
   let bestCandidate: { categoryId?: string; confidence: number } = { confidence: 0 };
 
-  // MCC mapping (simplified)
+  // MCC mapping (e-commerce focused)
   const mccMappings: Record<string, { categoryId: string; confidence: number; name: string }> = {
-    '7230': { categoryId: '550e8400-e29b-41d4-a716-446655440002', confidence: 0.9, name: 'Hair Services' },
-    '7298': { categoryId: '550e8400-e29b-41d4-a716-446655440004', confidence: 0.9, name: 'Skin Care Services' },
-    '5912': { categoryId: '550e8400-e29b-41d4-a716-446655440012', confidence: 0.85, name: 'Supplies & Inventory' },
+    '5912': { categoryId: '550e8400-e29b-41d4-a716-446655440201', confidence: 0.85, name: 'Inventory Purchases' },
+    '5999': { categoryId: '550e8400-e29b-41d4-a716-446655440201', confidence: 0.8, name: 'Inventory Purchases' },
+    '7372': { categoryId: '550e8400-e29b-41d4-a716-446655440351', confidence: 0.9, name: 'Software (General)' },
+    '4814': { categoryId: '550e8400-e29b-41d4-a716-446655440357', confidence: 0.85, name: 'Travel & Transportation' },
+    '5541': { categoryId: '550e8400-e29b-41d4-a716-446655440358', confidence: 0.9, name: 'Bank Fees' },
   };
 
   if (tx.mcc && mccMappings[tx.mcc]) {
@@ -191,15 +193,71 @@ async function runPass1Categorization(supabase: any, tx: any, orgId: string): Pr
     rationale.push(`mcc: ${tx.mcc} → ${mapping.name}`);
   }
 
-  // Pattern matching (simplified)
+  // Pattern matching for e-commerce (simplified)
   const description = tx.description?.toLowerCase() || '';
+  const merchantName = tx.merchant_name?.toLowerCase() || '';
+
+  // E-commerce specific patterns
   if (description.includes('rent') || description.includes('lease')) {
     if (0.75 > bestCandidate.confidence) {
-      bestCandidate = { 
-        categoryId: '550e8400-e29b-41d4-a716-446655440011', 
-        confidence: 0.75 
+      bestCandidate = {
+        categoryId: '550e8400-e29b-41d4-a716-446655440353',
+        confidence: 0.75
       };
       rationale.push('pattern: rent/lease → Rent & Utilities');
+    }
+  }
+
+  // Payment processing patterns
+  if (merchantName.includes('stripe') || description.includes('stripe')) {
+    if (0.85 > bestCandidate.confidence) {
+      bestCandidate = {
+        categoryId: '550e8400-e29b-41d4-a716-446655440311',
+        confidence: 0.85
+      };
+      rationale.push('pattern: stripe → Stripe Fees');
+    }
+  }
+
+  if (merchantName.includes('paypal') || description.includes('paypal')) {
+    if (0.85 > bestCandidate.confidence) {
+      bestCandidate = {
+        categoryId: '550e8400-e29b-41d4-a716-446655440312',
+        confidence: 0.85
+      };
+      rationale.push('pattern: paypal → PayPal Fees');
+    }
+  }
+
+  // Marketing/Ads patterns
+  if (merchantName.includes('google ads') || merchantName.includes('google adwords')) {
+    if (0.9 > bestCandidate.confidence) {
+      bestCandidate = {
+        categoryId: '550e8400-e29b-41d4-a716-446655440322',
+        confidence: 0.9
+      };
+      rationale.push('pattern: google ads → Google Ads');
+    }
+  }
+
+  if (merchantName.includes('facebook') || merchantName.includes('meta')) {
+    if (0.9 > bestCandidate.confidence) {
+      bestCandidate = {
+        categoryId: '550e8400-e29b-41d4-a716-446655440321',
+        confidence: 0.9
+      };
+      rationale.push('pattern: facebook/meta → Meta Ads');
+    }
+  }
+
+  // Shopify platform
+  if (merchantName.includes('shopify') || description.includes('shopify')) {
+    if (0.85 > bestCandidate.confidence) {
+      bestCandidate = {
+        categoryId: '550e8400-e29b-41d4-a716-446655440331',
+        confidence: 0.85
+      };
+      rationale.push('pattern: shopify → Shopify Platform');
     }
   }
 
