@@ -18,314 +18,324 @@ export interface VendorPattern {
 }
 
 /**
- * Known merchant patterns with high-confidence categorization
+ * Known merchant patterns with high-confidence categorization for e-commerce
  * Ordered by priority (higher priority patterns checked first)
+ * 
+ * IMPORTANT: Ambiguous vendors (Stripe, PayPal, Shopify, Square) removed
+ * These are handled by compound rules in database (vendor + keywords)
+ * to distinguish between fees, payouts, and subscriptions
  */
 export const VENDOR_PATTERNS: VendorPattern[] = [
-  // === High-priority exact matches ===
-  {
-    pattern: 'square inc',
-    matchType: 'exact',
-    categoryId: '550e8400-e29b-41d4-a716-446655440019' as CategoryId,
-    categoryName: 'Banking & Fees',
-    confidence: 0.95,
-    priority: 100
-  },
-  {
-    pattern: 'square',
-    matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440019' as CategoryId,
-    categoryName: 'Banking & Fees',
-    confidence: 0.90,
-    priority: 100
-  },
-  {
-    pattern: 'paypal',
-    matchType: 'exact', 
-    categoryId: '550e8400-e29b-41d4-a716-446655440019' as CategoryId,
-    categoryName: 'Banking & Fees',
-    confidence: 0.95,
-    priority: 100
-  },
-  {
-    pattern: 'stripe',
-    matchType: 'exact',
-    categoryId: '550e8400-e29b-41d4-a716-446655440019' as CategoryId,
-    categoryName: 'Banking & Fees',
-    confidence: 0.95,
-    priority: 100
-  },
-
-  // === Software & Technology (High priority) ===
+  // === Software & Technology (Unambiguous SaaS) ===
   {
     pattern: 'adobe',
     matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440020' as CategoryId,
-    categoryName: 'Software & Technology',
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
     confidence: 0.92,
     priority: 95
   },
   {
     pattern: 'microsoft',
     matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440020' as CategoryId,
-    categoryName: 'Software & Technology',
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
     confidence: 0.92,
-    priority: 95
-  },
-  {
-    pattern: 'google',
-    matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440020' as CategoryId,
-    categoryName: 'Software & Technology',
-    confidence: 0.90,
     priority: 95
   },
   {
     pattern: 'canva',
     matchType: 'exact',
-    categoryId: '550e8400-e29b-41d4-a716-446655440020' as CategoryId,
-    categoryName: 'Software & Technology',
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
     confidence: 0.95,
     priority: 95
   },
   {
     pattern: 'squarespace',
     matchType: 'exact',
-    categoryId: '550e8400-e29b-41d4-a716-446655440020' as CategoryId,
-    categoryName: 'Software & Technology',
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
     confidence: 0.95,
     priority: 100
   },
   {
-    pattern: 'shopify',
+    pattern: 'wix',
     matchType: 'exact',
-    categoryId: '550e8400-e29b-41d4-a716-446655440020' as CategoryId,
-    categoryName: 'Software & Technology',
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
+    confidence: 0.95,
+    priority: 100
+  },
+  {
+    pattern: 'zoom',
+    matchType: 'exact',
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
+    confidence: 0.92,
+    priority: 90
+  },
+  {
+    pattern: 'slack',
+    matchType: 'exact',
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
+    confidence: 0.95,
+    priority: 90
+  },
+  {
+    pattern: 'asana',
+    matchType: 'exact',
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
+    confidence: 0.95,
+    priority: 90
+  },
+
+  // === Marketing & Advertising Platforms (Unambiguous) ===
+  {
+    pattern: 'facebook ads',
+    matchType: 'contains',
+    categoryId: '550e8400-e29b-41d4-a716-446655440303' as CategoryId,
+    categoryName: 'Marketing & Ads',
+    confidence: 0.93,
+    priority: 95
+  },
+  {
+    pattern: 'meta for business',
+    matchType: 'contains',
+    categoryId: '550e8400-e29b-41d4-a716-446655440303' as CategoryId,
+    categoryName: 'Marketing & Ads',
+    confidence: 0.93,
+    priority: 95
+  },
+  {
+    pattern: 'google ads',
+    matchType: 'contains',
+    categoryId: '550e8400-e29b-41d4-a716-446655440303' as CategoryId,
+    categoryName: 'Marketing & Ads',
+    confidence: 0.93,
+    priority: 95
+  },
+  {
+    pattern: 'tiktok ads',
+    matchType: 'contains',
+    categoryId: '550e8400-e29b-41d4-a716-446655440303' as CategoryId,
+    categoryName: 'Marketing & Ads',
+    confidence: 0.93,
+    priority: 95
+  },
+  {
+    pattern: 'pinterest ads',
+    matchType: 'contains',
+    categoryId: '550e8400-e29b-41d4-a716-446655440303' as CategoryId,
+    categoryName: 'Marketing & Ads',
+    confidence: 0.92,
+    priority: 90
+  },
+
+  // === Shipping Carriers (COGS - Shipping & Postage) ===
+  {
+    pattern: 'usps',
+    matchType: 'contains',
+    categoryId: '550e8400-e29b-41d4-a716-446655440207' as CategoryId,
+    categoryName: 'Shipping & Postage',
+    confidence: 0.93,
+    priority: 95
+  },
+  {
+    pattern: 'fedex',
+    matchType: 'contains',
+    categoryId: '550e8400-e29b-41d4-a716-446655440207' as CategoryId,
+    categoryName: 'Shipping & Postage',
+    confidence: 0.93,
+    priority: 95
+  },
+  {
+    pattern: 'ups',
+    matchType: 'contains',
+    categoryId: '550e8400-e29b-41d4-a716-446655440207' as CategoryId,
+    categoryName: 'Shipping & Postage',
+    confidence: 0.93,
+    priority: 95
+  },
+  {
+    pattern: 'dhl',
+    matchType: 'contains',
+    categoryId: '550e8400-e29b-41d4-a716-446655440207' as CategoryId,
+    categoryName: 'Shipping & Postage',
+    confidence: 0.92,
+    priority: 95
+  },
+
+  // === 3PL & Fulfillment (Operations & Logistics) ===
+  {
+    pattern: 'shipbob',
+    matchType: 'contains',
+    categoryId: '550e8400-e29b-41d4-a716-446655440306' as CategoryId,
+    categoryName: 'Operations & Logistics',
+    confidence: 0.95,
+    priority: 95
+  },
+  {
+    pattern: 'shipmonk',
+    matchType: 'contains',
+    categoryId: '550e8400-e29b-41d4-a716-446655440306' as CategoryId,
+    categoryName: 'Operations & Logistics',
+    confidence: 0.95,
+    priority: 95
+  },
+  {
+    pattern: 'deliverr',
+    matchType: 'contains',
+    categoryId: '550e8400-e29b-41d4-a716-446655440306' as CategoryId,
+    categoryName: 'Operations & Logistics',
     confidence: 0.95,
     priority: 95
   },
 
-  // === Beauty Supply Vendors ===
+  // === Email/SMS Marketing Tools ===
   {
-    pattern: 'sally beauty',
-    matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440012' as CategoryId,
-    categoryName: 'Supplies & Inventory',
-    confidence: 0.95,
-    priority: 90
-  },
-  {
-    pattern: 'cosmoprof',
-    matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440012' as CategoryId,
-    categoryName: 'Supplies & Inventory',
-    confidence: 0.95,
-    priority: 90
-  },
-  {
-    pattern: 'olaplex',
-    matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440012' as CategoryId,
-    categoryName: 'Supplies & Inventory',
-    confidence: 0.95,
-    priority: 90
-  },
-  {
-    pattern: 'redken',
-    matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440012' as CategoryId,
-    categoryName: 'Supplies & Inventory',
-    confidence: 0.95,
-    priority: 90
-  },
-  {
-    pattern: 'loreal',
-    matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440012' as CategoryId,
-    categoryName: 'Supplies & Inventory',
-    confidence: 0.90,
-    priority: 90
-  },
-
-  // === Utilities & Telecommunications ===
-  {
-    pattern: 'verizon',
-    matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440011' as CategoryId,
-    categoryName: 'Rent & Utilities',
-    confidence: 0.92,
-    priority: 85
-  },
-  {
-    pattern: 'att',
-    matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440011' as CategoryId,
-    categoryName: 'Rent & Utilities',
-    confidence: 0.90,
-    priority: 85
-  },
-  {
-    pattern: 't-mobile',
-    matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440011' as CategoryId,
-    categoryName: 'Rent & Utilities',
-    confidence: 0.90,
-    priority: 85
-  },
-  {
-    pattern: 'comcast',
-    matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440011' as CategoryId,
-    categoryName: 'Rent & Utilities',
-    confidence: 0.92,
-    priority: 85
-  },
-
-  // === Fuel & Automotive ===
-  {
-    pattern: 'shell',
-    matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440009' as CategoryId,
-    categoryName: 'Vehicle & Travel',
-    confidence: 0.90,
-    priority: 80
-  },
-  {
-    pattern: 'chevron',
-    matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440009' as CategoryId,
-    categoryName: 'Vehicle & Travel',
-    confidence: 0.90,
-    priority: 80
-  },
-  {
-    pattern: 'exxon',
-    matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440009' as CategoryId,
-    categoryName: 'Vehicle & Travel',
-    confidence: 0.90,
-    priority: 80
-  },
-  {
-    pattern: 'mobil',
-    matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440009' as CategoryId,
-    categoryName: 'Vehicle & Travel',
-    confidence: 0.90,
-    priority: 80
-  },
-  {
-    pattern: 'bp',
+    pattern: 'klaviyo',
     matchType: 'exact',
-    categoryId: '550e8400-e29b-41d4-a716-446655440009' as CategoryId,
-    categoryName: 'Vehicle & Travel',
-    confidence: 0.85,
-    priority: 80
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
+    confidence: 0.95,
+    priority: 90
+  },
+  {
+    pattern: 'mailchimp',
+    matchType: 'exact',
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
+    confidence: 0.95,
+    priority: 90
+  },
+  {
+    pattern: 'attentive',
+    matchType: 'exact',
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
+    confidence: 0.92,
+    priority: 90
+  },
+  {
+    pattern: 'postscript',
+    matchType: 'exact',
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
+    confidence: 0.92,
+    priority: 90
   },
 
-  // === Office & Retail Supplies ===
+  // === General & Administrative ===
+  {
+    pattern: 'quickbooks',
+    matchType: 'contains',
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
+    confidence: 0.95,
+    priority: 90
+  },
+  {
+    pattern: 'gusto',
+    matchType: 'exact',
+    categoryId: '550e8400-e29b-41d4-a716-446655440305' as CategoryId,
+    categoryName: 'Labor',
+    confidence: 0.95,
+    priority: 95
+  },
+  {
+    pattern: 'rippling',
+    matchType: 'exact',
+    categoryId: '550e8400-e29b-41d4-a716-446655440305' as CategoryId,
+    categoryName: 'Labor',
+    confidence: 0.95,
+    priority: 95
+  },
   {
     pattern: 'staples',
     matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440010' as CategoryId,
-    categoryName: 'Office & Admin',
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
     confidence: 0.85,
     priority: 75
   },
   {
     pattern: 'office depot',
     matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440010' as CategoryId,
-    categoryName: 'Office & Admin',
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
     confidence: 0.85,
     priority: 75
-  },
-  {
-    pattern: 'costco',
-    matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440012' as CategoryId,
-    categoryName: 'Supplies & Inventory',
-    confidence: 0.70,
-    priority: 70
-  },
-  {
-    pattern: 'amazon',
-    matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440012' as CategoryId,
-    categoryName: 'Supplies & Inventory',
-    confidence: 0.60, // Lower confidence due to ambiguity
-    priority: 50
-  },
-
-  // === Food & Business Meals ===
-  {
-    pattern: 'starbucks',
-    matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440007' as CategoryId,
-    categoryName: 'Business Meals',
-    confidence: 0.75,
-    priority: 70
-  },
-  {
-    pattern: 'dunkin',
-    matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440007' as CategoryId,
-    categoryName: 'Business Meals',
-    confidence: 0.75,
-    priority: 70
-  },
-
-  // === Marketing & Advertising ===
-  {
-    pattern: 'facebook',
-    matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440015' as CategoryId,
-    categoryName: 'Marketing & Advertising',
-    confidence: 0.90,
-    priority: 85
-  },
-  {
-    pattern: 'meta',
-    matchType: 'exact',
-    categoryId: '550e8400-e29b-41d4-a716-446655440015' as CategoryId,
-    categoryName: 'Marketing & Advertising',
-    confidence: 0.90,
-    priority: 85
-  },
-  {
-    pattern: 'instagram',
-    matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440015' as CategoryId,
-    categoryName: 'Marketing & Advertising',
-    confidence: 0.90,
-    priority: 85
   },
 
   // === Insurance ===
   {
     pattern: 'state farm',
     matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440017' as CategoryId,
-    categoryName: 'Insurance',
-    confidence: 0.95,
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
+    confidence: 0.93,
     priority: 90
   },
   {
     pattern: 'allstate',
     matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440017' as CategoryId,
-    categoryName: 'Insurance',
-    confidence: 0.95,
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
+    confidence: 0.93,
     priority: 90
   },
   {
     pattern: 'geico',
     matchType: 'contains',
-    categoryId: '550e8400-e29b-41d4-a716-446655440017' as CategoryId,
-    categoryName: 'Insurance',
-    confidence: 0.95,
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
+    confidence: 0.93,
     priority: 90
+  },
+
+  // === Miscellaneous (Travel, Meals) ===
+  {
+    pattern: 'starbucks',
+    matchType: 'contains',
+    categoryId: '550e8400-e29b-41d4-a716-446655440308' as CategoryId,
+    categoryName: 'Miscellaneous',
+    confidence: 0.75,
+    priority: 70
+  },
+  {
+    pattern: 'dunkin',
+    matchType: 'contains',
+    categoryId: '550e8400-e29b-41d4-a716-446655440308' as CategoryId,
+    categoryName: 'Miscellaneous',
+    confidence: 0.75,
+    priority: 70
+  },
+  {
+    pattern: 'shell',
+    matchType: 'contains',
+    categoryId: '550e8400-e29b-41d4-a716-446655440308' as CategoryId,
+    categoryName: 'Miscellaneous',
+    confidence: 0.80,
+    priority: 75
+  },
+  {
+    pattern: 'chevron',
+    matchType: 'contains',
+    categoryId: '550e8400-e29b-41d4-a716-446655440308' as CategoryId,
+    categoryName: 'Miscellaneous',
+    confidence: 0.80,
+    priority: 75
+  },
+  {
+    pattern: 'exxon',
+    matchType: 'contains',
+    categoryId: '550e8400-e29b-41d4-a716-446655440308' as CategoryId,
+    categoryName: 'Miscellaneous',
+    confidence: 0.80,
+    priority: 75
   }
 ];
 

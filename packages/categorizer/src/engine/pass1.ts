@@ -2,7 +2,7 @@ import type { NormalizedTransaction, CategorizationResult, CategorizationContext
 import { getMCCMapping } from '../rules/mcc.js';
 import { matchVendorPattern, normalizeVendorName } from '../rules/vendors.js';
 import { getBestKeywordMatch } from '../rules/keywords.js';
-import { createSignal, scoreSignals, calibrateConfidence, type CategorizationSignal } from './scorer.js';
+import { createSignal, scoreSignals, calibrateConfidence, applyAmountHeuristics, type CategorizationSignal } from './scorer.js';
 import { applyGuardrails, createUncertainResult, DEFAULT_GUARDRAIL_CONFIG, type GuardrailConfig } from './guardrails.js';
 
 /**
@@ -195,10 +195,23 @@ export async function pass1Categorize(
       
       if (guardrailResult.allowed && guardrailResult.finalCategory) {
         // Calibrate confidence to avoid uniform distributions
-        const calibratedConfidence = calibrateConfidence(
+        let calibratedConfidence = calibrateConfidence(
           guardrailResult.finalConfidence || scoringResult.bestCategory.confidence,
           signals.length
         );
+
+        // Apply amount-based heuristics to further refine confidence
+        const amountHeuristic = applyAmountHeuristics(
+          transaction.amountCents,
+          guardrailResult.finalCategory,
+          transaction.merchantName
+        );
+        
+        // Apply the heuristic modifier (capped at reasonable range)
+        if (amountHeuristic.modifier !== 0) {
+          calibratedConfidence = Math.min(0.98, Math.max(0.05, calibratedConfidence + amountHeuristic.modifier));
+          scoringResult.rationale.push(`amount_heuristic: ${amountHeuristic.reason}`);
+        }
 
         finalResult = {
           categoryId: guardrailResult.finalCategory,

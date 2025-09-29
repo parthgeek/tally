@@ -45,13 +45,15 @@ export interface ScoringResult {
 
 /**
  * Weights for different signal types in score aggregation
+ * Updated for e-commerce context where vendor+keyword combinations
+ * are often more reliable than MCC alone
  */
 const SIGNAL_WEIGHTS = {
-  mcc: 4.0,      // Strong foundation signal
-  vendor: 3.5,   // High confidence for known vendors
-  keyword: 2.0,  // Medium confidence, domain-dependent
-  pattern: 1.5,  // Lower confidence, more generic
-  embedding: 1.0 // Boost only, not standalone
+  mcc: 4.5,      // Increased - now e-commerce-specific MCCs
+  vendor: 4.0,   // Increased - now context-aware (no ambiguous patterns)
+  keyword: 2.5,  // Increased - now e-commerce-specific keywords
+  pattern: 1.5,  // Unchanged - still lower confidence
+  embedding: 1.0 // Unchanged - boost only, not standalone
 } as const;
 
 /**
@@ -134,11 +136,28 @@ function aggregateSignalsForCategory(signals: CategorizationSignal[]): CategoryS
   // Normalized score based on weights
   const normalizedScore = totalWeight > 0 ? totalWeightedScore / totalWeight : 0;
 
+  // NEW: Compound signal bonus - reward high-value signal combinations
+  const signalTypes = new Set(signals.map(s => s.type));
+  let compoundBonus = 0;
+  
+  // Strong combinations that dramatically increase confidence
+  if (signalTypes.has('mcc') && signalTypes.has('vendor')) {
+    compoundBonus += 0.12; // MCC + Vendor is very strong
+  } else if (signalTypes.has('vendor') && signalTypes.has('keyword')) {
+    compoundBonus += 0.10; // Vendor + Keyword is strong
+  } else if (signalTypes.has('mcc') && signalTypes.has('keyword')) {
+    compoundBonus += 0.08; // MCC + Keyword is good
+  }
+  
+  // Additional bonus for 3+ distinct signal types
+  if (signalTypes.size >= 3) {
+    compoundBonus += 0.05;
+  }
+
   // Confidence calculation: blend of max confidence and normalized score with signal count bonus
   const signalCountBonus = Math.min(0.15, (signals.length - 1) * 0.05); // Max 15% bonus for multiple signals
-  const blendedConfidence = Math.min(0.98, 
-    (maxConfidence * 0.7 + normalizedScore * 0.3) + signalCountBonus
-  );
+  const baseConfidence = (maxConfidence * 0.7 + normalizedScore * 0.3);
+  const blendedConfidence = Math.min(0.98, baseConfidence + signalCountBonus + compoundBonus);
 
   // Find the dominant (highest confidence) signal
   const dominantSignal = signals.reduce((best, current) => 
@@ -234,6 +253,11 @@ export function scoreSignals(signals: CategorizationSignal[]): ScoringResult {
 /**
  * Calibrates confidence score to avoid uniform distributions
  * Maps internal confidence to calibrated output confidence using non-linear scaling
+ * 
+ * Strategy:
+ * - Preserve high-confidence signals (0.90+) with minimal compression
+ * - Apply sigmoid transformation to medium/low confidence (< 0.90)
+ * - Add signal count bonus to reward multiple confirming signals
  */
 export function calibrateConfidence(internalConfidence: number, signalCount: number): number {
   // Edge case: When both confidence and signal count are zero, return 0 to indicate
@@ -247,16 +271,23 @@ export function calibrateConfidence(internalConfidence: number, signalCount: num
   // Cap maximum confidence to prevent overconfident predictions
   if (internalConfidence >= 0.98) return 0.98;
 
-  // Apply sigmoid-like transformation to create non-linear distribution
-  // This helps avoid uniform confidence values
-  const x = (internalConfidence - 0.5) * 6; // Scale input to roughly [-3, 3]
+  // NEW: Preserve high-confidence zone (0.90+) with minimal compression
+  // These are strong signals that should reach auto-apply threshold
+  if (internalConfidence >= 0.90) {
+    const signalBonus = Math.min(0.03, Math.log(signalCount + 1) * 0.02);
+    return Math.min(0.98, internalConfidence + signalBonus);
+  }
+
+  // Apply sigmoid transformation only to medium/low confidence (< 0.90)
+  // This creates better separation between weak and moderate signals
+  const x = (internalConfidence - 0.45) * 6; // Shift center slightly lower to 0.45
   const sigmoid = 1 / (1 + Math.exp(-x));
   
   // Apply signal count bonus (more signals = higher confidence)
   const signalBonus = Math.min(0.1, Math.log(signalCount + 1) * 0.05);
   
-  // Map sigmoid output to [0.1, 0.95] range with bonus
-  const calibrated = 0.1 + (sigmoid * 0.85) + signalBonus;
+  // Map sigmoid output to [0.1, 0.85] range with bonus (max 0.95 with bonus)
+  const calibrated = 0.1 + (sigmoid * 0.75) + signalBonus;
   
   return Math.min(0.98, Math.max(0.05, calibrated));
 }
@@ -303,4 +334,109 @@ export function getConfidenceDistribution(scores: CategoryScore[]): {
   }
 
   return { mean, median, std, range, bins };
+}
+
+/**
+ * Amount-based heuristics for confidence adjustment
+ * Uses transaction amount patterns to refine categorization
+ */
+
+interface AmountHeuristic {
+  modifier: number; // Confidence adjustment (-0.2 to +0.2)
+  reason: string;
+}
+
+/**
+ * Applies amount-based heuristics to adjust confidence
+ * Returns a modifier (-0.2 to +0.2) and reason
+ */
+export function applyAmountHeuristics(
+  amountCents: string,
+  categoryId: CategoryId,
+  merchantName?: string
+): AmountHeuristic {
+  const amount = Math.abs(parseInt(amountCents, 10)) / 100; // Convert to dollars
+  
+  // Payment Processing Fees (typically small amounts)
+  if (categoryId === '550e8400-e29b-41d4-a716-446655440301' as CategoryId) {
+    if (amount < 1.00) {
+      return { modifier: +0.15, reason: 'Very small amount typical of processing fees' };
+    } else if (amount < 10.00) {
+      return { modifier: +0.10, reason: 'Small amount consistent with processing fees' };
+    } else if (amount > 100.00) {
+      return { modifier: -0.10, reason: 'Large amount unusual for processing fees' };
+    }
+  }
+
+  // Refunds (negative amounts or "refund" in name)
+  if (categoryId === '550e8400-e29b-41d4-a716-446655440105' as CategoryId) {
+    if (parseInt(amountCents, 10) < 0) {
+      return { modifier: +0.15, reason: 'Negative amount strongly indicates refund' };
+    }
+    // Positive amounts for refunds are less certain
+    if (parseInt(amountCents, 10) > 0 && amount > 1000.00) {
+      return { modifier: -0.08, reason: 'Large positive amount less typical for refund processing' };
+    }
+  }
+
+  // Payouts & Clearing (typically large positive amounts)
+  if (categoryId === '550e8400-e29b-41d4-a716-446655440503' as CategoryId) {
+    if (amount > 1000.00) {
+      return { modifier: +0.12, reason: 'Large amount typical of payout/settlement' };
+    } else if (amount < 100.00) {
+      return { modifier: -0.10, reason: 'Small amount unusual for payouts' };
+    }
+  }
+
+  // Supplier Purchases (typically medium to large amounts)
+  if (categoryId === '550e8400-e29b-41d4-a716-446655440205' as CategoryId) {
+    if (amount > 500.00) {
+      return { modifier: +0.08, reason: 'Large amount consistent with wholesale/supplier purchase' };
+    } else if (amount < 50.00) {
+      return { modifier: -0.08, reason: 'Small amount less typical for supplier purchases' };
+    }
+  }
+
+  // Shipping & Postage (typically small to medium amounts)
+  if (categoryId === '550e8400-e29b-41d4-a716-446655440207' as CategoryId) {
+    if (amount >= 5.00 && amount <= 200.00) {
+      return { modifier: +0.08, reason: 'Amount typical for shipping costs' };
+    } else if (amount > 500.00) {
+      return { modifier: -0.10, reason: 'Large amount unusual for individual shipping' };
+    }
+  }
+
+  // Marketing & Ads (can be any size, but patterns exist)
+  if (categoryId === '550e8400-e29b-41d4-a716-446655440303' as CategoryId) {
+    // Round numbers often indicate ad spend budgets
+    if (amount >= 100 && amount % 100 === 0) {
+      return { modifier: +0.05, reason: 'Round amount typical of ad spend budgets' };
+    }
+  }
+
+  // Software Subscriptions (typically recurring round amounts)
+  if (categoryId === '550e8400-e29b-41d4-a716-446655440304' as CategoryId) {
+    // Common subscription amounts: $9, $19, $29, $49, $99, etc.
+    const commonPrices = [9, 19, 29, 39, 49, 59, 79, 99, 149, 199, 299];
+    if (commonPrices.some(price => Math.abs(amount - price) < 0.50)) {
+      return { modifier: +0.10, reason: 'Amount matches common SaaS pricing tiers' };
+    }
+  }
+
+  // Labor/Payroll (typically larger round amounts)
+  if (categoryId === '550e8400-e29b-41d4-a716-446655440305' as CategoryId) {
+    if (amount > 500.00 && (amount % 100 === 0 || amount % 50 === 0)) {
+      return { modifier: +0.08, reason: 'Large round amount typical of payroll' };
+    }
+  }
+
+  // Taxes & Liabilities (typically larger amounts, often round)
+  if (categoryId === '550e8400-e29b-41d4-a716-446655440601' as CategoryId) {
+    if (amount > 100.00) {
+      return { modifier: +0.08, reason: 'Substantial amount typical of tax payments' };
+    }
+  }
+
+  // No adjustment
+  return { modifier: 0, reason: 'Amount within expected range' };
 }

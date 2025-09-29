@@ -16,196 +16,279 @@ export interface MCCMapping {
 }
 
 /**
- * Comprehensive MCC to category mapping table
- * Based on Visa/Mastercard merchant category codes with salon business focus
+ * Comprehensive MCC to category mapping table for e-commerce businesses
+ * Based on Visa/Mastercard merchant category codes
+ * Mapped to two-tier taxonomy umbrella buckets
  */
 export const MCC_MAPPINGS: Record<string, MCCMapping> = {
-  // === Hair & Beauty Services (Exact matches) ===
-  '7230': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440002' as CategoryId,
-    categoryName: 'Hair Services',
+  // === Payment Processing & Financial Services ===
+  '6012': { // Financial Institutions - Manual Cash Disbursements
+    categoryId: '550e8400-e29b-41d4-a716-446655440301' as CategoryId,
+    categoryName: 'Payment Processing Fees',
     strength: 'exact',
     baseConfidence: 0.95
   },
-  '7298': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440004' as CategoryId,
-    categoryName: 'Skin Care Services', 
+  '6011': { // Automated Cash Disbursements (ATMs, Payouts)
+    categoryId: '550e8400-e29b-41d4-a716-446655440503' as CategoryId,
+    categoryName: 'Payouts Clearing',
     strength: 'exact',
-    baseConfidence: 0.95
+    baseConfidence: 0.92
   },
-  '7297': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440003' as CategoryId,
-    categoryName: 'Nail Services',
-    strength: 'exact', 
-    baseConfidence: 0.95
-  },
-
-  // === Retail & Supplies (Family matches) ===
-  '5912': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440012' as CategoryId,
-    categoryName: 'Supplies & Inventory',
+  '6051': { // Non-Financial Institutions - Foreign Currency
+    categoryId: '550e8400-e29b-41d4-a716-446655440301' as CategoryId,
+    categoryName: 'Payment Processing Fees',
     strength: 'family',
     baseConfidence: 0.85
   },
-  '5977': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440012' as CategoryId,
-    categoryName: 'Supplies & Inventory',
+  '6211': { // Security Brokers/Dealers (Payment platforms)
+    categoryId: '550e8400-e29b-41d4-a716-446655440301' as CategoryId,
+    categoryName: 'Payment Processing Fees',
+    strength: 'family',
+    baseConfidence: 0.88
+  },
+  '6300': { // Insurance
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
+    strength: 'exact',
+    baseConfidence: 0.90
+  },
+
+  // === Marketing & Advertising ===
+  '7311': { // Advertising Services
+    categoryId: '550e8400-e29b-41d4-a716-446655440303' as CategoryId,
+    categoryName: 'Marketing & Ads',
+    strength: 'exact',
+    baseConfidence: 0.95
+  },
+  '7321': { // Consumer Credit Reporting Agencies (Analytics/Data)
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
     strength: 'family',
     baseConfidence: 0.80
   },
-  '5310': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440012' as CategoryId,
-    categoryName: 'Supplies & Inventory',
+  '7338': { // Quick Copy and Printing (Marketing materials)
+    categoryId: '550e8400-e29b-41d4-a716-446655440303' as CategoryId,
+    categoryName: 'Marketing & Ads',
     strength: 'family',
     baseConfidence: 0.75
   },
-
-  // === Utilities & Rent (Exact matches) ===
-  '4900': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440011' as CategoryId,
-    categoryName: 'Rent & Utilities',
-    strength: 'exact',
-    baseConfidence: 0.90
-  },
-  '4814': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440020' as CategoryId,
-    categoryName: 'Software & Technology',
-    strength: 'exact',
-    baseConfidence: 0.90
-  },
-  '4815': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440020' as CategoryId,
-    categoryName: 'Software & Technology',
-    strength: 'exact',
-    baseConfidence: 0.90
-  },
-
-  // === Food & Dining ===
-  '5812': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440007' as CategoryId,
-    categoryName: 'Business Meals',
-    strength: 'family',
-    baseConfidence: 0.70
-  },
-  '5814': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440007' as CategoryId,
-    categoryName: 'Business Meals', 
-    strength: 'family',
-    baseConfidence: 0.75
-  },
-
-  // === Gas Stations & Fuel ===
-  '5541': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440009' as CategoryId,
-    categoryName: 'Vehicle & Travel',
-    strength: 'exact',
-    baseConfidence: 0.90
-  },
-  '5542': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440009' as CategoryId,
-    categoryName: 'Vehicle & Travel',
-    strength: 'exact', 
-    baseConfidence: 0.90
-  },
-
-  // === Professional Services ===
-  '8931': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440016' as CategoryId,
-    categoryName: 'Professional Services',
-    strength: 'family',
-    baseConfidence: 0.75
-  },
-  '7311': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440015' as CategoryId,
-    categoryName: 'Marketing & Advertising',
-    strength: 'exact',
-    baseConfidence: 0.85
-  },
-  '8999': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440016' as CategoryId,
-    categoryName: 'Professional Services',
-    strength: 'family',
-    baseConfidence: 0.70
-  },
-
-  // === Insurance ===
-  '6300': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440017' as CategoryId,
-    categoryName: 'Insurance',
-    strength: 'exact',
-    baseConfidence: 0.90
-  },
-
-  // === Government & Licenses ===
-  '9399': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440018' as CategoryId,
-    categoryName: 'Licenses & Permits',
-    strength: 'exact',
-    baseConfidence: 0.85
-  },
-
-  // === Equipment & Hardware ===
-  '5200': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440013' as CategoryId,
-    categoryName: 'Equipment & Hardware',
-    strength: 'family',
-    baseConfidence: 0.75
-  },
-  '5211': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440013' as CategoryId,
-    categoryName: 'Equipment & Hardware',
+  '7333': { // Commercial Photography (Marketing assets)
+    categoryId: '550e8400-e29b-41d4-a716-446655440303' as CategoryId,
+    categoryName: 'Marketing & Ads',
     strength: 'family',
     baseConfidence: 0.80
-  },
-
-  // === Office Supplies ===
-  '5943': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440010' as CategoryId,
-    categoryName: 'Office & Admin',
-    strength: 'family',
-    baseConfidence: 0.75
   },
 
   // === Software & Technology ===
-  '7372': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440020' as CategoryId,
-    categoryName: 'Software & Technology',
+  '5734': { // Computer Software Stores (SaaS, Software)
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
+    strength: 'exact',
+    baseConfidence: 0.92
+  },
+  '5815': { // Digital Goods - Media, Books, Music
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
     strength: 'exact',
     baseConfidence: 0.90
   },
-  '7379': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440020' as CategoryId,
-    categoryName: 'Software & Technology',
+  '7372': { // Computer Programming, Data Processing
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
     strength: 'exact',
+    baseConfidence: 0.92
+  },
+  '7379': { // Computer Maintenance, Repair (Software support)
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
+    strength: 'family',
+    baseConfidence: 0.85
+  },
+  '4816': { // Computer Network/Information Services
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
+    strength: 'exact',
+    baseConfidence: 0.90
+  },
+  '4814': { // Telecommunication Services (Phone/Internet)
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
+    strength: 'family',
+    baseConfidence: 0.82
+  },
+
+  // === Logistics & Transportation ===
+  '4215': { // Courier Services (UPS, FedEx, DHL)
+    categoryId: '550e8400-e29b-41d4-a716-446655440207' as CategoryId,
+    categoryName: 'Shipping & Postage',
+    strength: 'exact',
+    baseConfidence: 0.93
+  },
+  '4789': { // Transportation Services (Freight, Shipping)
+    categoryId: '550e8400-e29b-41d4-a716-446655440207' as CategoryId,
+    categoryName: 'Shipping & Postage',
+    strength: 'family',
+    baseConfidence: 0.88
+  },
+  '4214': { // Motor Freight Carriers (Freight forwarding)
+    categoryId: '550e8400-e29b-41d4-a716-446655440207' as CategoryId,
+    categoryName: 'Shipping & Postage',
+    strength: 'family',
+    baseConfidence: 0.85
+  },
+  '4225': { // Public Warehousing - Storage
+    categoryId: '550e8400-e29b-41d4-a716-446655440306' as CategoryId,
+    categoryName: 'Operations & Logistics',
+    strength: 'exact',
+    baseConfidence: 0.90
+  },
+
+  // === Wholesale & Suppliers ===
+  '5013': { // Motor Vehicle Supplies and New Parts
+    categoryId: '550e8400-e29b-41d4-a716-446655440205' as CategoryId,
+    categoryName: 'Supplier Purchases',
+    strength: 'family',
+    baseConfidence: 0.75
+  },
+  '5044': { // Office/Photographic Equipment (Wholesale)
+    categoryId: '550e8400-e29b-41d4-a716-446655440205' as CategoryId,
+    categoryName: 'Supplier Purchases',
+    strength: 'family',
+    baseConfidence: 0.80
+  },
+  '5111': { // Stationery/Office Supplies (Wholesale)
+    categoryId: '550e8400-e29b-41d4-a716-446655440205' as CategoryId,
+    categoryName: 'Supplier Purchases',
+    strength: 'family',
+    baseConfidence: 0.82
+  },
+  '5137': { // Men's/Women's Clothing (Wholesale)
+    categoryId: '550e8400-e29b-41d4-a716-446655440205' as CategoryId,
+    categoryName: 'Supplier Purchases',
+    strength: 'family',
+    baseConfidence: 0.85
+  },
+  '5139': { // Commercial Footwear (Wholesale)
+    categoryId: '550e8400-e29b-41d4-a716-446655440205' as CategoryId,
+    categoryName: 'Supplier Purchases',
+    strength: 'family',
     baseConfidence: 0.85
   },
 
-  // === Transportation & Delivery ===
-  '4111': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440009' as CategoryId,
-    categoryName: 'Vehicle & Travel',
+  // === Business Services ===
+  '7399': { // Business Services (General)
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
     strength: 'family',
-    baseConfidence: 0.75
+    baseConfidence: 0.70
   },
-  '4121': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440009' as CategoryId,
-    categoryName: 'Vehicle & Travel',
+  '8931': { // Accounting/Bookkeeping Services
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
+    strength: 'exact',
+    baseConfidence: 0.88
+  },
+  '8111': { // Legal Services
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
+    strength: 'exact',
+    baseConfidence: 0.90
+  },
+  '8999': { // Professional Services (Consultants)
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
     strength: 'family',
     baseConfidence: 0.75
   },
 
-  // === Banking & Financial ===
-  '6010': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440019' as CategoryId,
-    categoryName: 'Banking & Fees',
+  // === Labor & Payroll ===
+  '7361': { // Employment Agencies, Temporary Help
+    categoryId: '550e8400-e29b-41d4-a716-446655440305' as CategoryId,
+    categoryName: 'Labor',
     strength: 'exact',
-    baseConfidence: 0.90
+    baseConfidence: 0.92
   },
-  '6011': {
-    categoryId: '550e8400-e29b-41d4-a716-446655440019' as CategoryId,
-    categoryName: 'Banking & Fees',
+
+  // === Office & Administrative ===
+  '5943': { // Office Supply Stores
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
+    strength: 'family',
+    baseConfidence: 0.80
+  },
+  '5021': { // Office and Commercial Furniture
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
+    strength: 'family',
+    baseConfidence: 0.75
+  },
+
+  // === Utilities & Facilities ===
+  '4900': { // Utilities (Electric, Gas, Water, Sanitary)
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
     strength: 'exact',
-    baseConfidence: 0.90
+    baseConfidence: 0.92
+  },
+  '4899': { // Cable and Other Pay TV (Internet/Utilities)
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
+    strength: 'family',
+    baseConfidence: 0.85
+  },
+
+  // === Packaging & Supplies ===
+  '5198': { // Paints, Varnishes, and Supplies
+    categoryId: '550e8400-e29b-41d4-a716-446655440206' as CategoryId,
+    categoryName: 'Packaging',
+    strength: 'family',
+    baseConfidence: 0.70
+  },
+
+  // === Government & Compliance ===
+  '9399': { // Government Services
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
+    strength: 'exact',
+    baseConfidence: 0.88
+  },
+  '9311': { // Tax Payments
+    categoryId: '550e8400-e29b-41d4-a716-446655440601' as CategoryId,
+    categoryName: 'Taxes & Liabilities',
+    strength: 'exact',
+    baseConfidence: 0.95
+  },
+
+  // === Miscellaneous (Travel, Meals, etc.) ===
+  '3000-3999': { // Airlines (Travel)
+    categoryId: '550e8400-e29b-41d4-a716-446655440308' as CategoryId,
+    categoryName: 'Miscellaneous',
+    strength: 'family',
+    baseConfidence: 0.75
+  },
+  '5812': { // Eating Places, Restaurants
+    categoryId: '550e8400-e29b-41d4-a716-446655440308' as CategoryId,
+    categoryName: 'Miscellaneous',
+    strength: 'family',
+    baseConfidence: 0.70
+  },
+  '5814': { // Fast Food Restaurants
+    categoryId: '550e8400-e29b-41d4-a716-446655440308' as CategoryId,
+    categoryName: 'Miscellaneous',
+    strength: 'family',
+    baseConfidence: 0.70
+  },
+  '5541': { // Service Stations (Fuel)
+    categoryId: '550e8400-e29b-41d4-a716-446655440308' as CategoryId,
+    categoryName: 'Miscellaneous',
+    strength: 'family',
+    baseConfidence: 0.72
+  },
+  '5542': { // Automated Fuel Dispensers
+    categoryId: '550e8400-e29b-41d4-a716-446655440308' as CategoryId,
+    categoryName: 'Miscellaneous',
+    strength: 'family',
+    baseConfidence: 0.72
   }
 };
 
@@ -249,19 +332,25 @@ export function isMCCCompatibleWithCategory(mcc: string, categoryId: CategoryId)
 
 /**
  * Determines if two categories are in compatible families
- * Used for cross-category compatibility checking
+ * Used for cross-category compatibility checking within two-tier taxonomy
  */
 function isCompatibleCategoryFamily(mccCategoryId: CategoryId, targetCategoryId: CategoryId): boolean {
-  // Define category families that can be compatible
+  // Define category families that can be compatible (two-tier taxonomy)
   const categoryFamilies = [
-    // Business operations family
-    ['550e8400-e29b-41d4-a716-446655440010', '550e8400-e29b-41d4-a716-446655440011', '550e8400-e29b-41d4-a716-446655440020'],
-    // Service delivery family  
-    ['550e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440004'],
-    // Supply & inventory family
-    ['550e8400-e29b-41d4-a716-446655440012', '550e8400-e29b-41d4-a716-446655440013'],
-    // Professional services family
-    ['550e8400-e29b-41d4-a716-446655440015', '550e8400-e29b-41d4-a716-446655440016']
+    // OpEx - G&A family (software, admin, professional services can overlap)
+    ['550e8400-e29b-41d4-a716-446655440304', '550e8400-e29b-41d4-a716-446655440307'], // software_subscriptions, general_administrative
+    
+    // OpEx - Marketing & Ads family
+    ['550e8400-e29b-41d4-a716-446655440303', '550e8400-e29b-41d4-a716-446655440304'], // marketing_ads, software_subscriptions (ad platforms as SaaS)
+    
+    // COGS - Shipping & Logistics family
+    ['550e8400-e29b-41d4-a716-446655440207', '550e8400-e29b-41d4-a716-446655440306'], // shipping_postage, operations_logistics
+    
+    // COGS - Supplier & Packaging family
+    ['550e8400-e29b-41d4-a716-446655440205', '550e8400-e29b-41d4-a716-446655440206'], // supplier_purchases, packaging
+    
+    // Payment Processing & Payouts family
+    ['550e8400-e29b-41d4-a716-446655440301', '550e8400-e29b-41d4-a716-446655440503'], // payment_processing_fees, payouts_clearing
   ];
 
   return categoryFamilies.some(family => 

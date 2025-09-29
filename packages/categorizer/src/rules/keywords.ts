@@ -23,245 +23,333 @@ export interface KeywordPenalty {
 }
 
 /**
- * Carefully scoped keyword rules for transaction categorization
+ * E-commerce-specific keyword rules for transaction categorization
+ * Mapped to two-tier taxonomy umbrella buckets
  * Ordered by specificity and confidence
  */
 export const KEYWORD_RULES: KeywordRule[] = [
-  // === Software & Technology ===
+  // === Payment Processing Fees ===
   {
-    keywords: ['subscription', 'saas', 'software', 'license', 'api', 'cloud', 'hosting'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440020' as CategoryId,
-    categoryName: 'Software & Technology',
-    confidence: 0.80,
-    weight: 3,
-    domain: 'technology'
+    keywords: ['processing fee', 'transaction fee', 'payment fee', 'merchant fee', 'card fee'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440301' as CategoryId,
+    categoryName: 'Payment Processing Fees',
+    confidence: 0.90,
+    weight: 5,
+    domain: 'payment_processing',
+    excludeKeywords: ['payout', 'deposit', 'transfer']
   },
   {
-    keywords: ['domain', 'ssl', 'certificate', 'hosting', 'server'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440020' as CategoryId,
-    categoryName: 'Software & Technology',
+    keywords: ['chargeback', 'dispute fee', 'declined transaction'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440301' as CategoryId,
+    categoryName: 'Payment Processing Fees',
+    confidence: 0.92,
+    weight: 5,
+    domain: 'payment_disputes'
+  },
+
+  // === Payouts & Clearing ===
+  {
+    keywords: ['payout', 'transfer', 'deposit', 'settlement', 'disbursement'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440503' as CategoryId,
+    categoryName: 'Payouts Clearing',
+    confidence: 0.88,
+    weight: 5,
+    domain: 'payouts',
+    excludeKeywords: ['fee', 'charge']
+  },
+
+  // === Refunds (Contra-Revenue) ===
+  {
+    keywords: ['refund', 'return', 'chargeback', 'reversal', 'void'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440105' as CategoryId,
+    categoryName: 'Refunds (Contra-Revenue)',
+    confidence: 0.92,
+    weight: 6,
+    domain: 'refunds'
+  },
+  {
+    keywords: ['customer return', 'order cancellation', 'cancelled order'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440105' as CategoryId,
+    categoryName: 'Refunds (Contra-Revenue)',
+    confidence: 0.88,
+    weight: 5,
+    domain: 'order_cancellations'
+  },
+
+  // === Supplier Purchases (COGS) ===
+  {
+    keywords: ['wholesale', 'supplier invoice', 'purchase order', 'po#', 'net 30', 'net 60'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440205' as CategoryId,
+    categoryName: 'Supplier Purchases',
+    confidence: 0.90,
+    weight: 6,
+    domain: 'inventory_purchasing',
+    excludeKeywords: ['refund', 'credit']
+  },
+  {
+    keywords: ['inventory purchase', 'product cost', 'goods purchased', 'merchandise'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440205' as CategoryId,
+    categoryName: 'Supplier Purchases',
+    confidence: 0.85,
+    weight: 5,
+    domain: 'inventory'
+  },
+  {
+    keywords: ['alibaba', 'aliexpress', 'wholesale order', 'bulk purchase'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440205' as CategoryId,
+    categoryName: 'Supplier Purchases',
+    confidence: 0.82,
+    weight: 4,
+    domain: 'wholesale_platforms'
+  },
+
+  // === Packaging (COGS) ===
+  {
+    keywords: ['packaging', 'boxes', 'mailers', 'poly bags', 'bubble wrap', 'packing tape'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440206' as CategoryId,
+    categoryName: 'Packaging',
+    confidence: 0.92,
+    weight: 6,
+    domain: 'packaging_materials'
+  },
+  {
+    keywords: ['shipping supplies', 'packing materials', 'cartons', 'labels'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440206' as CategoryId,
+    categoryName: 'Packaging',
+    confidence: 0.88,
+    weight: 5,
+    domain: 'packing_supplies'
+  },
+
+  // === Shipping & Postage (COGS - Outbound) ===
+  {
+    keywords: ['postage', 'shipping label', 'freight', 'delivery charge', 'carrier fee'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440207' as CategoryId,
+    categoryName: 'Shipping & Postage',
+    confidence: 0.90,
+    weight: 5,
+    domain: 'outbound_shipping'
+  },
+  {
+    keywords: ['priority mail', 'ground shipping', 'express delivery', 'overnight'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440207' as CategoryId,
+    categoryName: 'Shipping & Postage',
+    confidence: 0.88,
+    weight: 5,
+    domain: 'shipping_services'
+  },
+
+  // === Returns Processing (COGS) ===
+  {
+    keywords: ['rma', 'return authorization', 'return label', 'restocking fee', 'return processing'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440208' as CategoryId,
+    categoryName: 'Returns Processing',
+    confidence: 0.90,
+    weight: 5,
+    domain: 'returns_handling',
+    excludeKeywords: ['refund'] // Refunds go to revenue contra
+  },
+  {
+    keywords: ['reverse logistics', 'return shipping', 'damaged goods'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440208' as CategoryId,
+    categoryName: 'Returns Processing',
     confidence: 0.85,
     weight: 4,
+    domain: 'returns_logistics'
+  },
+
+  // === Marketing & Ads (OpEx) ===
+  {
+    keywords: ['advertising', 'ad spend', 'campaign', 'sponsored', 'promotion'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440303' as CategoryId,
+    categoryName: 'Marketing & Ads',
+    confidence: 0.88,
+    weight: 5,
+    domain: 'advertising'
+  },
+  {
+    keywords: ['facebook ads', 'google ads', 'tiktok ads', 'instagram ads', 'pinterest ads'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440303' as CategoryId,
+    categoryName: 'Marketing & Ads',
+    confidence: 0.93,
+    weight: 6,
+    domain: 'digital_advertising'
+  },
+  {
+    keywords: ['influencer', 'affiliate', 'marketing agency', 'creative services'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440303' as CategoryId,
+    categoryName: 'Marketing & Ads',
+    confidence: 0.85,
+    weight: 4,
+    domain: 'marketing_services'
+  },
+
+  // === Software Subscriptions (OpEx) ===
+  {
+    keywords: ['subscription', 'saas', 'monthly plan', 'annual plan', 'license fee'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
+    confidence: 0.85,
+    weight: 4,
+    domain: 'software_licensing'
+  },
+  {
+    keywords: ['app charge', 'shopify app', 'plugin', 'extension', 'integration'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
+    confidence: 0.88,
+    weight: 5,
+    domain: 'ecommerce_apps'
+  },
+  {
+    keywords: ['domain', 'hosting', 'ssl certificate', 'cdn', 'cloud storage'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
+    confidence: 0.90,
+    weight: 5,
     domain: 'web_services'
   },
-
-  // === Rent & Utilities ===
   {
-    keywords: ['rent', 'lease', 'rental'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440011' as CategoryId,
-    categoryName: 'Rent & Utilities',
-    confidence: 0.90,
-    weight: 5,
-    domain: 'property',
-    excludeKeywords: ['car', 'vehicle', 'equipment']
-  },
-  {
-    keywords: ['electric', 'electricity', 'power', 'energy'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440011' as CategoryId,
-    categoryName: 'Rent & Utilities',
-    confidence: 0.90,
-    weight: 5,
-    domain: 'utilities'
-  },
-  {
-    keywords: ['gas', 'water', 'sewer', 'waste', 'garbage'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440011' as CategoryId,
-    categoryName: 'Rent & Utilities',
-    confidence: 0.85,
+    keywords: ['email marketing', 'sms platform', 'analytics', 'crm'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440304' as CategoryId,
+    categoryName: 'Software Subscriptions',
+    confidence: 0.87,
     weight: 4,
-    domain: 'utilities',
-    excludeKeywords: ['gasoline', 'fuel']
-  },
-  {
-    keywords: ['internet', 'wifi', 'broadband', 'fiber'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440011' as CategoryId,
-    categoryName: 'Rent & Utilities',
-    confidence: 0.85,
-    weight: 4,
-    domain: 'telecommunications'
-  },
-  {
-    keywords: ['phone', 'cellular', 'mobile', 'landline'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440011' as CategoryId,
-    categoryName: 'Rent & Utilities',
-    confidence: 0.80,
-    weight: 3,
-    domain: 'telecommunications'
+    domain: 'marketing_tools'
   },
 
-  // === Supplies & Inventory ===
+  // === Labor (OpEx) ===
   {
-    keywords: ['shampoo', 'conditioner', 'hair color', 'bleach', 'toner', 'developer'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440012' as CategoryId,
-    categoryName: 'Supplies & Inventory',
-    confidence: 0.85,
-    weight: 6,
-    domain: 'hair_products'
-  },
-  {
-    keywords: ['nail polish', 'gel', 'acrylic', 'cuticle', 'nail art'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440012' as CategoryId,
-    categoryName: 'Supplies & Inventory',
-    confidence: 0.95,
-    weight: 6,
-    domain: 'nail_products'
-  },
-  {
-    keywords: ['facial', 'serum', 'moisturizer', 'cleanser', 'toner', 'mask'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440012' as CategoryId,
-    categoryName: 'Supplies & Inventory',
-    confidence: 0.90,
-    weight: 5,
-    domain: 'skincare_products'
-  },
-  {
-    keywords: ['towels', 'capes', 'foils', 'gloves', 'disposable'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440012' as CategoryId,
-    categoryName: 'Supplies & Inventory',
-    confidence: 0.85,
-    weight: 4,
-    domain: 'salon_supplies'
-  },
-
-  // === Equipment & Hardware ===
-  {
-    keywords: ['chair', 'dryer', 'shampoo bowl', 'station', 'mirror'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440013' as CategoryId,
-    categoryName: 'Equipment & Hardware',
-    confidence: 0.90,
-    weight: 5,
-    domain: 'salon_equipment'
-  },
-  {
-    keywords: ['clippers', 'scissors', 'razor', 'trimmer', 'curling iron'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440013' as CategoryId,
-    categoryName: 'Equipment & Hardware',
-    confidence: 0.95,
-    weight: 6,
-    domain: 'tools'
-  },
-
-  // === Staff Wages & Benefits ===
-  {
-    keywords: ['payroll', 'wages', 'salary', 'benefits', 'health insurance'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440014' as CategoryId,
-    categoryName: 'Staff Wages & Benefits',
-    confidence: 0.95,
+    keywords: ['payroll', 'wages', 'salary', 'contractor', 'freelance'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440305' as CategoryId,
+    categoryName: 'Labor',
+    confidence: 0.92,
     weight: 6,
     domain: 'payroll'
   },
   {
-    keywords: ['workers comp', 'unemployment', 'fica', 'withholding'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440014' as CategoryId,
-    categoryName: 'Staff Wages & Benefits',
+    keywords: ['employee benefits', 'health insurance', 'workers comp', 'fica', 'withholding'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440305' as CategoryId,
+    categoryName: 'Labor',
     confidence: 0.90,
     weight: 5,
     domain: 'employment_taxes'
   },
 
-  // === Marketing & Advertising ===
+  // === Operations & Logistics (OpEx) ===
   {
-    keywords: ['advertising', 'marketing', 'promotion', 'flyers', 'brochure'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440015' as CategoryId,
-    categoryName: 'Marketing & Advertising',
-    confidence: 0.90,
-    weight: 5,
-    domain: 'marketing'
+    keywords: ['3pl', 'fulfillment center', 'pick and pack', 'warehouse', 'storage fee'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440306' as CategoryId,
+    categoryName: 'Operations & Logistics',
+    confidence: 0.92,
+    weight: 6,
+    domain: 'fulfillment'
   },
   {
-    keywords: ['social media', 'facebook ads', 'instagram', 'google ads'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440015' as CategoryId,
-    categoryName: 'Marketing & Advertising',
-    confidence: 0.95,
-    weight: 6,
-    domain: 'digital_marketing'
+    keywords: ['prep service', 'kitting', 'assembly', 'inventory management'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440306' as CategoryId,
+    categoryName: 'Operations & Logistics',
+    confidence: 0.88,
+    weight: 5,
+    domain: 'fulfillment_services'
+  },
+  {
+    keywords: ['customer service', 'support tickets', 'helpdesk', 'live chat'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440306' as CategoryId,
+    categoryName: 'Operations & Logistics',
+    confidence: 0.80,
+    weight: 3,
+    domain: 'customer_support'
   },
 
-  // === Professional Services ===
+  // === General & Administrative (OpEx) ===
   {
-    keywords: ['accountant', 'lawyer', 'attorney', 'consultant', 'advisor'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440016' as CategoryId,
-    categoryName: 'Professional Services',
+    keywords: ['rent', 'lease', 'office space', 'co-working'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
+    confidence: 0.90,
+    weight: 5,
+    domain: 'facilities',
+    excludeKeywords: ['car', 'vehicle']
+  },
+  {
+    keywords: ['electric', 'electricity', 'gas', 'water', 'utilities', 'internet', 'phone'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
+    confidence: 0.88,
+    weight: 5,
+    domain: 'utilities',
+    excludeKeywords: ['gasoline', 'fuel']
+  },
+  {
+    keywords: ['insurance', 'liability', 'coverage', 'premium', 'policy'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
+    confidence: 0.92,
+    weight: 5,
+    domain: 'insurance'
+  },
+  {
+    keywords: ['accountant', 'bookkeeping', 'lawyer', 'attorney', 'legal fees'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
     confidence: 0.90,
     weight: 5,
     domain: 'professional_services'
   },
   {
-    keywords: ['cleaning', 'janitorial', 'maintenance', 'repair'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440016' as CategoryId,
-    categoryName: 'Professional Services',
-    confidence: 0.80,
+    keywords: ['office supplies', 'paper', 'pens', 'furniture', 'desk'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
+    confidence: 0.82,
     weight: 3,
-    domain: 'maintenance_services'
+    domain: 'office_supplies'
   },
-
-  // === Insurance ===
   {
-    keywords: ['insurance', 'liability', 'coverage', 'premium', 'deductible'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440017' as CategoryId,
-    categoryName: 'Insurance',
-    confidence: 0.95,
-    weight: 6,
-    domain: 'insurance'
-  },
-
-  // === Licenses & Permits ===
-  {
-    keywords: ['license', 'permit', 'registration', 'certification', 'renewal'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440018' as CategoryId,
-    categoryName: 'Licenses & Permits',
-    confidence: 0.90,
-    weight: 5,
-    domain: 'government'
-  },
-
-  // === Banking & Fees ===
-  {
-    keywords: ['fee', 'charge', 'overdraft', 'monthly maintenance', 'transaction fee'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440019' as CategoryId,
-    categoryName: 'Banking & Fees',
+    keywords: ['bank fee', 'monthly fee', 'overdraft', 'wire transfer'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
+    categoryName: 'General & Administrative',
     confidence: 0.85,
     weight: 4,
-    domain: 'banking'
+    domain: 'banking',
+    excludeKeywords: ['payment processing', 'merchant']
   },
 
-  // === Vehicle & Travel ===
+  // === Miscellaneous (OpEx) ===
   {
-    keywords: ['gasoline', 'fuel', 'gas station', 'diesel'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440009' as CategoryId,
-    categoryName: 'Vehicle & Travel',
-    confidence: 0.90,
-    weight: 5,
-    domain: 'fuel'
-  },
-  {
-    keywords: ['parking', 'toll', 'mileage', 'car wash'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440009' as CategoryId,
-    categoryName: 'Vehicle & Travel',
+    keywords: ['travel', 'hotel', 'airfare', 'conference', 'trade show'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440308' as CategoryId,
+    categoryName: 'Miscellaneous',
     confidence: 0.85,
     weight: 4,
-    domain: 'automotive'
+    domain: 'business_travel'
   },
-
-  // === Business Meals ===
   {
-    keywords: ['lunch', 'dinner', 'meeting', 'client meal', 'catering'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440007' as CategoryId,
-    categoryName: 'Business Meals',
+    keywords: ['gasoline', 'fuel', 'parking', 'toll', 'mileage'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440308' as CategoryId,
+    categoryName: 'Miscellaneous',
+    confidence: 0.82,
+    weight: 3,
+    domain: 'vehicle'
+  },
+  {
+    keywords: ['lunch', 'dinner', 'meal', 'restaurant', 'catering'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440308' as CategoryId,
+    categoryName: 'Miscellaneous',
     confidence: 0.75,
     weight: 3,
     domain: 'meals',
-    excludeKeywords: ['personal', 'family', 'home']
+    excludeKeywords: ['personal']
   },
 
-  // === Office & Admin ===
+  // === Taxes & Liabilities (Hidden) ===
   {
-    keywords: ['paper', 'pens', 'folders', 'filing', 'office supplies'],
-    categoryId: '550e8400-e29b-41d4-a716-446655440010' as CategoryId,
-    categoryName: 'Office & Admin',
-    confidence: 0.80,
-    weight: 3,
-    domain: 'office'
+    keywords: ['sales tax', 'state tax', 'tax payment', 'revenue department'],
+    categoryId: '550e8400-e29b-41d4-a716-446655440601' as CategoryId,
+    categoryName: 'Taxes & Liabilities',
+    confidence: 0.95,
+    weight: 6,
+    domain: 'tax_payments'
   }
 ];
 

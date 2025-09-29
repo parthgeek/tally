@@ -47,10 +47,12 @@ export interface GuardrailConfig {
 
 /**
  * Default guardrail configuration
+ * Raised minConfidenceThreshold from 0.25 to 0.60 to prevent low-quality categorizations
+ * Transactions below 0.60 confidence should be manually reviewed rather than auto-applied
  */
 export const DEFAULT_GUARDRAIL_CONFIG: GuardrailConfig = {
   enforceMCCCompatibility: true,
-  minConfidenceThreshold: 0.25,
+  minConfidenceThreshold: 0.60,
   enableAmountChecks: true,
   enablePatternChecks: true,
   strictMode: false

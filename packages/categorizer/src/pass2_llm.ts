@@ -1,6 +1,6 @@
 import type { NormalizedTransaction, CategorizationContext } from '@nexus/types';
 import { GeminiClient } from './gemini-client.js';
-import { buildCategorizationPrompt, isValidCategorySlug } from './prompt.js';
+import { buildCategorizationPrompt, isValidCategorySlug, type Pass1Context } from './prompt.js';
 import { mapCategorySlugToId } from './taxonomy.js';
 
 interface LLMResponse {
@@ -108,8 +108,30 @@ export async function scoreWithLLM(
       }
     }
 
-    // Build the prompt using centralized function
-    const prompt = buildCategorizationPrompt(tx, priorCategoryName);
+    // Extract Pass-1 context if provided through the context object
+    let pass1Context: Pass1Context | undefined;
+    if ('pass1Signals' in ctx && Array.isArray(ctx.pass1Signals)) {
+      // Pass-1 signals are provided as formatted strings, parse them
+      pass1Context = {
+        topSignals: ctx.pass1Signals
+          .map(s => {
+            // Format: "type:evidence (confidence: 0.XX)"
+            const match = s.match(/^(\w+):(.+?)\s+\(confidence:\s+([\d.]+)\)/);
+            if (match) {
+              return {
+                type: match[1] || '',
+                evidence: match[2]?.trim() || '',
+                confidence: parseFloat(match[3] || '0')
+              };
+            }
+            return null;
+          })
+          .filter((s): s is NonNullable<typeof s> => s !== null)
+      };
+    }
+
+    // Build the prompt using centralized function with Pass-1 context
+    const prompt = buildCategorizationPrompt(tx, priorCategoryName, {}, 'development', pass1Context);
 
     // Start Langfuse trace
     const generation = createGeneration({
