@@ -3,6 +3,11 @@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { Metrics } from '@/lib/categorizer-lab/types';
+import {
+  formatCategoryForDisplay,
+  getCategoryTypeBadgeVariant,
+  getParentCategoryName
+} from '@/lib/categorizer-lab/taxonomy-helpers';
 
 interface MetricsSummaryProps {
   metrics: Metrics | null;
@@ -132,32 +137,69 @@ export function MetricsSummary({ metrics }: MetricsSummaryProps) {
             {metrics.accuracy.perCategory.length > 0 && (
               <div>
                 <div className="text-sm font-medium mb-3">Per-Category Performance:</div>
-                <div className="space-y-2">
-                  {metrics.accuracy.perCategory
-                    .sort((a, b) => b.support - a.support)
-                    .slice(0, 5)
-                    .map((cat) => (
-                      <div key={cat.categoryId} className="flex items-center justify-between p-2 bg-gray-50 text-black rounded">
-                        <div>
-                          <Badge variant="outline" className="text-xs">
-                            {cat.categoryId}
-                          </Badge>
-                          <span className="ml-2 text-sm text-gray-600">
-                            ({cat.support} samples)
-                          </span>
+                <div className="space-y-4">
+                  {(() => {
+                    // Group categories by parent for better organization
+                    const grouped = new Map<string, typeof metrics.accuracy.perCategory>();
+
+                    metrics.accuracy.perCategory.forEach(cat => {
+                      const parentName = getParentCategoryName(cat.categoryId) || 'Other';
+                      if (!grouped.has(parentName)) {
+                        grouped.set(parentName, []);
+                      }
+                      grouped.get(parentName)!.push(cat);
+                    });
+
+                    // Sort groups by total support and show top groups
+                    const sortedGroups = Array.from(grouped.entries())
+                      .map(([parentName, categories]) => ({
+                        parentName,
+                        categories: categories.sort((a, b) => b.support - a.support),
+                        totalSupport: categories.reduce((sum, cat) => sum + cat.support, 0)
+                      }))
+                      .sort((a, b) => b.totalSupport - a.totalSupport)
+                      .slice(0, 3); // Show top 3 parent categories
+
+                    return sortedGroups.map(({ parentName, categories }) => (
+                      <div key={parentName} className="space-y-2">
+                        <div className="text-sm font-medium text-gray-700 border-b border-gray-200 pb-1">
+                          {parentName} ({categories.reduce((sum, cat) => sum + cat.support, 0)} samples)
                         </div>
-                        <div className="flex space-x-3 text-sm">
-                          <span>Acc: {formatPercentage(cat.accuracy)}</span>
-                          <span>P: {formatPercentage(cat.precision)}</span>
-                          <span>R: {formatPercentage(cat.recall)}</span>
-                          <span>F1: {formatPercentage(cat.f1)}</span>
+                        <div className="space-y-1 ml-4">
+                          {categories.slice(0, 3).map((cat) => ( // Show top 3 categories per parent
+                            <div key={cat.categoryId} className="flex items-center justify-between p-2 bg-gray-50 text-black rounded">
+                              <div className="flex items-center gap-2">
+                                <Badge
+                                  variant={getCategoryTypeBadgeVariant(cat.categoryId)}
+                                  className="text-xs"
+                                >
+                                  {formatCategoryForDisplay(cat.categoryId, { format: 'child-only' })}
+                                </Badge>
+                                <span className="text-sm text-gray-600">
+                                  ({cat.support} samples)
+                                </span>
+                              </div>
+                              <div className="flex space-x-3 text-sm">
+                                <span>Acc: {formatPercentage(cat.accuracy)}</span>
+                                <span>P: {formatPercentage(cat.precision)}</span>
+                                <span>R: {formatPercentage(cat.recall)}</span>
+                                <span>F1: {formatPercentage(cat.f1)}</span>
+                              </div>
+                            </div>
+                          ))}
+                          {categories.length > 3 && (
+                            <div className="text-xs text-gray-500 text-center">
+                              ... and {categories.length - 3} more categories in {parentName}
+                            </div>
+                          )}
                         </div>
                       </div>
-                    ))}
+                    ));
+                  })()}
                 </div>
-                {metrics.accuracy.perCategory.length > 5 && (
-                  <div className="text-sm text-gray-500 text-center">
-                    ... and {metrics.accuracy.perCategory.length - 5} more categories
+                {metrics.accuracy.perCategory.length > 9 && (
+                  <div className="text-sm text-gray-500 text-center mt-3 pt-3 border-t border-gray-200">
+                    Showing top parent categories. Total: {metrics.accuracy.perCategory.length} categories
                   </div>
                 )}
               </div>

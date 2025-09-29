@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,7 +8,12 @@ import {
   PopoverContent,
   PopoverTrigger
 } from '@/components/ui/popover';
-import { InfoIcon, AlertTriangleIcon, ZapIcon } from 'lucide-react';
+import { InfoIcon, AlertTriangleIcon, ZapIcon, TagIcon } from 'lucide-react';
+import {
+  formatCategoryForDisplay,
+  getCategoryHierarchy,
+  getCategoryTypeBadgeVariant
+} from '@/lib/categorizer-lab/taxonomy-helpers';
 
 interface Signal {
   type: string;
@@ -19,11 +23,6 @@ interface Signal {
   category?: string;
 }
 
-interface GuardrailViolation {
-  type: string;
-  reason: string;
-  suggestedAction?: string;
-}
 
 export interface RationaleData {
   rationale: string[];
@@ -38,6 +37,7 @@ export interface RationaleData {
   } | undefined;
   engine: 'pass1' | 'llm';
   confidence?: number;
+  predictedCategoryId?: string;
 }
 
 interface RationalePopoverProps {
@@ -81,6 +81,62 @@ export function RationalePopover({ data, children }: RationalePopoverProps) {
           </div>
 
           <div className="p-4 space-y-4">
+            {/* Predicted Category Hierarchy */}
+            {data.predictedCategoryId && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <TagIcon className="w-4 h-4 text-purple-600" />
+                  <span className="font-medium text-sm">Predicted Category</span>
+                </div>
+                <div className="bg-purple-50 border border-purple-200 rounded p-3">
+                  {(() => {
+                    const hierarchy = getCategoryHierarchy(data.predictedCategoryId);
+                    if (!hierarchy) {
+                      return (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {data.predictedCategoryId}
+                          </Badge>
+                          <span className="text-xs text-amber-600">⚠️ Unknown Category</span>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant={getCategoryTypeBadgeVariant(data.predictedCategoryId)}
+                            className="text-sm"
+                          >
+                            {formatCategoryForDisplay(data.predictedCategoryId, { format: 'compact' })}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            Tier {hierarchy.tier}
+                          </Badge>
+                        </div>
+                        {hierarchy.tier === 2 && hierarchy.parentName && (
+                          <div className="text-xs text-purple-700">
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium">Parent:</span>
+                              <span>{hierarchy.parentName}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium">Type:</span>
+                              <span className="capitalize">{hierarchy.type}</span>
+                              {hierarchy.isPnL && (
+                                <Badge variant="outline" className="text-xs ml-1">P&L</Badge>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+
             {/* Guardrail Violations */}
             {data.guardrailsApplied && data.guardrailViolations && data.guardrailViolations.length > 0 && (
               <div className="space-y-2">

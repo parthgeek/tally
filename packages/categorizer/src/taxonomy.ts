@@ -1,5 +1,8 @@
 export type Industry = 'ecommerce';
 
+// Import feature flags for two-tier taxonomy support
+import { CategorizerFeatureFlag, isFeatureEnabled, type FeatureFlagConfig } from '../../../services/categorizer/feature-flags.js';
+
 export interface CategoryNode {
   id: string;
   slug: string;
@@ -80,6 +83,21 @@ const CATEGORY_IDS = {
   // Post-MVP
   'amazon_fees': '550e8400-e29b-41d4-a716-446655440360',
   'amazon_payouts': '550e8400-e29b-41d4-a716-446655440502',
+
+  // Two-tier taxonomy umbrella buckets
+  'refunds_contra': '550e8400-e29b-41d4-a716-446655440105',
+  'supplier_purchases': '550e8400-e29b-41d4-a716-446655440205',
+  'packaging': '550e8400-e29b-41d4-a716-446655440206',
+  'shipping_postage': '550e8400-e29b-41d4-a716-446655440207',
+  'returns_processing_cogs': '550e8400-e29b-41d4-a716-446655440208',
+  'marketing_ads': '550e8400-e29b-41d4-a716-446655440303',
+  'software_subscriptions': '550e8400-e29b-41d4-a716-446655440304',
+  'labor': '550e8400-e29b-41d4-a716-446655440305',
+  'operations_logistics': '550e8400-e29b-41d4-a716-446655440306',
+  'general_administrative': '550e8400-e29b-41d4-a716-446655440307',
+  'miscellaneous': '550e8400-e29b-41d4-a716-446655440308',
+  'payouts_clearing': '550e8400-e29b-41d4-a716-446655440503',
+  'taxes_liabilities_bucket': '550e8400-e29b-41d4-a716-446655440601',
 } as const;
 
 /**
@@ -506,62 +524,325 @@ export const ECOMMERCE_TAXONOMY: CategoryNode[] = [
 ];
 
 /**
+ * Two-tier taxonomy umbrella buckets (Tier 2 categories only)
+ * Used when TWO_TIER_TAXONOMY_ENABLED feature flag is enabled
+ */
+export const TWO_TIER_TAXONOMY: CategoryNode[] = [
+  // Revenue - Tier 2 buckets
+  {
+    id: CATEGORY_IDS.shipping_income,
+    slug: 'shipping_income',
+    name: 'Shipping Income',
+    parentId: CATEGORY_IDS.revenue,
+    type: 'revenue',
+    isPnL: true,
+    includeInPrompt: true,
+  },
+  {
+    id: CATEGORY_IDS.refunds_contra,
+    slug: 'refunds_contra',
+    name: 'Refunds (Contra-Revenue)',
+    parentId: CATEGORY_IDS.revenue,
+    type: 'revenue',
+    isPnL: true,
+    includeInPrompt: true,
+  },
+
+  // COGS - Tier 2 buckets
+  {
+    id: CATEGORY_IDS.supplier_purchases,
+    slug: 'supplier_purchases',
+    name: 'Supplier Purchases',
+    parentId: CATEGORY_IDS.cogs,
+    type: 'cogs',
+    isPnL: true,
+    includeInPrompt: true,
+  },
+  {
+    id: CATEGORY_IDS.packaging,
+    slug: 'packaging',
+    name: 'Packaging',
+    parentId: CATEGORY_IDS.cogs,
+    type: 'cogs',
+    isPnL: true,
+    includeInPrompt: true,
+  },
+  {
+    id: CATEGORY_IDS.shipping_postage,
+    slug: 'shipping_postage',
+    name: 'Shipping & Postage',
+    parentId: CATEGORY_IDS.cogs,
+    type: 'cogs',
+    isPnL: true,
+    includeInPrompt: true,
+  },
+  {
+    id: CATEGORY_IDS.returns_processing_cogs,
+    slug: 'returns_processing',
+    name: 'Returns Processing',
+    parentId: CATEGORY_IDS.cogs,
+    type: 'cogs',
+    isPnL: true,
+    includeInPrompt: true,
+  },
+
+  // OpEx - Tier 2 buckets
+  {
+    id: CATEGORY_IDS.marketing_ads,
+    slug: 'marketing_ads',
+    name: 'Marketing & Ads',
+    parentId: CATEGORY_IDS.operating_expenses,
+    type: 'opex',
+    isPnL: true,
+    includeInPrompt: true,
+  },
+  {
+    id: CATEGORY_IDS.software_subscriptions,
+    slug: 'software_subscriptions',
+    name: 'Software Subscriptions',
+    parentId: CATEGORY_IDS.operating_expenses,
+    type: 'opex',
+    isPnL: true,
+    includeInPrompt: true,
+  },
+  {
+    id: CATEGORY_IDS.labor,
+    slug: 'labor',
+    name: 'Labor',
+    parentId: CATEGORY_IDS.operating_expenses,
+    type: 'opex',
+    isPnL: true,
+    includeInPrompt: true,
+  },
+  {
+    id: CATEGORY_IDS.payment_processing_fees,
+    slug: 'payment_processing_fees',
+    name: 'Payment Processing Fees',
+    parentId: CATEGORY_IDS.operating_expenses,
+    type: 'opex',
+    isPnL: true,
+    includeInPrompt: true,
+  },
+  {
+    id: CATEGORY_IDS.operations_logistics,
+    slug: 'operations_logistics',
+    name: 'Operations & Logistics',
+    parentId: CATEGORY_IDS.operating_expenses,
+    type: 'opex',
+    isPnL: true,
+    includeInPrompt: true,
+  },
+  {
+    id: CATEGORY_IDS.general_administrative,
+    slug: 'general_administrative',
+    name: 'General & Administrative',
+    parentId: CATEGORY_IDS.operating_expenses,
+    type: 'opex',
+    isPnL: true,
+    includeInPrompt: true,
+  },
+  {
+    id: CATEGORY_IDS.miscellaneous,
+    slug: 'miscellaneous',
+    name: 'Miscellaneous',
+    parentId: CATEGORY_IDS.operating_expenses,
+    type: 'opex',
+    isPnL: true,
+    includeInPrompt: true,
+  },
+
+  // Hidden non-P&L
+  {
+    id: CATEGORY_IDS.sales_tax_payable,
+    slug: 'sales_tax_payable',
+    name: 'Sales Tax Payable',
+    parentId: CATEGORY_IDS.taxes_liabilities,
+    type: 'liability',
+    isPnL: false,
+    includeInPrompt: false,
+  },
+  {
+    id: CATEGORY_IDS.taxes_liabilities_bucket,
+    slug: 'taxes_liabilities',
+    name: 'Taxes & Liabilities',
+    parentId: CATEGORY_IDS.clearing,
+    type: 'clearing',
+    isPnL: false,
+    includeInPrompt: false,
+  },
+  {
+    id: CATEGORY_IDS.payouts_clearing,
+    slug: 'payouts_clearing',
+    name: 'Payouts Clearing',
+    parentId: CATEGORY_IDS.clearing,
+    type: 'clearing',
+    isPnL: false,
+    includeInPrompt: false,
+  },
+
+  // Parent Categories (Tier 1)
+  {
+    id: CATEGORY_IDS.revenue,
+    slug: 'revenue',
+    name: 'Revenue',
+    parentId: null,
+    type: 'revenue',
+    isPnL: true,
+    includeInPrompt: false,
+  },
+  {
+    id: CATEGORY_IDS.cogs,
+    slug: 'cogs',
+    name: 'Cost of Goods Sold',
+    parentId: null,
+    type: 'cogs',
+    isPnL: true,
+    includeInPrompt: false,
+  },
+  {
+    id: CATEGORY_IDS.operating_expenses,
+    slug: 'operating_expenses',
+    name: 'Operating Expenses',
+    parentId: null,
+    type: 'opex',
+    isPnL: true,
+    includeInPrompt: false,
+  },
+  {
+    id: CATEGORY_IDS.taxes_liabilities,
+    slug: 'taxes_liabilities',
+    name: 'Taxes & Liabilities',
+    parentId: null,
+    type: 'liability',
+    isPnL: false,
+    includeInPrompt: false,
+  },
+  {
+    id: CATEGORY_IDS.clearing,
+    slug: 'clearing',
+    name: 'Clearing',
+    parentId: null,
+    type: 'clearing',
+    isPnL: false,
+    includeInPrompt: false,
+  },
+];
+
+/**
  * Helper functions for working with taxonomy
  */
 
-export function getActiveTaxonomy(): CategoryNode[] {
-  return ECOMMERCE_TAXONOMY;
+export function getActiveTaxonomy(
+  config: FeatureFlagConfig = {},
+  environment: 'development' | 'staging' | 'production' = 'development'
+): CategoryNode[] {
+  const isTwoTierEnabled = isFeatureEnabled(
+    CategorizerFeatureFlag.TWO_TIER_TAXONOMY_ENABLED,
+    config,
+    environment
+  );
+
+  return isTwoTierEnabled ? TWO_TIER_TAXONOMY : ECOMMERCE_TAXONOMY;
 }
 
-export function getCategoryBySlug(slug: string): CategoryNode | undefined {
-  return ECOMMERCE_TAXONOMY.find(category => category.slug === slug);
+export function getCategoryBySlug(
+  slug: string,
+  config: FeatureFlagConfig = {},
+  environment: 'development' | 'staging' | 'production' = 'development'
+): CategoryNode | undefined {
+  const taxonomy = getActiveTaxonomy(config, environment);
+  return taxonomy.find(category => category.slug === slug);
 }
 
-export function getCategoryById(id: string): CategoryNode | undefined {
-  return ECOMMERCE_TAXONOMY.find(category => category.id === id);
+export function getCategoryById(
+  id: string,
+  config: FeatureFlagConfig = {},
+  environment: 'development' | 'staging' | 'production' = 'development'
+): CategoryNode | undefined {
+  const taxonomy = getActiveTaxonomy(config, environment);
+  return taxonomy.find(category => category.id === id);
 }
 
-export function isPnLCategory(slug: string): boolean {
-  const category = getCategoryBySlug(slug);
+export function isPnLCategory(
+  slug: string,
+  config: FeatureFlagConfig = {},
+  environment: 'development' | 'staging' | 'production' = 'development'
+): boolean {
+  const category = getCategoryBySlug(slug, config, environment);
   return category?.isPnL ?? false;
 }
 
-export function getPromptCategories(): CategoryNode[] {
-  return ECOMMERCE_TAXONOMY.filter(category => category.includeInPrompt);
+export function getPromptCategories(
+  config: FeatureFlagConfig = {},
+  environment: 'development' | 'staging' | 'production' = 'development'
+): CategoryNode[] {
+  const taxonomy = getActiveTaxonomy(config, environment);
+  return taxonomy.filter(category => category.includeInPrompt);
 }
 
-export function getCategoriesByType(type: CategoryNode['type']): CategoryNode[] {
-  return ECOMMERCE_TAXONOMY.filter(category => category.type === type);
+export function getCategoriesByType(
+  type: CategoryNode['type'],
+  config: FeatureFlagConfig = {},
+  environment: 'development' | 'staging' | 'production' = 'development'
+): CategoryNode[] {
+  const taxonomy = getActiveTaxonomy(config, environment);
+  return taxonomy.filter(category => category.type === type);
 }
 
-export function getChildCategories(parentSlug: string): CategoryNode[] {
-  const parent = getCategoryBySlug(parentSlug);
+export function getChildCategories(
+  parentSlug: string,
+  config: FeatureFlagConfig = {},
+  environment: 'development' | 'staging' | 'production' = 'development'
+): CategoryNode[] {
+  const parent = getCategoryBySlug(parentSlug, config, environment);
   if (!parent) return [];
 
-  return ECOMMERCE_TAXONOMY.filter(category => category.parentId === parent.id);
+  const taxonomy = getActiveTaxonomy(config, environment);
+  return taxonomy.filter(category => category.parentId === parent.id);
 }
 
 /**
  * Maps category slug to database ID with fallback
  */
-export function mapCategorySlugToId(slug: string): string {
-  const category = getCategoryBySlug(slug);
+export function mapCategorySlugToId(
+  slug: string,
+  config: FeatureFlagConfig = {},
+  environment: 'development' | 'staging' | 'production' = 'development'
+): string {
+  const category = getCategoryBySlug(slug, config, environment);
   if (category) {
     return category.id;
   }
 
-  // Fallback to "Other Operating Expenses"
-  const fallback = getCategoryBySlug('other_ops');
-  return fallback?.id || CATEGORY_IDS.other_ops;
+  // Fallback handling depends on taxonomy version
+  const isTwoTierEnabled = isFeatureEnabled(
+    CategorizerFeatureFlag.TWO_TIER_TAXONOMY_ENABLED,
+    config,
+    environment
+  );
+
+  if (isTwoTierEnabled) {
+    // For two-tier taxonomy, fallback to "Miscellaneous"
+    const fallback = getCategoryBySlug('miscellaneous', config, environment);
+    return fallback?.id || CATEGORY_IDS.miscellaneous;
+  } else {
+    // For legacy taxonomy, fallback to "Other Operating Expenses"
+    const fallback = getCategoryBySlug('other_ops', config, environment);
+    return fallback?.id || CATEGORY_IDS.other_ops;
+  }
 }
 
 /**
  * Creates a slug-to-ID mapping for use in database operations
  */
-export function createSlugToIdMapping(): Record<string, string> {
+export function createSlugToIdMapping(
+  config: FeatureFlagConfig = {},
+  environment: 'development' | 'staging' | 'production' = 'development'
+): Record<string, string> {
   const mapping: Record<string, string> = {};
+  const taxonomy = getActiveTaxonomy(config, environment);
 
-  for (const category of ECOMMERCE_TAXONOMY) {
+  for (const category of taxonomy) {
     mapping[category.slug] = category.id;
   }
 

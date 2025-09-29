@@ -40,6 +40,9 @@ export enum CategorizerFeatureFlag {
   CANARY_MODE = 'categorizer_canary_mode',
   SHADOW_MODE = 'categorizer_shadow_mode', // Run new engine alongside old without affecting results
   GRADUAL_ROLLOUT_PERCENTAGE = 'categorizer_gradual_rollout_percentage',
+
+  // Two-tier taxonomy flag
+  TWO_TIER_TAXONOMY_ENABLED = 'categorizer_two_tier_taxonomy_enabled',
 }
 
 /**
@@ -70,6 +73,7 @@ export const DEFAULT_FEATURE_FLAGS = {
     [CategorizerFeatureFlag.CANARY_MODE]: false,
     [CategorizerFeatureFlag.SHADOW_MODE]: false,
     [CategorizerFeatureFlag.GRADUAL_ROLLOUT_PERCENTAGE]: 100,
+    [CategorizerFeatureFlag.TWO_TIER_TAXONOMY_ENABLED]: true,
   },
 
   staging: {
@@ -96,6 +100,7 @@ export const DEFAULT_FEATURE_FLAGS = {
     [CategorizerFeatureFlag.CANARY_MODE]: true,
     [CategorizerFeatureFlag.SHADOW_MODE]: false,
     [CategorizerFeatureFlag.GRADUAL_ROLLOUT_PERCENTAGE]: 50,
+    [CategorizerFeatureFlag.TWO_TIER_TAXONOMY_ENABLED]: true,
   },
 
   production: {
@@ -122,6 +127,7 @@ export const DEFAULT_FEATURE_FLAGS = {
     [CategorizerFeatureFlag.CANARY_MODE]: false,
     [CategorizerFeatureFlag.SHADOW_MODE]: true, // Start with shadow mode
     [CategorizerFeatureFlag.GRADUAL_ROLLOUT_PERCENTAGE]: 0,
+    [CategorizerFeatureFlag.TWO_TIER_TAXONOMY_ENABLED]: false, // Start disabled in prod
   },
 } as const;
 

@@ -8,6 +8,10 @@ import { Input } from '@/components/ui/input';
 import { RationalePopover, type RationaleData } from './rationale-popover';
 import { InfoIcon, AlertTriangleIcon } from 'lucide-react';
 import type { LabTransaction, TransactionResult } from '@/lib/categorizer-lab/types';
+import {
+  formatCategoryForDisplay
+} from '@/lib/categorizer-lab/taxonomy-helpers';
+import { CategoryHierarchy } from '@/lib/categorizer-lab/category-badge';
 
 interface ResultsTableProps {
   originalTransactions: LabTransaction[];
@@ -31,11 +35,22 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
       if (searchTerm) {
         const original = originalMap.get(result.id);
         const searchLower = searchTerm.toLowerCase();
+
+        // Get category names for search
+        const groundTruthCategoryName = original?.categoryId
+          ? formatCategoryForDisplay(original.categoryId).toLowerCase()
+          : '';
+        const predictedCategoryName = result.predictedCategoryId
+          ? formatCategoryForDisplay(result.predictedCategoryId).toLowerCase()
+          : '';
+
         if (
           !result.id.toLowerCase().includes(searchLower) &&
           !original?.description.toLowerCase().includes(searchLower) &&
           !original?.merchantName?.toLowerCase().includes(searchLower) &&
-          !result.predictedCategoryId?.toLowerCase().includes(searchLower)
+          !result.predictedCategoryId?.toLowerCase().includes(searchLower) &&
+          !groundTruthCategoryName.includes(searchLower) &&
+          !predictedCategoryName.includes(searchLower)
         ) {
           return false;
         }
@@ -136,6 +151,11 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
       guardrailViolations: (result as any).guardrailViolations || [],
       pass1Context: (result as any).pass1Context || undefined
     };
+
+    // Only add predictedCategoryId if it exists
+    if (result.predictedCategoryId) {
+      rationaleData.predictedCategoryId = result.predictedCategoryId;
+    }
 
     // Only add confidence if it exists
     if (result.confidence !== undefined) {
@@ -285,9 +305,7 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
                     </td>
                     <td className="p-3">
                       {original?.categoryId ? (
-                        <Badge variant="outline" className="text-xs">
-                          {original.categoryId}
-                        </Badge>
+                        <CategoryHierarchy categoryId={original.categoryId} />
                       ) : (
                         <span className="text-gray-400">—</span>
                       )}
@@ -298,9 +316,7 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
                           Error
                         </Badge>
                       ) : result.predictedCategoryId ? (
-                        <Badge variant="secondary" className="text-xs">
-                          {result.predictedCategoryId}
-                        </Badge>
+                        <CategoryHierarchy categoryId={result.predictedCategoryId} />
                       ) : (
                         <span className="text-gray-400">—</span>
                       )}

@@ -8,6 +8,7 @@ import { ResultsTable } from '@/components/categorizer-lab/results-table';
 import { MetricsSummary } from '@/components/categorizer-lab/metrics-summary';
 import { Charts } from '@/components/categorizer-lab/charts';
 import { ExportButtons } from '@/components/categorizer-lab/export-buttons';
+import { FeatureStatusIndicator } from '@/components/categorizer-lab/feature-status';
 import { runWithProgress } from '@/lib/categorizer-lab/client';
 import type { 
   LabTransaction, 
@@ -85,6 +86,11 @@ export default function CategorizerLabClient() {
           <p className="text-sm text-amber-800">
             <strong>Development Tool:</strong> This lab is for testing purposes only and does not affect production data.
           </p>
+        </div>
+
+        {/* Feature Status */}
+        <div className="mt-4">
+          <FeatureStatusIndicator />
         </div>
       </div>
 

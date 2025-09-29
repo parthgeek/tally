@@ -98,7 +98,8 @@ export type { Industry, CategorizationConfig } from './config.js';
 export {
   checkRevenueGuardrails,
   checkSalesTaxGuardrails,
-  checkShopifyPayoutGuardrails,
+  checkPayoutGuardrails,
+  checkShippingDirectionGuardrails,
   applyEcommerceGuardrails,
   getCategoryIdWithGuardrails
 } from './guardrails.js';

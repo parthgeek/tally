@@ -37,7 +37,7 @@ export default function TestClient() {
         <div className="text-sm text-gray-600">
           <p><strong>Instructions:</strong></p>
           <ul className="list-disc list-inside space-y-1">
-            <li>If hydration is working, you should see "✅ Hydrated" above</li>
+            <li>If hydration is working, you should see &ldquo;✅ Hydrated&rdquo; above</li>
             <li>The button should respond to clicks and increment the counter</li>
             <li>Check browser console for hydration success message</li>
           </ul>

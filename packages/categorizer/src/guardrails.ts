@@ -1,5 +1,6 @@
 import type { NormalizedTransaction } from '@nexus/types';
 import { getCategoryBySlug, mapCategorySlugToId } from './taxonomy.js';
+import { CategorizerFeatureFlag, isFeatureEnabled, type FeatureFlagConfig } from '../../../services/categorizer/feature-flags.js';
 
 export interface GuardrailResult {
   allowed: boolean;
@@ -17,9 +18,18 @@ export interface GuardrailResult {
  */
 export function checkRevenueGuardrails(
   tx: NormalizedTransaction,
-  proposedCategorySlug: string
+  proposedCategorySlug: string,
+  config: FeatureFlagConfig = {},
+  environment: 'development' | 'staging' | 'production' = 'development'
 ): GuardrailResult {
-  const category = getCategoryBySlug(proposedCategorySlug);
+  const category = getCategoryBySlug(proposedCategorySlug, config, environment);
+
+  // Check if two-tier taxonomy is enabled for different refund category handling
+  const isTwoTierEnabled = isFeatureEnabled(
+    CategorizerFeatureFlag.TWO_TIER_TAXONOMY_ENABLED,
+    config,
+    environment
+  );
 
   // Only apply to revenue categories
   if (!category || category.type !== 'revenue') {
@@ -44,10 +54,11 @@ export function checkRevenueGuardrails(
   const isRefundPattern = hasRefundKeywords || isNegativeAmount;
 
   if (isRefundPattern && !proposedCategorySlug.includes('contra')) {
+    const refundCategory = isTwoTierEnabled ? 'refunds_contra' : 'refunds_allowances_contra';
     return {
       allowed: false,
       reason: 'Refund/return cannot map to positive revenue',
-      suggestedCategorySlug: 'refunds_allowances_contra',
+      suggestedCategorySlug: refundCategory,
       confidencePenalty: 0.4
     };
   }
@@ -75,11 +86,88 @@ export function checkRevenueGuardrails(
 }
 
 /**
+ * Checks shipping direction and routes to appropriate category
+ */
+export function checkShippingDirectionGuardrails(
+  tx: NormalizedTransaction,
+  proposedCategorySlug: string,
+  config: FeatureFlagConfig = {},
+  environment: 'development' | 'staging' | 'production' = 'development'
+): GuardrailResult {
+  const isTwoTierEnabled = isFeatureEnabled(
+    CategorizerFeatureFlag.TWO_TIER_TAXONOMY_ENABLED,
+    config,
+    environment
+  );
+
+  // Only apply for two-tier taxonomy (legacy taxonomy doesn't distinguish shipping direction)
+  if (!isTwoTierEnabled) {
+    return { allowed: true };
+  }
+
+  const description = tx.description.toLowerCase();
+  const merchantName = (tx.merchantName || '').toLowerCase();
+
+  // Outbound shipping carriers (to customers) -> shipping_postage (COGS)
+  const outboundCarriers = ['usps', 'ups', 'fedex', 'dhl', 'postal service'];
+  const outboundKeywords = ['shipping', 'postage', 'delivery', 'freight to'];
+
+  const isOutboundShipping = outboundCarriers.some(carrier =>
+    merchantName.includes(carrier) || description.includes(carrier)
+  ) || outboundKeywords.some(keyword =>
+    description.includes(keyword)
+  );
+
+  // Inbound shipping (from suppliers) -> supplier_purchases (COGS)
+  const inboundKeywords = ['freight from', 'inbound freight', 'supplier shipping', 'wholesale freight'];
+  const isInboundShipping = inboundKeywords.some(keyword =>
+    description.includes(keyword)
+  );
+
+  // Shipping software/platforms -> operations_logistics (OpEx)
+  const shippingPlatforms = ['shipstation', 'shippo', 'easypost', 'pirate ship'];
+  const isShippingPlatform = shippingPlatforms.some(platform =>
+    merchantName.includes(platform) || description.includes(platform)
+  );
+
+  if (isOutboundShipping && proposedCategorySlug !== 'shipping_postage') {
+    return {
+      allowed: false,
+      reason: 'Outbound shipping should map to shipping_postage (COGS)',
+      suggestedCategorySlug: 'shipping_postage',
+      confidencePenalty: 0.2
+    };
+  }
+
+  if (isInboundShipping && proposedCategorySlug !== 'supplier_purchases') {
+    return {
+      allowed: false,
+      reason: 'Inbound freight should map to supplier_purchases (COGS)',
+      suggestedCategorySlug: 'supplier_purchases',
+      confidencePenalty: 0.2
+    };
+  }
+
+  if (isShippingPlatform && proposedCategorySlug !== 'operations_logistics') {
+    return {
+      allowed: false,
+      reason: 'Shipping software should map to operations_logistics (OpEx)',
+      suggestedCategorySlug: 'operations_logistics',
+      confidencePenalty: 0.2
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
  * Checks for sales tax patterns and routes to liability account
  */
 export function checkSalesTaxGuardrails(
   tx: NormalizedTransaction,
-  proposedCategorySlug: string
+  proposedCategorySlug: string,
+  config: FeatureFlagConfig = {},
+  environment: 'development' | 'staging' | 'production' = 'development'
 ): GuardrailResult {
   const description = tx.description.toLowerCase();
   const merchantName = (tx.merchantName || '').toLowerCase();
@@ -117,37 +205,48 @@ export function checkSalesTaxGuardrails(
 }
 
 /**
- * Checks for Shopify payout patterns and routes to clearing account
+ * Checks for universal payout patterns and routes to clearing account
  */
-export function checkShopifyPayoutGuardrails(
+export function checkPayoutGuardrails(
   tx: NormalizedTransaction,
-  proposedCategorySlug: string
+  proposedCategorySlug: string,
+  config: FeatureFlagConfig = {},
+  environment: 'development' | 'staging' | 'production' = 'development'
 ): GuardrailResult {
   const description = tx.description.toLowerCase();
   const merchantName = (tx.merchantName || '').toLowerCase();
 
-  const shopifyPayoutKeywords = [
-    'shopify payout', 'shopify transfer', 'shopify deposit',
-    'shopify payments payout'
+  const isTwoTierEnabled = isFeatureEnabled(
+    CategorizerFeatureFlag.TWO_TIER_TAXONOMY_ENABLED,
+    config,
+    environment
+  );
+
+  // Universal payout patterns
+  const payoutKeywords = [
+    'payout', 'transfer', 'deposit', 'settlement', 'disbursement'
   ];
 
-  const isShopifyPayout = shopifyPayoutKeywords.some(keyword =>
-    description.includes(keyword) || (merchantName && merchantName.includes(keyword))
+  const paymentProcessors = [
+    'shopify', 'stripe', 'paypal', 'square', 'amazon payments'
+  ];
+
+  const hasPayoutKeywords = payoutKeywords.some(keyword =>
+    description.includes(keyword)
   );
 
-  // Also check for Shopify as merchant with payout-like descriptions
-  const isShopifyMerchant = merchantName && merchantName.includes('shopify');
-  const payoutDescriptions = ['payout', 'transfer', 'deposit', 'settlement'];
-  const hasPayoutDescription = payoutDescriptions.some(desc =>
-    description.includes(desc)
+  const isPaymentProcessorMerchant = paymentProcessors.some(processor =>
+    merchantName.includes(processor)
   );
 
-  if ((isShopifyPayout || (isShopifyMerchant && hasPayoutDescription)) &&
-      proposedCategorySlug !== 'shopify_payouts_clearing') {
+  const clearingCategory = isTwoTierEnabled ? 'payouts_clearing' : 'shopify_payouts_clearing';
+  const expectedCategory = isTwoTierEnabled ? 'payouts_clearing' : 'shopify_payouts_clearing';
+
+  if (isPaymentProcessorMerchant && hasPayoutKeywords && proposedCategorySlug !== expectedCategory) {
     return {
       allowed: false,
-      reason: 'Shopify payouts should map to clearing account',
-      suggestedCategorySlug: 'shopify_payouts_clearing',
+      reason: 'Payment processor payouts should map to clearing account',
+      suggestedCategorySlug: clearingCategory,
       confidencePenalty: 0.1
     };
   }
@@ -161,7 +260,9 @@ export function checkShopifyPayoutGuardrails(
 export function applyEcommerceGuardrails(
   tx: NormalizedTransaction,
   proposedCategorySlug: string,
-  confidence: number
+  confidence: number,
+  config: FeatureFlagConfig = {},
+  environment: 'development' | 'staging' | 'production' = 'development'
 ): {
   categorySlug: string;
   confidence: number;
@@ -174,7 +275,7 @@ export function applyEcommerceGuardrails(
   const violations: string[] = [];
 
   // Apply revenue guardrails
-  const revenueCheck = checkRevenueGuardrails(tx, proposedCategorySlug);
+  const revenueCheck = checkRevenueGuardrails(tx, proposedCategorySlug, config, environment);
   if (!revenueCheck.allowed) {
     violations.push(revenueCheck.reason!);
     if (revenueCheck.suggestedCategorySlug) {
@@ -186,8 +287,21 @@ export function applyEcommerceGuardrails(
     }
   }
 
+  // Apply shipping direction guardrails (two-tier taxonomy only)
+  const shippingCheck = checkShippingDirectionGuardrails(tx, finalCategorySlug, config, environment);
+  if (!shippingCheck.allowed) {
+    violations.push(shippingCheck.reason!);
+    if (shippingCheck.suggestedCategorySlug) {
+      finalCategorySlug = shippingCheck.suggestedCategorySlug;
+      guardrailsApplied.push('shipping_direction_redirect');
+    }
+    if (shippingCheck.confidencePenalty) {
+      finalConfidence = Math.max(0, finalConfidence - shippingCheck.confidencePenalty);
+    }
+  }
+
   // Apply sales tax guardrails
-  const salesTaxCheck = checkSalesTaxGuardrails(tx, finalCategorySlug);
+  const salesTaxCheck = checkSalesTaxGuardrails(tx, finalCategorySlug, config, environment);
   if (!salesTaxCheck.allowed) {
     violations.push(salesTaxCheck.reason!);
     if (salesTaxCheck.suggestedCategorySlug) {
@@ -199,16 +313,16 @@ export function applyEcommerceGuardrails(
     }
   }
 
-  // Apply Shopify payout guardrails
-  const shopifyCheck = checkShopifyPayoutGuardrails(tx, finalCategorySlug);
-  if (!shopifyCheck.allowed) {
-    violations.push(shopifyCheck.reason!);
-    if (shopifyCheck.suggestedCategorySlug) {
-      finalCategorySlug = shopifyCheck.suggestedCategorySlug;
-      guardrailsApplied.push('shopify_payout_redirect');
+  // Apply payout guardrails
+  const payoutCheck = checkPayoutGuardrails(tx, finalCategorySlug, config, environment);
+  if (!payoutCheck.allowed) {
+    violations.push(payoutCheck.reason!);
+    if (payoutCheck.suggestedCategorySlug) {
+      finalCategorySlug = payoutCheck.suggestedCategorySlug;
+      guardrailsApplied.push('payout_redirect');
     }
-    if (shopifyCheck.confidencePenalty) {
-      finalConfidence = Math.max(0, finalConfidence - shopifyCheck.confidencePenalty);
+    if (payoutCheck.confidencePenalty) {
+      finalConfidence = Math.max(0, finalConfidence - payoutCheck.confidencePenalty);
     }
   }
 
@@ -226,17 +340,19 @@ export function applyEcommerceGuardrails(
 export function getCategoryIdWithGuardrails(
   tx: NormalizedTransaction,
   proposedCategorySlug: string,
-  confidence: number
+  confidence: number,
+  config: FeatureFlagConfig = {},
+  environment: 'development' | 'staging' | 'production' = 'development'
 ): {
   categoryId: string;
   confidence: number;
   guardrailsApplied: string[];
   violations: string[];
 } {
-  const result = applyEcommerceGuardrails(tx, proposedCategorySlug, confidence);
+  const result = applyEcommerceGuardrails(tx, proposedCategorySlug, confidence, config, environment);
 
   return {
-    categoryId: mapCategorySlugToId(result.categorySlug),
+    categoryId: mapCategorySlugToId(result.categorySlug, config, environment),
     confidence: result.confidence,
     guardrailsApplied: result.guardrailsApplied,
     violations: result.violations
