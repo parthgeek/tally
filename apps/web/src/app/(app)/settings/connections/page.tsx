@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 import { ConnectBankButton } from '@/components/connect-bank-button';
 import { DisconnectBankButton } from '@/components/disconnect-bank-button';
+import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase';
 import type { ConnectionId } from '@nexus/types/contracts';
 
@@ -73,6 +75,12 @@ export default function ConnectionsPage() {
     }
   };
 
+  const handleRemoveFromView = (connectionId: string) => {
+    setConnections(prevConnections => 
+      prevConnections.filter(conn => conn.id !== connectionId)
+    );
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto py-8">
@@ -111,7 +119,18 @@ export default function ConnectionsPage() {
 
       <div className="space-y-6">
         {connections.map((connection) => (
-          <div key={connection.id} className="border rounded-lg p-6">
+          <div key={connection.id} className="border rounded-lg p-6 relative">
+            {connection.status === 'disconnected' && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleRemoveFromView(connection.id)}
+                className="absolute top-1 right-1 h-6 w-6 opacity-70 hover:opacity-100"
+                aria-label="Remove from view"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-lg font-semibold capitalize">
