@@ -54,6 +54,7 @@ Targets:
 ## Phase 5 — UI upgrades (apps/web)
 
 - **Rationale rendering**: Show structured rationale (signals table: MCC, vendor match, keywords).
+
 - **Guardrail badges**: Indicate when guardrails overrode an LLM suggestion.
 - **Confidence visualization**: Expect varied values; adjust charts to show long‑tail distributions.
 
