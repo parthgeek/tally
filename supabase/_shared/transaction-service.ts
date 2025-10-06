@@ -167,16 +167,27 @@ export async function upsertTransactions(transactions: NormalizedTransaction[]):
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   );
 
+  // Batch size for upserts to balance throughput and request size
+  const BATCH_SIZE = 500;
   let upsertedCount = 0;
 
-  for (const transaction of transactions) {
-    const { error } = await supabase
+  // Process transactions in batches
+  for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
+    const batch = transactions.slice(i, i + BATCH_SIZE);
+    
+    const { error, count } = await supabase
       .from('transactions')
-      .upsert(transaction, {
-        onConflict: 'org_id,provider_tx_id'
+      .upsert(batch, {
+        onConflict: 'org_id,provider_tx_id',
+        count: 'exact'
       });
 
-    if (!error) upsertedCount++;
+    if (error) {
+      console.error(`Failed to upsert batch ${i / BATCH_SIZE + 1}:`, error);
+      // Continue with next batch rather than failing completely
+    } else {
+      upsertedCount += count || batch.length;
+    }
   }
 
   return upsertedCount;

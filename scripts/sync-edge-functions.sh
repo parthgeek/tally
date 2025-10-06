@@ -58,6 +58,10 @@ echo "🔧 Copying package dependencies..."
 mkdir -p packages/categorizer/src
 cp -r "$PROJECT_ROOT/packages/categorizer/src"/* packages/categorizer/src/
 
+# Copy types package (required by categorizer)
+mkdir -p packages/types/src
+cp -r "$PROJECT_ROOT/packages/types/src"/* packages/types/src/
+
 echo "🔧 Fixing import paths in flattened functions..."
 
 # Fix import paths in all flattened functions
@@ -65,15 +69,27 @@ echo "🔧 Fixing import paths in flattened functions..."
 find . -name "index.ts" -not -path "./_shared/*" -exec sed -i '' "s|'../../_shared/|'../_shared/|g" {} \;
 find . -name "index.ts" -not -path "./_shared/*" -exec sed -i '' 's|"../../_shared/|"../_shared/|g' {} \;
 
-# Fix package import paths for categorize-queue
+# Fix package import paths for jobs that use categorizer
 if [ -f "jobs-categorize-queue/index.ts" ]; then
   sed -i '' "s|'../../../packages/|'../packages/|g" jobs-categorize-queue/index.ts
   sed -i '' 's|"../../../packages/|"../packages/|g' jobs-categorize-queue/index.ts
 fi
 
-# Fix .js imports to .ts for Supabase deployment
+if [ -f "jobs-recategorize-historical/index.ts" ]; then
+  sed -i '' "s|'../../../packages/|'../packages/|g" jobs-recategorize-historical/index.ts
+  sed -i '' 's|"../../../packages/|"../packages/|g' jobs-recategorize-historical/index.ts
+fi
+
+# Fix .js imports to .ts for Supabase deployment (both categorizer and types)
+find packages/categorizer/src -name "*.ts" -exec sed -i '' "s|from '\.\./\([^']*\)\.js'|from '../\1.ts'|g" {} \;
+find packages/categorizer/src -name "*.ts" -exec sed -i '' 's|from "\.\./\([^"]*\)\.js"|from "../\1.ts"|g' {} \;
 find packages/categorizer/src -name "*.ts" -exec sed -i '' "s|from '\./\([^']*\)\.js'|from './\1.ts'|g" {} \;
 find packages/categorizer/src -name "*.ts" -exec sed -i '' 's|from "\./\([^"]*\)\.js"|from "./\1.ts"|g' {} \;
+
+find packages/types/src -name "*.ts" -exec sed -i '' "s|from '\.\./\([^']*\)\.js'|from '../\1.ts'|g" {} \;
+find packages/types/src -name "*.ts" -exec sed -i '' 's|from "\.\./\([^"]*\)\.js"|from "../\1.ts"|g' {} \;
+find packages/types/src -name "*.ts" -exec sed -i '' "s|from '\./\([^']*\)\.js'|from './\1.ts'|g" {} \;
+find packages/types/src -name "*.ts" -exec sed -i '' 's|from "\./\([^"]*\)\.js"|from "./\1.ts"|g' {} \;
 
 echo "✅ Sync and flattening completed"
 echo "Functions ready for deployment in: $TARGET_DIR"

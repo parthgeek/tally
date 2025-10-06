@@ -167,27 +167,28 @@ export async function upsertTransactions(transactions: NormalizedTransaction[]):
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   );
 
+  // Batch size for upserts to balance throughput and request size
+  const BATCH_SIZE = 500;
   let upsertedCount = 0;
 
-  // Use raw SQL to properly handle the partial unique index
-  // The partial index (WHERE provider_tx_id IS NOT NULL) requires this approach
-  for (const transaction of transactions) {
-    const { error } = await supabase.rpc('upsert_transaction', {
-      p_org_id: transaction.org_id,
-      p_account_id: transaction.account_id,
-      p_date: transaction.date,
-      p_amount_cents: transaction.amount_cents,
-      p_currency: transaction.currency,
-      p_description: transaction.description,
-      p_merchant_name: transaction.merchant_name,
-      p_mcc: transaction.mcc,
-      p_source: transaction.source,
-      p_raw: transaction.raw,
-      p_provider_tx_id: transaction.provider_tx_id,
-      p_reviewed: transaction.reviewed
-    });
+  // Process transactions in batches
+  // Now using standard PostgREST upsert with the UNIQUE constraint on (org_id, provider_tx_id)
+  for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
+    const batch = transactions.slice(i, i + BATCH_SIZE);
+    
+    const { error, count } = await supabase
+      .from('transactions')
+      .upsert(batch, {
+        onConflict: 'org_id,provider_tx_id',
+        count: 'exact'
+      });
 
-    if (!error) upsertedCount++;
+    if (error) {
+      console.error(`Failed to upsert batch ${i / BATCH_SIZE + 1}:`, error);
+      // Continue with next batch rather than failing completely
+    } else {
+      upsertedCount += count || batch.length;
+    }
   }
 
   return upsertedCount;
