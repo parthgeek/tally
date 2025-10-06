@@ -15,7 +15,7 @@ export function FeatureCarousel() {
       icon: Sparkles,
       headline: "Smart categorization with 95%+ accuracy",
       description:
-        "Google Gemini AI automatically categorizes transactions into 38 e-commerce categories. No manual data entry.",
+        "AI automatically categorizes transactions into 38 e-commerce categories. No manual data entry.",
       visual: (
         <div className="p-4 space-y-2">
           <div className="flex items-center justify-between p-3 bg-background rounded-lg">
@@ -121,7 +121,7 @@ export function FeatureCarousel() {
 
         {/* Carousel - horizontal scroll on mobile, grid on desktop */}
         <div className="relative">
-          <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 md:gap-6 pb-8 md:grid md:grid-cols-2 lg:grid-cols-3 md:overflow-visible">
+          <div className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-8 md:grid md:grid-cols-2 md:gap-8 md:overflow-visible">
             {features.map((feature) => (
               <FeatureCard key={feature.id} {...feature} />
             ))}

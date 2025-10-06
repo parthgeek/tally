@@ -1,6 +1,6 @@
 "use client";
 
-import { Shield, Lock, Zap } from "lucide-react";
+import { Shield, Lock } from "lucide-react";
 import { WaitlistForm } from "./waitlist-form";
 
 /**
@@ -31,10 +31,6 @@ export function FinalCTA() {
             <div className="flex items-center gap-2">
               <Lock className="w-4 h-4" />
               <span>256-bit Encryption</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4" />
-              <span>Powered by Gemini</span>
             </div>
           </div>
         </div>

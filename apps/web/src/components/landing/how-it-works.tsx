@@ -52,7 +52,7 @@ export function HowItWorks() {
   const steps = [
     {
       number: 1,
-      title: "Connect Shopify",
+      title: "Connect Shopify and Bank Account(s)",
       description: "Link your Shopify store in 60 seconds. Bank account connections via Plaid.",
       time: "1 minute",
       icon: Link2,

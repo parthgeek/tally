@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Shield, Zap, Target } from "lucide-react";
+import { ChevronDown, Shield, Target } from "lucide-react";
 import { WaitlistForm } from "./waitlist-form";
 import { DashboardPreview } from "./dashboard-preview";
 
@@ -46,10 +46,6 @@ export function HeroSection() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Target className="w-4 h-4 text-primary" />
                 <span>95%+ Accuracy</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Zap className="w-4 h-4 text-primary" />
-                <span>Powered by Gemini</span>
               </div>
             </div>
           </div>

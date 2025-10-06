@@ -201,10 +201,10 @@ export function DashboardPreview() {
                   <div
                     className={cn(
                       "text-sm font-mono font-semibold",
-                      transaction.amount > 0 ? "text-green-600" : "text-foreground"
+                      transaction.amount > 0 ? "text-green-600" : "text-red-600"
                     )}
                   >
-                    {transaction.amount > 0 ? "+" : ""}
+                    {transaction.amount > 0 ? "+" : "-"}
                     {formatCurrency(Math.abs(transaction.amount))}
                   </div>
                   <div className="text-xs text-muted-foreground">
