@@ -4,8 +4,8 @@ import { cn } from "@/lib/utils";
 import type { DashboardDTO } from "@nexus/types/contracts";
 
 interface AlertsRowProps {
-  alerts: DashboardDTO['alerts'];
-  onAlertClick: (type: 'low_balance' | 'unusual_spend' | 'needs_review') => void;
+  alerts: DashboardDTO["alerts"];
+  onAlertClick: (type: "low_balance" | "unusual_spend" | "needs_review") => void;
 }
 
 export function AlertsRow({ alerts, onAlertClick }: AlertsRowProps) {
@@ -17,16 +17,18 @@ export function AlertsRow({ alerts, onAlertClick }: AlertsRowProps) {
     <div className="space-y-2">
       {/* Low Balance Alert */}
       {alerts.lowBalance && (
-        <Link 
+        <Link
           href="/settings/thresholds"
-          onClick={() => onAlertClick('low_balance')}
+          onClick={() => onAlertClick("low_balance")}
           className="block"
         >
-          <div className={cn(
-            "flex items-start gap-3 px-4 py-3 rounded-lg border transition-colors",
-            "bg-destructive-background border-destructive/20",
-            "hover:bg-destructive-background/80 cursor-pointer"
-          )}>
+          <div
+            className={cn(
+              "flex items-start gap-3 px-4 py-3 rounded-lg border transition-colors",
+              "bg-destructive-background border-destructive/20",
+              "hover:bg-destructive-background/80 cursor-pointer"
+            )}
+          >
             <div className="mt-0.5">
               <AlertTriangle className="h-4 w-4 text-destructive" />
             </div>
@@ -42,8 +44,8 @@ export function AlertsRow({ alerts, onAlertClick }: AlertsRowProps) {
 
       {/* Unusual Spending Alert */}
       {alerts.unusualSpend && (
-        <div 
-          onClick={() => onAlertClick('unusual_spend')}
+        <div
+          onClick={() => onAlertClick("unusual_spend")}
           className={cn(
             "flex items-start gap-3 px-4 py-3 rounded-lg border transition-colors",
             "bg-warning-background border-warning/20",
@@ -64,22 +66,21 @@ export function AlertsRow({ alerts, onAlertClick }: AlertsRowProps) {
 
       {/* Needs Review Alert */}
       {alerts.needsReviewCount > 0 && (
-        <Link 
-          href="/review"
-          onClick={() => onAlertClick('needs_review')}
-          className="block"
-        >
-          <div className={cn(
-            "flex items-start gap-3 px-4 py-3 rounded-lg border transition-colors",
-            "bg-accent/50 border-primary/20",
-            "hover:bg-accent/70 cursor-pointer"
-          )}>
+        <Link href="/review" onClick={() => onAlertClick("needs_review")} className="block">
+          <div
+            className={cn(
+              "flex items-start gap-3 px-4 py-3 rounded-lg border transition-colors",
+              "bg-accent/50 border-primary/20",
+              "hover:bg-accent/70 cursor-pointer"
+            )}
+          >
             <div className="mt-0.5">
               <Eye className="h-4 w-4 text-primary" />
             </div>
             <div className="flex-1 text-sm">
               <span className="font-medium text-foreground">
-                {alerts.needsReviewCount} {alerts.needsReviewCount === 1 ? 'Transaction' : 'Transactions'} Need Review
+                {alerts.needsReviewCount}{" "}
+                {alerts.needsReviewCount === 1 ? "Transaction" : "Transactions"} Need Review
               </span>
               <p className="text-muted-foreground mt-0.5">
                 Low confidence categorizations require your attention

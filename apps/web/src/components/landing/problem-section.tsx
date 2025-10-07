@@ -47,7 +47,7 @@ export function ProblemSection() {
           <div className="relative">
             <div className="absolute -top-4 left-4">
               <span className="bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 px-3 py-1 rounded-full text-sm font-medium">
-                Without Nexus
+                Without Tally
               </span>
             </div>
 
@@ -66,7 +66,7 @@ export function ProblemSection() {
           <div className="relative">
             <div className="absolute -top-4 left-4 z-10">
               <span className="bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300 px-3 py-1 rounded-full text-sm font-medium">
-                With Nexus
+                With Tally
               </span>
             </div>
 

@@ -19,7 +19,9 @@ export function UserMenu() {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
       if (authUser) {
         setUser({
           email: authUser.email || "",
@@ -37,7 +39,12 @@ export function UserMenu() {
 
   const getInitials = (name?: string, email?: string) => {
     if (name) {
-      return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+      return name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
     }
     return email?.slice(0, 2).toUpperCase() || "U";
   };
@@ -93,10 +100,7 @@ export function UserMenu() {
           </div>
 
           {/* Click outside to close */}
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setIsOpen(false)}
-          />
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
         </>
       )}
     </div>

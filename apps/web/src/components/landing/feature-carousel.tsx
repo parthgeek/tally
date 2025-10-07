@@ -22,7 +22,7 @@ export function FeatureCarousel() {
             <div className="space-y-1">
               <p className="text-sm font-medium">Shopify Payment</p>
               <div className="flex items-center gap-2">
-                <CategoryPill tier1="revenue" tier2="DTC Sales" />
+                <CategoryPill tier1="revenue" tier2="E-Commerce Sales" />
                 <ConfidenceBadge confidence={0.98} />
               </div>
             </div>
@@ -115,7 +115,7 @@ export function FeatureCarousel() {
             Built for E-commerce
           </p>
           <h2 className="text-3xl sm:text-4xl font-bold mt-2">
-            Every feature designed for DTC brands
+            Every feature designed for e-commerce brands
           </h2>
         </div>
 

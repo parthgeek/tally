@@ -1,6 +1,6 @@
-import { useCallback } from 'react';
+import { useCallback } from "react";
 
-type ToastVariant = 'default' | 'destructive';
+type ToastVariant = "default" | "destructive";
 
 interface Toast {
   title: string;
@@ -12,11 +12,11 @@ interface Toast {
 // In a real app, you'd want a proper toast system
 export function useToast() {
   const toast = useCallback((toastData: Toast) => {
-    const message = toastData.description 
+    const message = toastData.description
       ? `${toastData.title}\n${toastData.description}`
       : toastData.title;
-    
-    if (toastData.variant === 'destructive') {
+
+    if (toastData.variant === "destructive") {
       alert(`Error: ${message}`);
     } else {
       alert(message);

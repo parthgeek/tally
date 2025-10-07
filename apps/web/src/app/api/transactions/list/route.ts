@@ -6,7 +6,11 @@ import {
   type TransactionId,
   type CategoryId,
 } from "@nexus/types/contracts";
-import { withOrgFromRequest, createValidationErrorResponse, createErrorResponse } from "@/lib/api/with-org";
+import {
+  withOrgFromRequest,
+  createValidationErrorResponse,
+  createErrorResponse,
+} from "@/lib/api/with-org";
 import { createServerClient } from "@/lib/supabase";
 
 export async function GET(request: NextRequest) {
@@ -33,11 +37,12 @@ export async function GET(request: NextRequest) {
 
     // Query transactions from database
     const supabase = await createServerClient();
-    
+
     const queryLimit = validatedRequest.limit || 50;
     let query = supabase
-      .from('transactions')
-      .select(`
+      .from("transactions")
+      .select(
+        `
         id,
         date,
         amount_cents,
@@ -55,32 +60,33 @@ export async function GET(request: NextRequest) {
         created_at,
         accounts!inner(id, name, type),
         categories(id, name, slug)
-      `)
-      .eq('org_id', validatedRequest.orgId)
-      .order('date', { ascending: false })
-      .order('created_at', { ascending: false })
+      `
+      )
+      .eq("org_id", validatedRequest.orgId)
+      .order("date", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(queryLimit + 1); // Get one extra to check for next page
 
     // Handle cursor-based pagination
     if (validatedRequest.cursor) {
       // Simple cursor implementation using created_at timestamp
       const cursorDate = new Date(validatedRequest.cursor);
-      query = query.lt('created_at', cursorDate.toISOString());
+      query = query.lt("created_at", cursorDate.toISOString());
     }
 
     const { data: rawTransactions, error } = await query;
 
     if (error) {
-      console.error('Database error fetching transactions:', error);
+      console.error("Database error fetching transactions:", error);
       return createErrorResponse("Failed to fetch transactions", 500);
     }
 
     // Check if we have more pages
     const hasMore = rawTransactions.length > queryLimit;
     const transactions = hasMore ? rawTransactions.slice(0, queryLimit) : rawTransactions;
-    
+
     // Transform to contract format
-    const transformedTransactions = transactions.map(tx => ({
+    const transformedTransactions = transactions.map((tx) => ({
       id: tx.id as TransactionId,
       date: tx.date,
       amountCents: parseInt(tx.amount_cents),
@@ -95,9 +101,10 @@ export async function GET(request: NextRequest) {
       raw: tx.raw,
     }));
 
-    const nextCursor = hasMore && transactions.length > 0 
-      ? transactions[transactions.length - 1]?.created_at
-      : undefined;
+    const nextCursor =
+      hasMore && transactions.length > 0
+        ? transactions[transactions.length - 1]?.created_at
+        : undefined;
 
     const response: TransactionsListResponse = {
       items: transformedTransactions,

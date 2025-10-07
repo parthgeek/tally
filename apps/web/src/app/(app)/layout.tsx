@@ -1,16 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { 
-  Menu, 
-  X, 
-  Home, 
-  Receipt, 
-  Eye, 
-  Settings,
-  ChevronLeft,
-  ChevronRight 
-} from "lucide-react";
+import { Menu, X, Home, Receipt, Eye, Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import { OrgSwitcher } from "@/components/org-switcher";
 import { UserMenu } from "@/components/user-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -27,11 +18,7 @@ const navigation = [
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
-export default function AppLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isCollapsed, toggleSidebar, isLoaded } = useSidebarState();
   const pathname = usePathname();
@@ -41,7 +28,7 @@ export default function AppLayout({
   return (
     <div className="h-full">
       {/* Desktop Sidebar */}
-      <div 
+      <div
         className={cn(
           "hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:flex-col transition-all duration-300",
           sidebarWidth
@@ -50,9 +37,7 @@ export default function AppLayout({
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-border-subtle bg-background px-4 pb-4">
           {/* Logo / Brand */}
           <div className="flex h-12 shrink-0 items-center justify-between mt-3">
-            {!isCollapsed && (
-              <h1 className="text-lg font-semibold tracking-tight">Nexus</h1>
-            )}
+            {!isCollapsed && <h1 className="text-lg font-semibold tracking-tight">Tally</h1>}
             <button
               onClick={toggleSidebar}
               className={cn(
@@ -92,10 +77,7 @@ export default function AppLayout({
                         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r" />
                       )}
                       <item.icon
-                        className={cn(
-                          "h-5 w-5 shrink-0",
-                          isActive && "text-primary"
-                        )}
+                        className={cn("h-5 w-5 shrink-0", isActive && "text-primary")}
                         aria-hidden="true"
                       />
                       {!isCollapsed && <span>{item.name}</span>}
@@ -138,17 +120,15 @@ export default function AppLayout({
 
         {/* Page Content */}
         <main className="py-4 sm:py-6 lg:py-8">
-          <div className="px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-            {children}
-          </div>
+          <div className="px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto">{children}</div>
         </main>
       </div>
 
       {/* Mobile Sidebar */}
       {mobileMenuOpen && (
         <div className="relative z-50 lg:hidden">
-          <div 
-            className="fixed inset-0 bg-foreground/80 backdrop-blur-sm" 
+          <div
+            className="fixed inset-0 bg-foreground/80 backdrop-blur-sm"
             onClick={() => setMobileMenuOpen(false)}
           />
           <div className="fixed inset-0 flex">
@@ -166,7 +146,7 @@ export default function AppLayout({
 
               <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-background px-6 pb-4 border-r border-border-subtle">
                 <div className="flex h-12 shrink-0 items-center mt-3">
-                  <h1 className="text-lg font-semibold">Nexus</h1>
+                  <h1 className="text-lg font-semibold">Tally</h1>
                 </div>
                 <nav className="flex flex-1 flex-col">
                   <ul role="list" className="flex flex-1 flex-col gap-y-1">
@@ -187,11 +167,8 @@ export default function AppLayout({
                             {isActive && (
                               <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r" />
                             )}
-                            <item.icon 
-                              className={cn(
-                                "h-5 w-5 shrink-0",
-                                isActive && "text-primary"
-                              )} 
+                            <item.icon
+                              className={cn("h-5 w-5 shrink-0", isActive && "text-primary")}
                             />
                             {item.name}
                           </Link>

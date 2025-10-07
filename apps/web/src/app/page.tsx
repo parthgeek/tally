@@ -7,21 +7,21 @@ import { HowItWorks } from "@/components/landing/how-it-works";
 import { FinalCTA } from "@/components/landing/final-cta";
 
 export const metadata: Metadata = {
-  title: "Nexus | AI-Powered Bookkeeping for DTC Brands",
+  title: "Tally | AI-Powered Bookkeeping for E-Commerce Brands",
   description:
     "Automated bookkeeping for Shopify stores. Real-time P&L, COGS tracking, and tax-ready exports. Built for e-commerce.",
   keywords:
-    "shopify bookkeeping, dtc accounting, ecommerce bookkeeping, automated bookkeeping, shopify accounting",
+    "shopify bookkeeping, ecommerce accounting, online store bookkeeping, automated bookkeeping, shopify accounting",
   openGraph: {
     type: "website",
     locale: "en_US",
-    title: "Nexus | AI-Powered Bookkeeping for DTC Brands",
+    title: "Tally | AI-Powered Bookkeeping for E-Commerce Brands",
     description: "Automated bookkeeping for Shopify stores.",
-    siteName: "Nexus",
+    siteName: "Tally",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Nexus | AI-Powered Bookkeeping for DTC Brands",
+    title: "Tally | AI-Powered Bookkeeping for E-Commerce Brands",
     description: "Automated bookkeeping for Shopify stores.",
   },
   robots: {
@@ -39,14 +39,14 @@ export default function LandingPage() {
   const schemaData = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: "Nexus",
+    name: "Tally",
     applicationCategory: "BusinessApplication",
     offers: {
       "@type": "Offer",
       price: "0",
       priceCurrency: "USD",
     },
-    description: "AI-powered bookkeeping for DTC e-commerce brands",
+    description: "AI-powered bookkeeping for e-commerce brands",
   };
 
   return (
@@ -69,7 +69,7 @@ export default function LandingPage() {
         <footer className="border-t border-border py-8">
           <div className="container mx-auto px-6">
             <div className="text-center text-sm text-muted-foreground">
-              <p>© 2025 Nexus. All rights reserved.</p>
+              <p>© 2025 Tally. All rights reserved.</p>
             </div>
           </div>
         </footer>

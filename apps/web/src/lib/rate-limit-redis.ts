@@ -3,7 +3,7 @@
  * Implements sliding window counter algorithm with automatic failover to in-memory storage
  */
 
-import Redis from 'ioredis';
+import Redis from "ioredis";
 
 export interface RateLimitConfig {
   key: string;
@@ -58,7 +58,7 @@ class ProductionRedisRateLimiter implements RedisRateLimiter {
   `;
 
   constructor(redisUrl?: string) {
-    this.redis = new Redis(redisUrl || process.env.REDIS_URL || 'redis://localhost:6379', {
+    this.redis = new Redis(redisUrl || process.env.REDIS_URL || "redis://localhost:6379", {
       maxRetriesPerRequest: 3,
       lazyConnect: true,
       // Fail fast on connection issues for development
@@ -66,21 +66,21 @@ class ProductionRedisRateLimiter implements RedisRateLimiter {
     });
 
     // Handle Redis connection errors gracefully
-    this.redis.on('error', (error) => {
-      console.warn('Redis rate limiter connection error:', error.message);
+    this.redis.on("error", (error) => {
+      console.warn("Redis rate limiter connection error:", error.message);
     });
   }
 
   async checkRateLimit(config: RateLimitConfig): Promise<RateLimitResult> {
     try {
-      const result = await this.redis.eval(
+      const result = (await this.redis.eval(
         this.luaScript,
         1,
         `rate_limit:${config.key}`,
         config.windowMs.toString(),
         config.limit.toString(),
         Date.now().toString()
-      ) as [number, number, number];
+      )) as [number, number, number];
 
       return {
         allowed: result[0] === 1,
@@ -88,7 +88,7 @@ class ProductionRedisRateLimiter implements RedisRateLimiter {
         resetTime: result[2],
       };
     } catch (error) {
-      console.warn('Redis rate limit check failed, will use fallback:', error);
+      console.warn("Redis rate limit check failed, will use fallback:", error);
       throw error; // Let fallback handler catch this
     }
   }
@@ -161,9 +161,9 @@ class HybridRateLimiter {
   constructor() {
     // Only attempt Redis connection in production or when explicitly configured
     const shouldUseRedis =
-      process.env.NODE_ENV === 'production' ||
+      process.env.NODE_ENV === "production" ||
       process.env.REDIS_URL ||
-      process.env.ENABLE_REDIS_RATE_LIMIT === 'true';
+      process.env.ENABLE_REDIS_RATE_LIMIT === "true";
 
     if (shouldUseRedis) {
       this.redisLimiter = new ProductionRedisRateLimiter();
@@ -178,14 +178,12 @@ class HybridRateLimiter {
       // Simple ping to test connectivity with timeout
       await Promise.race([
         this.redisLimiter.ping(),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Redis ping timeout')), 3000)
-        )
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Redis ping timeout")), 3000)),
       ]);
       this.useRedis = true;
-      console.log('Redis rate limiter initialized successfully');
+      console.log("Redis rate limiter initialized successfully");
     } catch (error) {
-      console.warn('Redis rate limiter unavailable, using memory fallback:', error);
+      console.warn("Redis rate limiter unavailable, using memory fallback:", error);
       this.useRedis = false;
     }
   }
@@ -195,7 +193,7 @@ class HybridRateLimiter {
       try {
         return await this.redisLimiter.checkRateLimit(config);
       } catch (error) {
-        console.warn('Redis rate limit failed, falling back to memory:', error);
+        console.warn("Redis rate limit failed, falling back to memory:", error);
         this.useRedis = false; // Disable Redis for subsequent requests
         // Ensure we always fallback to memory limiter on Redis failure
         return await this.memoryLimiter.checkRateLimit(config);
@@ -222,7 +220,7 @@ function getRateLimiter(): HybridRateLimiter {
     globalRateLimiter = new HybridRateLimiter();
 
     // Cleanup on process exit
-    process.on('SIGTERM', async () => {
+    process.on("SIGTERM", async () => {
       if (globalRateLimiter) {
         await globalRateLimiter.cleanup();
       }
@@ -256,12 +254,13 @@ export function getRateLimitKey(request: Request, userId?: string): string {
   }
 
   // Enhanced IP extraction with proxy support
-  const forwarded = request.headers.get('x-forwarded-for');
-  const realIp = request.headers.get('x-real-ip');
-  const cfConnectingIp = request.headers.get('cf-connecting-ip'); // Cloudflare
-  const fastlyClientIp = request.headers.get('fastly-client-ip'); // Fastly
+  const forwarded = request.headers.get("x-forwarded-for");
+  const realIp = request.headers.get("x-real-ip");
+  const cfConnectingIp = request.headers.get("cf-connecting-ip"); // Cloudflare
+  const fastlyClientIp = request.headers.get("fastly-client-ip"); // Fastly
 
-  const ip = cfConnectingIp || fastlyClientIp || forwarded?.split(',')[0]?.trim() || realIp || 'unknown';
+  const ip =
+    cfConnectingIp || fastlyClientIp || forwarded?.split(",")[0]?.trim() || realIp || "unknown";
 
   return `ip:${ip}`;
 }
@@ -274,20 +273,20 @@ export function createRateLimitResponse(resetTime: number): Response {
 
   return new Response(
     JSON.stringify({
-      error: 'Too many requests',
-      message: 'Rate limit exceeded. Please try again later.',
+      error: "Too many requests",
+      message: "Rate limit exceeded. Please try again later.",
       retryAfter,
     }),
     {
       status: 429,
       headers: {
-        'Content-Type': 'application/json',
-        'Retry-After': retryAfter.toString(),
-        'X-RateLimit-Remaining': '0',
-        'X-RateLimit-Reset': new Date(resetTime).toISOString(),
+        "Content-Type": "application/json",
+        "Retry-After": retryAfter.toString(),
+        "X-RateLimit-Remaining": "0",
+        "X-RateLimit-Reset": new Date(resetTime).toISOString(),
         // Security headers
-        'Cache-Control': 'no-store',
-        'X-Content-Type-Options': 'nosniff',
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
       },
     }
   );
@@ -327,7 +326,7 @@ export const RATE_LIMITS = {
  * Get appropriate rate limit config based on environment
  */
 export function getRateLimitConfig(operation: keyof typeof RATE_LIMITS) {
-  if (process.env.NODE_ENV === 'development' && RATE_LIMITS[operation]) {
+  if (process.env.NODE_ENV === "development" && RATE_LIMITS[operation]) {
     // Use more generous limits in development
     return RATE_LIMITS.DEV_DEFAULT;
   }

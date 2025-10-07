@@ -43,12 +43,12 @@ export default function SignUpPage() {
         setError(error.message);
       } else if (data.user) {
         // Debug: Log the response to understand the authentication state
-        console.log("Sign-up response:", { 
-          hasSession: !!data.session, 
+        console.log("Sign-up response:", {
+          hasSession: !!data.session,
           userConfirmed: !!data.user.email_confirmed_at,
-          userId: data.user.id 
+          userId: data.user.id,
         });
-        
+
         // Future-proof: Handle both email confirmation enabled/disabled scenarios
         if (data.session) {
           // Case 1: Email confirmation disabled (development) - user gets immediate session
@@ -97,10 +97,7 @@ export default function SignUpPage() {
             )}
 
             <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium leading-6"
-              >
+              <label htmlFor="email" className="block text-sm font-medium leading-6">
                 Email address
               </label>
               <div className="mt-2">
@@ -117,10 +114,7 @@ export default function SignUpPage() {
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium leading-6"
-              >
+              <label htmlFor="password" className="block text-sm font-medium leading-6">
                 Password
               </label>
               <div className="mt-2">
@@ -137,10 +131,7 @@ export default function SignUpPage() {
             </div>
 
             <div>
-              <label
-                htmlFor="confirm-password"
-                className="block text-sm font-medium leading-6"
-              >
+              <label htmlFor="confirm-password" className="block text-sm font-medium leading-6">
                 Confirm password
               </label>
               <div className="mt-2">
@@ -166,10 +157,7 @@ export default function SignUpPage() {
           <div className="mt-6">
             <p className="text-center text-sm text-muted-foreground">
               Already have an account?{" "}
-              <Link
-                href="/sign-in"
-                className="font-semibold text-primary hover:underline"
-              >
+              <Link href="/sign-in" className="font-semibold text-primary hover:underline">
                 Sign in
               </Link>
             </p>

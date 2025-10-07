@@ -41,7 +41,7 @@ export function filterTransactions(
   transactions: TransactionForFilter[],
   filters: FilterState
 ): TransactionForFilter[] {
-  return transactions.filter(tx => {
+  return transactions.filter((tx) => {
     // Search filter (description or merchant)
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
@@ -57,12 +57,16 @@ export function filterTransactions(
     }
 
     // Account filter
-    if (filters.account && filters.account !== '__all__' && tx.account_name !== filters.account) {
+    if (filters.account && filters.account !== "__all__" && tx.account_name !== filters.account) {
       return false;
     }
 
     // Category filter
-    if (filters.categoryId && filters.categoryId !== '__all__' && tx.category_id !== filters.categoryId) {
+    if (
+      filters.categoryId &&
+      filters.categoryId !== "__all__" &&
+      tx.category_id !== filters.categoryId
+    ) {
       return false;
     }
 
@@ -90,7 +94,8 @@ export function filterTransactions(
 
     // Low confidence filter
     if (filters.lowConfidenceOnly) {
-      const isLowConfidence = typeof tx.confidence === 'number' && tx.confidence < LOW_CONFIDENCE_THRESHOLD;
+      const isLowConfidence =
+        typeof tx.confidence === "number" && tx.confidence < LOW_CONFIDENCE_THRESHOLD;
       if (!isLowConfidence) return false;
     }
 
@@ -99,14 +104,14 @@ export function filterTransactions(
 }
 
 export function isLowConfidence(confidence: number | null | undefined): boolean {
-  return typeof confidence === 'number' && confidence < LOW_CONFIDENCE_THRESHOLD;
+  return typeof confidence === "number" && confidence < LOW_CONFIDENCE_THRESHOLD;
 }
 
 export function getActiveFilterKeys(filters: FilterState): string[] {
   return Object.entries(filters)
     .filter(([_, value]) => {
-      if (typeof value === 'boolean') return value;
-      return value !== '' && value !== '__all__';
+      if (typeof value === "boolean") return value;
+      return value !== "" && value !== "__all__";
     })
     .map(([key]) => key);
 }

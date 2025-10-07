@@ -27,17 +27,21 @@ export function PostHogIdentify() {
         // Add timeout to prevent hanging
         const userPromise = supabase.auth.getUser();
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Auth timeout')), 5000)
+          setTimeout(() => reject(new Error("Auth timeout")), 5000)
         );
 
-        const result = await Promise.race([userPromise, timeoutPromise]) as { data: { user: { id: string; email: string } | null } };
-        const { data: { user } } = result;
+        const result = (await Promise.race([userPromise, timeoutPromise])) as {
+          data: { user: { id: string; email: string } | null };
+        };
+        const {
+          data: { user },
+        } = result;
 
         if (user?.id) {
           // Get current org from cookie (non-blocking)
-          const cookies = document.cookie.split(';');
-          const orgCookie = cookies.find(cookie => cookie.trim().startsWith('orgId='));
-          const currentOrgId = orgCookie ? orgCookie.split('=')[1] : null;
+          const cookies = document.cookie.split(";");
+          const orgCookie = cookies.find((cookie) => cookie.trim().startsWith("orgId="));
+          const currentOrgId = orgCookie ? orgCookie.split("=")[1] : null;
 
           // Identify user with PostHog (non-blocking)
           try {
@@ -66,35 +70,35 @@ export function PostHogIdentify() {
     const timeoutId = setTimeout(identifyUser, 0);
 
     // Listen for auth changes (non-blocking)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user?.id) {
-          setTimeout(() => {
-            try {
-              // Get current org from cookie on sign in
-              const cookies = document.cookie.split(';');
-              const orgCookie = cookies.find(cookie => cookie.trim().startsWith('orgId='));
-              const currentOrgId = orgCookie ? orgCookie.split('=')[1] : null;
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session?.user?.id) {
+        setTimeout(() => {
+          try {
+            // Get current org from cookie on sign in
+            const cookies = document.cookie.split(";");
+            const orgCookie = cookies.find((cookie) => cookie.trim().startsWith("orgId="));
+            const currentOrgId = orgCookie ? orgCookie.split("=")[1] : null;
 
-              posthog.identify(session.user.id, {
-                email: session.user.email,
-                orgId: currentOrgId,
-              });
-            } catch (error) {
-              console.warn("PostHog sign-in identification failed:", error);
-            }
-          }, 0);
-        } else if (event === 'SIGNED_OUT') {
-          setTimeout(() => {
-            try {
-              posthog.reset();
-            } catch (error) {
-              console.warn("PostHog reset failed:", error);
-            }
-          }, 0);
-        }
+            posthog.identify(session.user.id, {
+              email: session.user.email,
+              orgId: currentOrgId,
+            });
+          } catch (error) {
+            console.warn("PostHog sign-in identification failed:", error);
+          }
+        }, 0);
+      } else if (event === "SIGNED_OUT") {
+        setTimeout(() => {
+          try {
+            posthog.reset();
+          } catch (error) {
+            console.warn("PostHog reset failed:", error);
+          }
+        }, 0);
       }
-    );
+    });
 
     return () => {
       clearTimeout(timeoutId);

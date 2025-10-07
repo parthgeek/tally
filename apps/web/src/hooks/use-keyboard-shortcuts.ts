@@ -20,7 +20,7 @@ export function useKeyboardShortcut(shortcut: KeyboardShortcut) {
       const metaMatch = shortcut.meta ? e.metaKey : !e.metaKey;
       const shiftMatch = shortcut.shift ? e.shiftKey : !e.shiftKey;
       const altMatch = shortcut.alt ? e.altKey : !e.altKey;
-      
+
       // Check if the key matches
       const keyMatch = e.key.toLowerCase() === shortcut.key.toLowerCase();
 
@@ -44,7 +44,7 @@ export function useKeyboardShortcuts(shortcuts: KeyboardShortcut[]) {
         const metaMatch = shortcut.meta ? e.metaKey : !e.metaKey;
         const shiftMatch = shortcut.shift ? e.shiftKey : !e.shiftKey;
         const altMatch = shortcut.alt ? e.altKey : !e.altKey;
-        
+
         // Check if the key matches
         const keyMatch = e.key.toLowerCase() === shortcut.key.toLowerCase();
 

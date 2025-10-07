@@ -1,30 +1,30 @@
-import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
-import { NextRequest } from 'next/server';
-import { DELETE } from './route';
+import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
+import { NextRequest } from "next/server";
+import { DELETE } from "./route";
 
 // Mock dependencies at top level
-vi.mock('@/lib/api/with-org', () => ({
+vi.mock("@/lib/api/with-org", () => ({
   withOrgFromRequest: vi.fn(),
   createErrorResponse: vi.fn((message: string, status: number) =>
     Response.json({ error: message }, { status })
   ),
   createValidationErrorResponse: vi.fn((error: unknown) =>
-    Response.json({ error: 'Validation failed', details: error }, { status: 400 })
+    Response.json({ error: "Validation failed", details: error }, { status: 400 })
   ),
 }));
 
-vi.mock('@/lib/supabase', () => ({
+vi.mock("@/lib/supabase", () => ({
   createServerClient: vi.fn(),
 }));
 
-vi.mock('@/lib/rate-limit-redis', () => ({
+vi.mock("@/lib/rate-limit-redis", () => ({
   checkRateLimit: vi.fn(),
   getRateLimitKey: vi.fn(),
   createRateLimitResponse: vi.fn(),
   getRateLimitConfig: vi.fn(),
 }));
 
-vi.mock('@/lib/validation', () => ({
+vi.mock("@/lib/validation", () => ({
   validateRequestBody: vi.fn(),
 }));
 
@@ -32,7 +32,7 @@ vi.mock('@/lib/validation', () => ({
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-describe('DELETE /api/connections/disconnect', () => {
+describe("DELETE /api/connections/disconnect", () => {
   const mockSupabaseClient = {
     auth: {
       getUser: vi.fn(),
@@ -41,9 +41,9 @@ describe('DELETE /api/connections/disconnect', () => {
     from: vi.fn(),
   };
 
-  const mockOrgId = 'org-123';
-  const mockUserId = 'user-123';
-  const mockConnectionId = 'conn-123';
+  const mockOrgId = "org-123";
+  const mockUserId = "user-123";
+  const mockConnectionId = "conn-123";
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -53,31 +53,35 @@ describe('DELETE /api/connections/disconnect', () => {
     vi.restoreAllMocks();
   });
 
-  describe('DELETE handler', () => {
-    test('successfully disconnects a connection', async () => {
+  describe("DELETE handler", () => {
+    test("successfully disconnects a connection", async () => {
       // Setup mocks
-      const { withOrgFromRequest } = await import('@/lib/api/with-org');
-      const { createServerClient } = await import('@/lib/supabase');
-      const { checkRateLimit, getRateLimitConfig } = await import('@/lib/rate-limit-redis');
-      const { validateRequestBody } = await import('@/lib/validation');
+      const { withOrgFromRequest } = await import("@/lib/api/with-org");
+      const { createServerClient } = await import("@/lib/supabase");
+      const { checkRateLimit, getRateLimitConfig } = await import("@/lib/rate-limit-redis");
+      const { validateRequestBody } = await import("@/lib/validation");
 
       vi.mocked(withOrgFromRequest).mockResolvedValue({ orgId: mockOrgId });
       vi.mocked(createServerClient).mockReturnValue(mockSupabaseClient);
-      vi.mocked(checkRateLimit).mockResolvedValue({ allowed: true, remaining: 9, resetTime: Date.now() + 300000 });
+      vi.mocked(checkRateLimit).mockResolvedValue({
+        allowed: true,
+        remaining: 9,
+        resetTime: Date.now() + 300000,
+      });
       vi.mocked(getRateLimitConfig).mockReturnValue({ limit: 10, windowMs: 300000 });
       vi.mocked(validateRequestBody).mockResolvedValue({
         success: true,
-        data: { connectionId: mockConnectionId }
+        data: { connectionId: mockConnectionId },
       });
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
         data: { user: { id: mockUserId } },
-        error: null
+        error: null,
       });
 
       mockSupabaseClient.auth.getSession.mockResolvedValue({
-        data: { session: { access_token: 'test-token' } },
-        error: null
+        data: { session: { access_token: "test-token" } },
+        error: null,
       });
 
       // Setup connection query
@@ -87,12 +91,12 @@ describe('DELETE /api/connections/disconnect', () => {
         single: vi.fn().mockResolvedValue({
           data: {
             id: mockConnectionId,
-            provider: 'plaid',
-            status: 'active',
-            org_id: mockOrgId
+            provider: "plaid",
+            status: "active",
+            org_id: mockOrgId,
           },
-          error: null
-        })
+          error: null,
+        }),
       };
 
       mockSupabaseClient.from.mockReturnValue(mockSelectQuery);
@@ -102,14 +106,14 @@ describe('DELETE /api/connections/disconnect', () => {
         ok: true,
         json: async () => ({
           success: true,
-          message: 'Bank account disconnected successfully'
-        })
+          message: "Bank account disconnected successfully",
+        }),
       });
 
-      const request = new NextRequest('http://localhost/api/connections/disconnect', {
-        method: 'DELETE',
+      const request = new NextRequest("http://localhost/api/connections/disconnect", {
+        method: "DELETE",
         body: JSON.stringify({ connectionId: mockConnectionId }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { "Content-Type": "application/json" },
       });
 
       const response = await DELETE(request);
@@ -117,43 +121,47 @@ describe('DELETE /api/connections/disconnect', () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      expect(data.message).toBe('Bank account disconnected successfully');
+      expect(data.message).toBe("Bank account disconnected successfully");
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/functions/v1/plaid-disconnect'),
+        expect.stringContaining("/functions/v1/plaid-disconnect"),
         expect.objectContaining({
-          method: 'DELETE',
+          method: "DELETE",
           headers: expect.objectContaining({
-            'Authorization': 'Bearer test-token'
+            Authorization: "Bearer test-token",
           }),
-          body: JSON.stringify({ connectionId: mockConnectionId })
+          body: JSON.stringify({ connectionId: mockConnectionId }),
         })
       );
     });
 
-    test('handles already disconnected connection', async () => {
+    test("handles already disconnected connection", async () => {
       // Setup mocks
-      const { withOrgFromRequest } = await import('@/lib/api/with-org');
-      const { createServerClient } = await import('@/lib/supabase');
-      const { checkRateLimit, getRateLimitConfig } = await import('@/lib/rate-limit-redis');
-      const { validateRequestBody } = await import('@/lib/validation');
+      const { withOrgFromRequest } = await import("@/lib/api/with-org");
+      const { createServerClient } = await import("@/lib/supabase");
+      const { checkRateLimit, getRateLimitConfig } = await import("@/lib/rate-limit-redis");
+      const { validateRequestBody } = await import("@/lib/validation");
 
       vi.mocked(withOrgFromRequest).mockResolvedValue({ orgId: mockOrgId });
       vi.mocked(createServerClient).mockReturnValue(mockSupabaseClient);
-      vi.mocked(checkRateLimit).mockResolvedValue({ allowed: true, remaining: 9, resetTime: Date.now() + 300000 });
+      vi.mocked(checkRateLimit).mockResolvedValue({
+        allowed: true,
+        remaining: 9,
+        resetTime: Date.now() + 300000,
+      });
       vi.mocked(getRateLimitConfig).mockReturnValue({ limit: 10, windowMs: 300000 });
       vi.mocked(validateRequestBody).mockResolvedValue({
         success: true,
-        data: { connectionId: mockConnectionId }
+        data: { connectionId: mockConnectionId },
       });
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
         data: { user: { id: mockUserId } },
-        error: null
+        error: null,
       });
 
       mockSupabaseClient.auth.getSession.mockResolvedValue({
-        data: { session: { access_token: 'test-token' } },
-        error: null
+        data: { session: { access_token: "test-token" } },
+        error: null,
       });
 
       const mockSelectQuery = {
@@ -162,20 +170,20 @@ describe('DELETE /api/connections/disconnect', () => {
         single: vi.fn().mockResolvedValue({
           data: {
             id: mockConnectionId,
-            provider: 'plaid',
-            status: 'disconnected',
-            org_id: mockOrgId
+            provider: "plaid",
+            status: "disconnected",
+            org_id: mockOrgId,
           },
-          error: null
-        })
+          error: null,
+        }),
       };
 
       mockSupabaseClient.from.mockReturnValue(mockSelectQuery);
 
-      const request = new NextRequest('http://localhost/api/connections/disconnect', {
-        method: 'DELETE',
+      const request = new NextRequest("http://localhost/api/connections/disconnect", {
+        method: "DELETE",
         body: JSON.stringify({ connectionId: mockConnectionId }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { "Content-Type": "application/json" },
       });
 
       const response = await DELETE(request);
@@ -183,34 +191,38 @@ describe('DELETE /api/connections/disconnect', () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      expect(data.message).toBe('Connection already disconnected');
+      expect(data.message).toBe("Connection already disconnected");
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    test('returns 404 for non-existent connection', async () => {
+    test("returns 404 for non-existent connection", async () => {
       // Setup mocks
-      const { withOrgFromRequest } = await import('@/lib/api/with-org');
-      const { createServerClient } = await import('@/lib/supabase');
-      const { checkRateLimit, getRateLimitConfig } = await import('@/lib/rate-limit-redis');
-      const { validateRequestBody } = await import('@/lib/validation');
+      const { withOrgFromRequest } = await import("@/lib/api/with-org");
+      const { createServerClient } = await import("@/lib/supabase");
+      const { checkRateLimit, getRateLimitConfig } = await import("@/lib/rate-limit-redis");
+      const { validateRequestBody } = await import("@/lib/validation");
 
       vi.mocked(withOrgFromRequest).mockResolvedValue({ orgId: mockOrgId });
       vi.mocked(createServerClient).mockReturnValue(mockSupabaseClient);
-      vi.mocked(checkRateLimit).mockResolvedValue({ allowed: true, remaining: 9, resetTime: Date.now() + 300000 });
+      vi.mocked(checkRateLimit).mockResolvedValue({
+        allowed: true,
+        remaining: 9,
+        resetTime: Date.now() + 300000,
+      });
       vi.mocked(getRateLimitConfig).mockReturnValue({ limit: 10, windowMs: 300000 });
       vi.mocked(validateRequestBody).mockResolvedValue({
         success: true,
-        data: { connectionId: mockConnectionId }
+        data: { connectionId: mockConnectionId },
       });
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
         data: { user: { id: mockUserId } },
-        error: null
+        error: null,
       });
 
       mockSupabaseClient.auth.getSession.mockResolvedValue({
-        data: { session: { access_token: 'test-token' } },
-        error: null
+        data: { session: { access_token: "test-token" } },
+        error: null,
       });
 
       const mockSelectQuery = {
@@ -218,16 +230,16 @@ describe('DELETE /api/connections/disconnect', () => {
         eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({
           data: null,
-          error: { message: 'Connection not found' }
-        })
+          error: { message: "Connection not found" },
+        }),
       };
 
       mockSupabaseClient.from.mockReturnValue(mockSelectQuery);
 
-      const request = new NextRequest('http://localhost/api/connections/disconnect', {
-        method: 'DELETE',
+      const request = new NextRequest("http://localhost/api/connections/disconnect", {
+        method: "DELETE",
         body: JSON.stringify({ connectionId: mockConnectionId }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { "Content-Type": "application/json" },
       });
 
       const response = await DELETE(request);

@@ -29,7 +29,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Log configuration status for debugging
-    if (process.env.NODE_ENV === 'development' || process.env.RAILWAY_ENVIRONMENT) {
+    if (process.env.NODE_ENV === "development" || process.env.RAILWAY_ENVIRONMENT) {
       logConfigurationStatus();
     }
 
@@ -39,9 +39,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     const initializePosthog = async () => {
       try {
         // Set a maximum wait time of 3 seconds for PostHog initialization (reduced from 5)
-        const timeoutPromise = new Promise((resolve) =>
-          setTimeout(() => resolve(null), 3000)
-        );
+        const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 3000));
 
         const posthogPromise = getPosthogClientBrowserAsync();
         const client = await Promise.race([posthogPromise, timeoutPromise]);

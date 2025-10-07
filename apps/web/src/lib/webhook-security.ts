@@ -3,8 +3,8 @@
  * Implements multiple layers of webhook authentication and validation
  */
 
-import { NextRequest } from 'next/server';
-import { validateRequestBody, validationSchemas } from './validation-enhanced';
+import { NextRequest } from "next/server";
+import { validateRequestBody, validationSchemas } from "./validation-enhanced";
 
 export interface WebhookVerificationResult {
   valid: boolean;
@@ -52,13 +52,13 @@ export class WebhookSecurity {
     rawBody: string
   ): Promise<WebhookVerificationResult> {
     try {
-      const signature = request.headers.get('plaid-verification');
-      const requestId = request.headers.get('plaid-request-id');
+      const signature = request.headers.get("plaid-verification");
+      const requestId = request.headers.get("plaid-request-id");
 
       if (!signature) {
         const result: WebhookVerificationResult = {
           valid: false,
-          error: 'Missing Plaid signature header',
+          error: "Missing Plaid signature header",
         };
         if (requestId) {
           result.requestId = requestId;
@@ -67,15 +67,15 @@ export class WebhookSecurity {
       }
 
       // Environment-specific verification
-      const plaidEnv = process.env.PLAID_ENV || 'sandbox';
+      const plaidEnv = process.env.PLAID_ENV || "sandbox";
       const webhookSecret = this.config.secrets.plaid || process.env.PLAID_WEBHOOK_SECRET;
 
       // Fail closed in production if secret is missing
-      if (!webhookSecret && (plaidEnv === 'production' || plaidEnv === 'development')) {
-        console.error('PLAID_WEBHOOK_SECRET required in production environment');
+      if (!webhookSecret && (plaidEnv === "production" || plaidEnv === "development")) {
+        console.error("PLAID_WEBHOOK_SECRET required in production environment");
         const result: WebhookVerificationResult = {
           valid: false,
-          error: 'Webhook verification not configured',
+          error: "Webhook verification not configured",
         };
         if (requestId) {
           result.requestId = requestId;
@@ -84,11 +84,11 @@ export class WebhookSecurity {
       }
 
       // Skip verification in sandbox if no secret is configured
-      if (!webhookSecret && plaidEnv === 'sandbox') {
-        console.warn('Plaid webhook signature verification skipped in sandbox mode');
+      if (!webhookSecret && plaidEnv === "sandbox") {
+        console.warn("Plaid webhook signature verification skipped in sandbox mode");
         const result: WebhookVerificationResult = {
           valid: true,
-          source: 'plaid-sandbox',
+          source: "plaid-sandbox",
         };
         if (requestId) {
           result.requestId = requestId;
@@ -97,17 +97,13 @@ export class WebhookSecurity {
       }
 
       // Verify HMAC signature
-      const isValid = await this.verifyHmacSha256(
-        webhookSecret!,
-        rawBody,
-        signature
-      );
+      const isValid = await this.verifyHmacSha256(webhookSecret!, rawBody, signature);
 
       if (!isValid) {
-        console.warn('Invalid Plaid webhook signature', { requestId });
+        console.warn("Invalid Plaid webhook signature", { requestId });
         const result: WebhookVerificationResult = {
           valid: false,
-          error: 'Invalid signature',
+          error: "Invalid signature",
         };
         if (requestId) {
           result.requestId = requestId;
@@ -118,8 +114,8 @@ export class WebhookSecurity {
       // Validate payload structure
       const validationResult = await validateRequestBody(
         new Request(request.url, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
+          method: "POST",
+          headers: { "content-type": "application/json" },
           body: rawBody,
         }),
         validationSchemas.plaid.webhookVerification
@@ -128,7 +124,7 @@ export class WebhookSecurity {
       if (!validationResult.success) {
         const result: WebhookVerificationResult = {
           valid: false,
-          error: 'Invalid webhook payload',
+          error: "Invalid webhook payload",
         };
         if (requestId) {
           result.requestId = requestId;
@@ -138,18 +134,17 @@ export class WebhookSecurity {
 
       const result: WebhookVerificationResult = {
         valid: true,
-        source: 'plaid',
+        source: "plaid",
       };
       if (requestId) {
         result.requestId = requestId;
       }
       return result;
-
     } catch (error) {
-      console.error('Plaid webhook verification error:', error);
+      console.error("Plaid webhook verification error:", error);
       return {
         valid: false,
-        error: 'Verification failed',
+        error: "Verification failed",
       };
     }
   }
@@ -162,22 +157,22 @@ export class WebhookSecurity {
     rawBody: string
   ): Promise<WebhookVerificationResult> {
     try {
-      const signature = request.headers.get('stripe-signature');
+      const signature = request.headers.get("stripe-signature");
       const stripeSecret = this.config.secrets.stripe || process.env.STRIPE_WEBHOOK_SECRET;
 
       if (!signature || !stripeSecret) {
         return {
           valid: false,
-          error: 'Missing Stripe signature or secret',
+          error: "Missing Stripe signature or secret",
         };
       }
 
       // Parse Stripe signature header
-      const elements = signature.split(',');
+      const elements = signature.split(",");
       const signatureElements: Record<string, string> = {};
 
       for (const element of elements) {
-        const [key, value] = element.split('=');
+        const [key, value] = element.split("=");
         if (key && value) {
           signatureElements[key] = value;
         }
@@ -189,7 +184,7 @@ export class WebhookSecurity {
       if (!timestamp || !v1Signature) {
         return {
           valid: false,
-          error: 'Invalid Stripe signature format',
+          error: "Invalid Stripe signature format",
         };
       }
 
@@ -201,7 +196,7 @@ export class WebhookSecurity {
         if (Math.abs(now - webhookTimestamp) > this.config.timestampToleranceMs) {
           return {
             valid: false,
-            error: 'Webhook timestamp out of tolerance',
+            error: "Webhook timestamp out of tolerance",
           };
         }
       }
@@ -213,20 +208,19 @@ export class WebhookSecurity {
       if (expectedSignature !== v1Signature) {
         return {
           valid: false,
-          error: 'Invalid Stripe signature',
+          error: "Invalid Stripe signature",
         };
       }
 
       return {
         valid: true,
-        source: 'stripe',
+        source: "stripe",
       };
-
     } catch (error) {
-      console.error('Stripe webhook verification error:', error);
+      console.error("Stripe webhook verification error:", error);
       return {
         valid: false,
-        error: 'Verification failed',
+        error: "Verification failed",
       };
     }
   }
@@ -239,13 +233,13 @@ export class WebhookSecurity {
     rawBody: string
   ): Promise<WebhookVerificationResult> {
     try {
-      const signature = request.headers.get('x-square-hmacsha256-signature');
+      const signature = request.headers.get("x-square-hmacsha256-signature");
       const squareSecret = this.config.secrets.square || process.env.SQUARE_WEBHOOK_SECRET;
 
       if (!signature || !squareSecret) {
         return {
           valid: false,
-          error: 'Missing Square signature or secret',
+          error: "Missing Square signature or secret",
         };
       }
 
@@ -257,20 +251,19 @@ export class WebhookSecurity {
 
       const result: WebhookVerificationResult = {
         valid: isValid,
-        source: 'square',
+        source: "square",
       };
 
       if (!isValid) {
-        result.error = 'Invalid Square signature';
+        result.error = "Invalid Square signature";
       }
 
       return result;
-
     } catch (error) {
-      console.error('Square webhook verification error:', error);
+      console.error("Square webhook verification error:", error);
       return {
         valid: false,
-        error: 'Verification failed',
+        error: "Verification failed",
       };
     }
   }
@@ -297,19 +290,19 @@ export class WebhookSecurity {
   private extractClientIP(request: NextRequest): string | null {
     // Check various headers in order of preference
     const headers = [
-      'cf-connecting-ip', // Cloudflare
-      'fastly-client-ip', // Fastly
-      'x-real-ip',
-      'x-forwarded-for',
-      'x-client-ip',
-      'x-cluster-client-ip',
+      "cf-connecting-ip", // Cloudflare
+      "fastly-client-ip", // Fastly
+      "x-real-ip",
+      "x-forwarded-for",
+      "x-client-ip",
+      "x-cluster-client-ip",
     ];
 
     for (const header of headers) {
       const value = request.headers.get(header);
       if (value) {
         // Handle comma-separated IPs (take the first one)
-        const ip = value.split(',')[0]?.trim();
+        const ip = value.split(",")[0]?.trim();
         if (ip && this.isValidIP(ip)) {
           return ip;
         }
@@ -339,11 +332,11 @@ export class WebhookSecurity {
   ): Promise<boolean> {
     try {
       const expectedSignature = await this.computeHmacSha256(secret, payload);
-      const providedSignature = signature.replace('sha256=', '');
+      const providedSignature = signature.replace("sha256=", "");
 
       return this.secureCompare(expectedSignature, providedSignature);
     } catch (error) {
-      console.error('HMAC verification error:', error);
+      console.error("HMAC verification error:", error);
       return false;
     }
   }
@@ -357,17 +350,17 @@ export class WebhookSecurity {
     const payloadData = encoder.encode(payload);
 
     const cryptoKey = await crypto.subtle.importKey(
-      'raw',
+      "raw",
       keyData,
-      { name: 'HMAC', hash: 'SHA-256' },
+      { name: "HMAC", hash: "SHA-256" },
       false,
-      ['sign']
+      ["sign"]
     );
 
-    const signature = await crypto.subtle.sign('HMAC', cryptoKey, payloadData);
+    const signature = await crypto.subtle.sign("HMAC", cryptoKey, payloadData);
     return Array.from(new Uint8Array(signature))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
   }
 
   /**
@@ -401,14 +394,14 @@ export async function verifyWebhook(
   if (!security.validateSourceIP(request)) {
     return {
       valid: false,
-      error: 'Source IP not whitelisted',
+      error: "Source IP not whitelisted",
     };
   }
 
   // Auto-detect provider based on headers
-  const plaidSignature = request.headers.get('plaid-verification');
-  const stripeSignature = request.headers.get('stripe-signature');
-  const squareSignature = request.headers.get('x-square-hmacsha256-signature');
+  const plaidSignature = request.headers.get("plaid-verification");
+  const stripeSignature = request.headers.get("stripe-signature");
+  const squareSignature = request.headers.get("x-square-hmacsha256-signature");
 
   if (plaidSignature) {
     return await security.verifyPlaidWebhook(request, rawBody);
@@ -425,7 +418,7 @@ export async function verifyWebhook(
   // Unknown webhook provider
   return {
     valid: false,
-    error: 'Unknown webhook provider',
+    error: "Unknown webhook provider",
   };
 }
 
@@ -443,7 +436,7 @@ export function withWebhookSecurity(config?: Partial<WebhookSecurityConfig>) {
         const verification = await verifyWebhook(request, rawBody, config);
 
         if (!verification.valid) {
-          console.warn('Webhook verification failed:', {
+          console.warn("Webhook verification failed:", {
             error: verification.error,
             source: verification.source,
             requestId: verification.requestId,
@@ -452,14 +445,14 @@ export function withWebhookSecurity(config?: Partial<WebhookSecurityConfig>) {
 
           return new Response(
             JSON.stringify({
-              error: 'Webhook verification failed',
+              error: "Webhook verification failed",
               message: verification.error,
             }),
             {
               status: 401,
               headers: {
-                'Content-Type': 'application/json',
-                'Cache-Control': 'no-store',
+                "Content-Type": "application/json",
+                "Cache-Control": "no-store",
               },
             }
           );
@@ -467,18 +460,17 @@ export function withWebhookSecurity(config?: Partial<WebhookSecurityConfig>) {
 
         // Call the original handler with verified webhook
         return await handler(request, rawBody);
-
       } catch (error) {
-        console.error('Webhook security middleware error:', error);
+        console.error("Webhook security middleware error:", error);
         return new Response(
           JSON.stringify({
-            error: 'Internal security error',
+            error: "Internal security error",
           }),
           {
             status: 500,
             headers: {
-              'Content-Type': 'application/json',
-              'Cache-Control': 'no-store',
+              "Content-Type": "application/json",
+              "Cache-Control": "no-store",
             },
           }
         );
@@ -491,7 +483,7 @@ export function withWebhookSecurity(config?: Partial<WebhookSecurityConfig>) {
  * Log webhook security events for monitoring
  */
 export function logWebhookSecurityEvent(
-  event: 'verification_success' | 'verification_failed' | 'ip_blocked' | 'timestamp_invalid',
+  event: "verification_success" | "verification_failed" | "ip_blocked" | "timestamp_invalid",
   details: {
     source?: string;
     requestId?: string;
@@ -507,11 +499,11 @@ export function logWebhookSecurityEvent(
   };
 
   // In production, send to security monitoring system
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === "production") {
     // TODO: Integrate with security monitoring (Datadog, Splunk, etc.)
-    console.log('WEBHOOK_SECURITY_EVENT:', JSON.stringify(logEntry));
+    console.log("WEBHOOK_SECURITY_EVENT:", JSON.stringify(logEntry));
   } else {
-    console.log('Webhook security event:', logEntry);
+    console.log("Webhook security event:", logEntry);
   }
 }
 
@@ -521,25 +513,25 @@ export function logWebhookSecurityEvent(
 export const WEBHOOK_IP_RANGES = {
   plaid: [
     // Plaid webhook IP ranges
-    '52.21.26.131/32',
-    '52.21.47.157/32',
-    '52.41.247.19/32',
-    '52.88.82.239/32',
+    "52.21.26.131/32",
+    "52.21.47.157/32",
+    "52.41.247.19/32",
+    "52.88.82.239/32",
   ],
   stripe: [
     // Stripe webhook IP ranges
-    '3.18.12.63/32',
-    '3.130.192.231/32',
-    '13.235.14.237/32',
-    '13.235.122.149/32',
+    "3.18.12.63/32",
+    "3.130.192.231/32",
+    "13.235.14.237/32",
+    "13.235.122.149/32",
     // ... more IPs would be added here
   ],
   square: [
     // Square webhook IP ranges
-    '185.199.108.0/22',
-    '185.199.109.0/24',
-    '185.199.110.0/24',
-    '185.199.111.0/24',
+    "185.199.108.0/22",
+    "185.199.109.0/24",
+    "185.199.110.0/24",
+    "185.199.111.0/24",
   ],
 };
 

@@ -1,8 +1,5 @@
 import { NextRequest } from "next/server";
-import {
-  type ConnectionsListResponse,
-  type ConnectionId,
-} from "@nexus/types/contracts";
+import { type ConnectionsListResponse, type ConnectionId } from "@nexus/types/contracts";
 import { withOrgFromRequest, createErrorResponse } from "@/lib/api/with-org";
 import { createServerClient } from "@/lib/supabase";
 
@@ -14,24 +11,26 @@ export async function GET(request: NextRequest) {
 
     // Query connections from database
     const { data: connections, error } = await supabase
-      .from('connections')
-      .select(`
+      .from("connections")
+      .select(
+        `
         id,
         provider,
         status,
         scopes,
         created_at
-      `)
-      .eq('org_id', orgId)
-      .order('created_at', { ascending: false });
+      `
+      )
+      .eq("org_id", orgId)
+      .order("created_at", { ascending: false });
 
     if (error) {
-      console.error('Database error fetching connections:', error);
+      console.error("Database error fetching connections:", error);
       return createErrorResponse("Failed to fetch connections", 500);
     }
 
     const response: ConnectionsListResponse = {
-      connections: (connections || []).map(conn => ({
+      connections: (connections || []).map((conn) => ({
         id: conn.id as ConnectionId,
         provider: conn.provider,
         status: conn.status,

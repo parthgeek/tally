@@ -24,7 +24,7 @@ export function HeroSection() {
           <div className="space-y-8">
             <div className="space-y-4">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
-                AI-powered bookkeeping for <span className="text-primary">DTC brands</span>
+                AI-powered bookkeeping for <span className="text-primary">e-commerce brands</span>
               </h1>
               <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl">
                 Real-time P&L, automated COGS tracking, and tax-ready exports. Built for Shopify

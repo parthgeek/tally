@@ -89,10 +89,7 @@ export default function OnboardingPage() {
             )}
 
             <div>
-              <label
-                htmlFor="name"
-                className="block text-sm font-medium leading-6"
-              >
+              <label htmlFor="name" className="block text-sm font-medium leading-6">
                 Organization Name *
               </label>
               <div className="mt-2">
@@ -109,10 +106,7 @@ export default function OnboardingPage() {
             </div>
 
             <div>
-              <label
-                htmlFor="industry"
-                className="block text-sm font-medium leading-6"
-              >
+              <label htmlFor="industry" className="block text-sm font-medium leading-6">
                 Industry *
               </label>
               <div className="mt-2">
@@ -134,10 +128,7 @@ export default function OnboardingPage() {
             </div>
 
             <div>
-              <label
-                htmlFor="timezone"
-                className="block text-sm font-medium leading-6"
-              >
+              <label htmlFor="timezone" className="block text-sm font-medium leading-6">
                 Timezone *
               </label>
               <div className="mt-2">
@@ -157,10 +148,7 @@ export default function OnboardingPage() {
             </div>
 
             <div>
-              <label
-                htmlFor="taxYearStart"
-                className="block text-sm font-medium leading-6"
-              >
+              <label htmlFor="taxYearStart" className="block text-sm font-medium leading-6">
                 Tax Year Start *
               </label>
               <div className="mt-2">
@@ -179,9 +167,7 @@ export default function OnboardingPage() {
                   ))}
                 </select>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                When does your tax year begin?
-              </p>
+              <p className="mt-1 text-xs text-muted-foreground">When does your tax year begin?</p>
             </div>
 
             <div>

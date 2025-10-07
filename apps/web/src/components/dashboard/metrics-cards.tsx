@@ -23,9 +23,7 @@ export function MetricsCards({ dashboard }: MetricsCardsProps) {
           <div className="text-2xl sm:text-3xl font-bold tracking-tight">
             {toUSD(dashboard.cashOnHandCents)}
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Available liquid funds
-          </p>
+          <p className="text-xs text-muted-foreground mt-1">Available liquid funds</p>
         </CardContent>
       </Card>
 
@@ -41,9 +39,7 @@ export function MetricsCards({ dashboard }: MetricsCardsProps) {
           <div className="text-2xl sm:text-3xl font-bold tracking-tight">
             {toUSD(dashboard.safeToSpend14Cents)}
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Projected available in 2 weeks
-          </p>
+          <p className="text-xs text-muted-foreground mt-1">Projected available in 2 weeks</p>
         </CardContent>
       </Card>
 
@@ -60,7 +56,10 @@ export function MetricsCards({ dashboard }: MetricsCardsProps) {
             {dashboard.alerts.needsReviewCount}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            <Link href="/review" className="hover:text-foreground transition-colors touch-manipulation">
+            <Link
+              href="/review"
+              className="hover:text-foreground transition-colors touch-manipulation"
+            >
               Transactions to review →
             </Link>
           </p>
@@ -77,12 +76,10 @@ export function MetricsCards({ dashboard }: MetricsCardsProps) {
         </CardHeader>
         <CardContent className="pt-2 sm:pt-2">
           <div className="text-2xl sm:text-3xl font-bold tracking-tight">
-            {dashboard.trend.outflowDeltaPct > 0 ? '+' : ''}
+            {dashboard.trend.outflowDeltaPct > 0 ? "+" : ""}
             {dashboard.trend.outflowDeltaPct}%
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            vs previous 30 days
-          </p>
+          <p className="text-xs text-muted-foreground mt-1">vs previous 30 days</p>
         </CardContent>
       </Card>
     </div>

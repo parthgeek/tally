@@ -23,38 +23,31 @@ export default function ReviewPageNew() {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
 
   // Fetch review data with infinite query for performance
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetching,
-    isLoading,
-    error,
-  } = useInfiniteQuery({
-    queryKey: ['review', filters],
+  const { data, fetchNextPage, hasNextPage, isFetching, isLoading, error } = useInfiniteQuery({
+    queryKey: ["review", filters],
     queryFn: async ({ pageParam }: { pageParam?: string | undefined }) => {
       const params = new URLSearchParams();
-      
-      if (pageParam) params.set('cursor', pageParam);
-      params.set('limit', '100');
-      
+
+      if (pageParam) params.set("cursor", pageParam);
+      params.set("limit", "100");
+
       // Apply filters
       if (filters.needsReviewOnly !== undefined) {
-        params.set('needsReviewOnly', filters.needsReviewOnly.toString());
+        params.set("needsReviewOnly", filters.needsReviewOnly.toString());
       }
       if (filters.minConfidence !== undefined) {
-        params.set('minConfidence', filters.minConfidence.toString());
+        params.set("minConfidence", filters.minConfidence.toString());
       }
       if (filters.maxConfidence !== undefined) {
-        params.set('maxConfidence', filters.maxConfidence.toString());
+        params.set("maxConfidence", filters.maxConfidence.toString());
       }
-      
+
       const response = await fetch(`/api/review?${params}`);
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to fetch review data');
+        throw new Error(error.error || "Failed to fetch review data");
       }
-      
+
       return response.json() as Promise<ReviewListResponse>;
     },
     initialPageParam: undefined as string | undefined,
@@ -64,40 +57,35 @@ export default function ReviewPageNew() {
   });
 
   // Calculate totals
-  const allItems = data?.pages.flatMap(page => page.items) || [];
+  const allItems = data?.pages.flatMap((page) => page.items) || [];
   const totalItems = allItems.length;
-  const reviewItems = allItems.filter(item => item.needs_review);
-  const lowConfidenceItems = allItems.filter(item => 
-    item.confidence !== null && item.confidence < 0.7
+  const reviewItems = allItems.filter((item) => item.needs_review);
+  const lowConfidenceItems = allItems.filter(
+    (item) => item.confidence !== null && item.confidence < 0.7
   );
 
   // Keyboard navigation
-  const {
-    selectedIndex,
-    editingIndex,
-    handleKeyDown,
-    setSelectedIndex,
-    setEditingIndex,
-  } = useKeyboardNavigation({
-    totalItems,
-    onEdit: (index) => setEditingIndex(index),
-    onAccept: (index) => {
-      // Handle accept action
-      console.log('Accept transaction at index:', index);
-    },
-    onToggleSelection: (index) => {
-      const transaction = allItems[index];
-      if (transaction) {
-        const newSelected = new Set(selectedRows);
-        if (newSelected.has(transaction.id)) {
-          newSelected.delete(transaction.id);
-        } else {
-          newSelected.add(transaction.id);
+  const { selectedIndex, editingIndex, handleKeyDown, setSelectedIndex, setEditingIndex } =
+    useKeyboardNavigation({
+      totalItems,
+      onEdit: (index) => setEditingIndex(index),
+      onAccept: (index) => {
+        // Handle accept action
+        console.log("Accept transaction at index:", index);
+      },
+      onToggleSelection: (index) => {
+        const transaction = allItems[index];
+        if (transaction) {
+          const newSelected = new Set(selectedRows);
+          if (newSelected.has(transaction.id)) {
+            newSelected.delete(transaction.id);
+          } else {
+            newSelected.add(transaction.id);
+          }
+          setSelectedRows(newSelected);
         }
-        setSelectedRows(newSelected);
-      }
-    },
-  });
+      },
+    });
 
   const handleLoadMore = useCallback(() => {
     if (hasNextPage && !isFetching) {
@@ -144,7 +132,9 @@ export default function ReviewPageNew() {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {error instanceof Error ? error.message : 'An error occurred while loading transactions'}
+            {error instanceof Error
+              ? error.message
+              : "An error occurred while loading transactions"}
           </AlertDescription>
         </Alert>
       </div>
@@ -162,10 +152,7 @@ export default function ReviewPageNew() {
           </p>
         </div>
 
-        <ReviewFiltersComponent
-          filters={filters}
-          onChange={setFilters}
-        />
+        <ReviewFiltersComponent filters={filters} onChange={setFilters} />
 
         <Card>
           <CardContent className="p-12">
@@ -176,10 +163,9 @@ export default function ReviewPageNew() {
               <div className="space-y-2">
                 <h3 className="text-lg font-semibold">All caught up!</h3>
                 <p className="text-muted-foreground">
-                  {filters.needsReviewOnly 
+                  {filters.needsReviewOnly
                     ? "There are no transactions that need review at this time."
-                    : "No transactions match your current filters."
-                  }
+                    : "No transactions match your current filters."}
                 </p>
               </div>
             </div>
@@ -231,16 +217,14 @@ export default function ReviewPageNew() {
       </div>
 
       {/* Filters */}
-      <ReviewFiltersComponent
-        filters={filters}
-        onChange={setFilters}
-      />
+      <ReviewFiltersComponent filters={filters} onChange={setFilters} />
 
       {/* Keyboard shortcuts hint */}
       <Alert>
         <Zap className="h-4 w-4" />
         <AlertDescription>
-          <strong>Keyboard shortcuts:</strong> ↑↓ Navigate • Enter Edit • Shift+Enter Accept • Ctrl+Space Select • Ctrl+R Attach Receipt • Esc Cancel
+          <strong>Keyboard shortcuts:</strong> ↑↓ Navigate • Enter Edit • Shift+Enter Accept •
+          Ctrl+Space Select • Ctrl+R Attach Receipt • Esc Cancel
         </AlertDescription>
       </Alert>
 
@@ -265,10 +249,7 @@ export default function ReviewPageNew() {
       )}
 
       {/* Bulk Action Bar */}
-      <BulkActionBar
-        selectedTransactions={selectedRows}
-        onClearSelection={handleClearSelection}
-      />
+      <BulkActionBar selectedTransactions={selectedRows} onClearSelection={handleClearSelection} />
     </div>
   );
 }

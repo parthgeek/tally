@@ -19,55 +19,62 @@ export function OrgSwitcher() {
   const [currentOrgName, setCurrentOrgName] = useState<string>("Loading...");
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const supabase = createClient();
   const router = useRouter();
 
   // Function to get current org ID from cookie
   const getCurrentOrgId = () => {
-    const cookies = document.cookie.split(';');
-    const orgCookie = cookies.find(cookie => cookie.trim().startsWith('orgId='));
-    return orgCookie ? orgCookie.split('=')[1] : null;
+    const cookies = document.cookie.split(";");
+    const orgCookie = cookies.find((cookie) => cookie.trim().startsWith("orgId="));
+    return orgCookie ? orgCookie.split("=")[1] : null;
   };
 
-  const handleOrgSwitch = useCallback(async (orgId: OrgId) => {
-    try {
-      // Set cookie
-      document.cookie = `orgId=${orgId}; path=/; SameSite=Lax`;
-      
-      // Update local state
-      const selectedOrg = memberships.find(m => m.org_id === orgId);
-      if (selectedOrg) {
-        setCurrentOrgId(orgId);
-        setCurrentOrgName(selectedOrg.org_name);
+  const handleOrgSwitch = useCallback(
+    async (orgId: OrgId) => {
+      try {
+        // Set cookie
+        document.cookie = `orgId=${orgId}; path=/; SameSite=Lax`;
+
+        // Update local state
+        const selectedOrg = memberships.find((m) => m.org_id === orgId);
+        if (selectedOrg) {
+          setCurrentOrgId(orgId);
+          setCurrentOrgName(selectedOrg.org_name);
+        }
+
+        setIsOpen(false);
+
+        // Refresh the page to re-scope the app
+        router.refresh();
+      } catch (error) {
+        console.error("Error switching organization:", error);
       }
-      
-      setIsOpen(false);
-      
-      // Refresh the page to re-scope the app
-      router.refresh();
-    } catch (error) {
-      console.error("Error switching organization:", error);
-    }
-  }, [memberships, router]);
+    },
+    [memberships, router]
+  );
 
   // Fetch user's organization memberships
   useEffect(() => {
     const fetchMemberships = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) return;
 
         // Query user_org_roles joined with orgs to get org names
         const { data: roles, error } = await supabase
           .from("user_org_roles")
-          .select(`
+          .select(
+            `
             org_id,
             role,
             orgs!inner(
               name
             )
-          `)
+          `
+          )
           .eq("user_id", user.id);
 
         if (error) {
@@ -75,19 +82,22 @@ export function OrgSwitcher() {
           return;
         }
 
-        const membershipData = roles?.map(role => ({
-          org_id: role.org_id,
-          org_name: (role.orgs && 'name' in role.orgs ? role.orgs.name : "Unknown Organization") as string,
-          role: role.role,
-        })) || [];
+        const membershipData =
+          roles?.map((role) => ({
+            org_id: role.org_id,
+            org_name: (role.orgs && "name" in role.orgs
+              ? role.orgs.name
+              : "Unknown Organization") as string,
+            role: role.role,
+          })) || [];
 
         setMemberships(membershipData);
 
         // Set current org from cookie or default to first membership
         const cookieOrgId = getCurrentOrgId();
-        if (cookieOrgId && membershipData.some(m => m.org_id === cookieOrgId)) {
+        if (cookieOrgId && membershipData.some((m) => m.org_id === cookieOrgId)) {
           setCurrentOrgId(cookieOrgId);
-          const currentOrg = membershipData.find(m => m.org_id === cookieOrgId);
+          const currentOrg = membershipData.find((m) => m.org_id === cookieOrgId);
           setCurrentOrgName(currentOrg?.org_name || "Unknown Organization");
         } else if (membershipData.length > 0) {
           // Default to first org if no valid cookie
@@ -109,8 +119,6 @@ export function OrgSwitcher() {
     fetchMemberships();
   }, [supabase, handleOrgSwitch]);
 
-
-
   if (isLoading) {
     return (
       <Button variant="outline" className="justify-between w-48" disabled>
@@ -131,11 +139,7 @@ export function OrgSwitcher() {
 
   return (
     <div className="relative">
-      <Button
-        variant="outline"
-        className="justify-between w-48"
-        onClick={() => setIsOpen(!isOpen)}
-      >
+      <Button variant="outline" className="justify-between w-48" onClick={() => setIsOpen(!isOpen)}>
         <span className="truncate">{currentOrgName}</span>
         <ChevronDown className="ml-2 h-4 w-4" />
       </Button>
@@ -155,9 +159,7 @@ export function OrgSwitcher() {
                     {membership.role}
                   </span>
                 </div>
-                {currentOrgId === membership.org_id && (
-                  <Check className="h-4 w-4" />
-                )}
+                {currentOrgId === membership.org_id && <Check className="h-4 w-4" />}
               </button>
             ))}
           </div>
@@ -165,12 +167,7 @@ export function OrgSwitcher() {
       )}
 
       {/* Click outside to close */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+      {isOpen && <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />}
     </div>
   );
 }

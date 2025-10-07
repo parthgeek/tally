@@ -1,9 +1,12 @@
-'use client';
+"use client";
 
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { InfoIcon, FlagIcon } from 'lucide-react';
-import { isTwoTierTaxonomyEnabled, getAvailableCategories } from '@/lib/categorizer-lab/taxonomy-helpers';
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { InfoIcon, FlagIcon } from "lucide-react";
+import {
+  isTwoTierTaxonomyEnabled,
+  getAvailableCategories,
+} from "@/lib/categorizer-lab/taxonomy-helpers";
 
 /**
  * Display current feature flag status and taxonomy information
@@ -12,9 +15,9 @@ export function FeatureStatusIndicator() {
   const isTwoTierEnabled = isTwoTierTaxonomyEnabled();
   const categories = getAvailableCategories();
 
-  const pnlCategories = categories.filter(cat => cat.isPnL);
-  const tierOneCats = categories.filter(cat => cat.parentId === null && cat.isPnL);
-  const tierTwoCats = categories.filter(cat => cat.parentId !== null && cat.isPnL);
+  const pnlCategories = categories.filter((cat) => cat.isPnL);
+  const tierOneCats = categories.filter((cat) => cat.parentId === null && cat.isPnL);
+  const tierTwoCats = categories.filter((cat) => cat.parentId !== null && cat.isPnL);
 
   return (
     <Card className="p-4 bg-blue-50 border-blue-200 text-black">
@@ -23,8 +26,8 @@ export function FeatureStatusIndicator() {
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <span className="font-medium text-blue-800">Taxonomy Configuration</span>
-            <Badge variant={isTwoTierEnabled ? 'default' : 'secondary'} className="text-xs">
-              {isTwoTierEnabled ? 'Two-Tier Enabled' : 'Legacy Mode'}
+            <Badge variant={isTwoTierEnabled ? "default" : "secondary"} className="text-xs">
+              {isTwoTierEnabled ? "Two-Tier Enabled" : "Legacy Mode"}
             </Badge>
           </div>
 
@@ -43,13 +46,16 @@ export function FeatureStatusIndicator() {
               <div>
                 <span className="font-medium">Parent Categories:</span>
                 <ul className="mt-1 space-y-1">
-                  {tierOneCats.slice(0, 4).map(cat => (
+                  {tierOneCats.slice(0, 4).map((cat) => (
                     <li key={cat.id} className="text-xs">
-                      • {cat.name} ({categories.filter(c => c.parentId === cat.id).length} children)
+                      • {cat.name} ({categories.filter((c) => c.parentId === cat.id).length}{" "}
+                      children)
                     </li>
                   ))}
                   {tierOneCats.length > 4 && (
-                    <li className="text-xs text-blue-600">• ... and {tierOneCats.length - 4} more</li>
+                    <li className="text-xs text-blue-600">
+                      • ... and {tierOneCats.length - 4} more
+                    </li>
                   )}
                 </ul>
               </div>
@@ -78,11 +84,11 @@ export function TaxonomyStatusBadge() {
 
   return (
     <Badge
-      variant={isTwoTierEnabled ? 'default' : 'secondary'}
+      variant={isTwoTierEnabled ? "default" : "secondary"}
       className="text-xs"
-      title={`Taxonomy Mode: ${isTwoTierEnabled ? 'Two-Tier' : 'Legacy'}`}
+      title={`Taxonomy Mode: ${isTwoTierEnabled ? "Two-Tier" : "Legacy"}`}
     >
-      {isTwoTierEnabled ? '2-Tier' : 'Legacy'}
+      {isTwoTierEnabled ? "2-Tier" : "Legacy"}
     </Badge>
   );
 }

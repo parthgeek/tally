@@ -1,4 +1,11 @@
-import { PlaidApi, Configuration, PlaidEnvironments, Products, CountryCode, LinkTokenCreateRequest } from "plaid";
+import {
+  PlaidApi,
+  Configuration,
+  PlaidEnvironments,
+  Products,
+  CountryCode,
+  LinkTokenCreateRequest,
+} from "plaid";
 
 export enum PlaidError {
   INVALID_CREDENTIALS = "invalid_credentials",
@@ -60,9 +67,17 @@ export async function safelyCallPlaid<T>(operation: () => Promise<T>, context: s
     console.error(`Plaid API error in ${context}:`, error);
 
     // Map Plaid-specific errors
-    if (error && typeof error === 'object' && 'response' in error && 
-        error.response && typeof error.response === 'object' && 'data' in error.response &&
-        error.response.data && typeof error.response.data === 'object' && 'error_code' in error.response.data) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "response" in error &&
+      error.response &&
+      typeof error.response === "object" &&
+      "data" in error.response &&
+      error.response.data &&
+      typeof error.response.data === "object" &&
+      "error_code" in error.response.data
+    ) {
       const errorCode = (error.response.data as { error_code: string }).error_code;
 
       switch (errorCode) {
@@ -83,8 +98,12 @@ export async function safelyCallPlaid<T>(operation: () => Promise<T>, context: s
       }
     }
 
-    if (error && typeof error === 'object' && 'code' in error && 
-        (error.code === "ENOTFOUND" || error.code === "ECONNREFUSED")) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error.code === "ENOTFOUND" || error.code === "ECONNREFUSED")
+    ) {
       throw new PlaidClientError(PlaidError.NETWORK_ERROR, error);
     }
 
@@ -108,7 +127,7 @@ export async function createLinkToken(config: LinkTokenConfig): Promise<string> 
       user: {
         client_user_id: `${config.orgId}_${config.userId}`,
       },
-      client_name: "Nexus Financial Automation",
+      client_name: "Tally Financial Automation",
       products: config.products || [Products.Transactions],
       country_codes: config.countryCodes || [CountryCode.Us],
       language: "en",

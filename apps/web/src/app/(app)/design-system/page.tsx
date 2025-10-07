@@ -168,9 +168,7 @@ export default function DesignSystemPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">$12,345</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Revenue this month
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">Revenue this month</p>
               </CardContent>
             </Card>
             <Card>
@@ -179,9 +177,7 @@ export default function DesignSystemPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">87%</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Categorization accuracy
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">Categorization accuracy</p>
               </CardContent>
             </Card>
           </div>

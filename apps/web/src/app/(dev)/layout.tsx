@@ -14,25 +14,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nexus Dev Tools",
-  description: "Development and testing tools for Nexus platform",
+  title: "Tally Dev Tools",
+  description: "Development and testing tools for Tally platform",
 };
 
-export default function DevLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DevLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}>
         <Providers>
           <div className="min-h-screen bg-background">
-            <div className="container mx-auto py-8">
-              {children}
-            </div>
+            <div className="container mx-auto py-8">{children}</div>
           </div>
         </Providers>
       </body>

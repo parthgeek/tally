@@ -10,7 +10,7 @@ export function ConfidenceBadge({ confidence, size = "md", className }: Confiden
   if (confidence === null) return null;
 
   const level = confidence >= 0.95 ? "high" : confidence >= 0.75 ? "medium" : "low";
-  
+
   const styles = {
     high: "bg-confidence-high-bg text-confidence-high-fg",
     medium: "bg-confidence-medium-bg text-confidence-medium-fg",
@@ -24,7 +24,7 @@ export function ConfidenceBadge({ confidence, size = "md", className }: Confiden
   };
 
   return (
-    <span 
+    <span
       className={cn(
         "inline-flex items-center rounded-full px-2 py-0.5 text-tiny font-medium",
         styles[level],

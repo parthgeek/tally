@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Alert } from '@/components/ui/alert';
-import { parseDataset } from '@/lib/categorizer-lab/parsers';
-import { generateSyntheticData, generateScenario } from '@/lib/categorizer-lab/synthetic';
-import { createDatasetSummary } from '@/lib/categorizer-lab/mappers';
-import type { LabTransaction, SyntheticOptions } from '@/lib/categorizer-lab/types';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Alert } from "@/components/ui/alert";
+import { parseDataset } from "@/lib/categorizer-lab/parsers";
+import { generateSyntheticData, generateScenario } from "@/lib/categorizer-lab/synthetic";
+import { createDatasetSummary } from "@/lib/categorizer-lab/mappers";
+import type { LabTransaction, SyntheticOptions } from "@/lib/categorizer-lab/types";
 
 interface DatasetLoaderProps {
   onDatasetLoaded: (transactions: LabTransaction[]) => void;
@@ -18,19 +18,21 @@ interface DatasetLoaderProps {
 }
 
 export function DatasetLoader({ onDatasetLoaded, disabled }: DatasetLoaderProps) {
-  const [uploadMethod, setUploadMethod] = useState<'file' | 'paste' | 'synthetic' | 'scenario'>('synthetic');
+  const [uploadMethod, setUploadMethod] = useState<"file" | "paste" | "synthetic" | "scenario">(
+    "synthetic"
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pastedData, setPastedData] = useState('');
-  const [dataFormat, setDataFormat] = useState<'json' | 'csv'>('json');
-  
+  const [pastedData, setPastedData] = useState("");
+  const [dataFormat, setDataFormat] = useState<"json" | "csv">("json");
+
   // Synthetic data options
   const [syntheticOptions, setSyntheticOptions] = useState<SyntheticOptions>({
     count: 50,
     vendorNoisePercent: 10,
-    mccMix: 'balanced',
+    mccMix: "balanced",
     positiveNegativeRatio: 0.8,
-    seed: 'test-seed',
+    seed: "test-seed",
   });
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,15 +44,15 @@ export function DatasetLoader({ onDatasetLoaded, disabled }: DatasetLoaderProps)
 
     try {
       const content = await file.text();
-      const format = file.name.toLowerCase().endsWith('.csv') ? 'csv' : 'json';
-      
+      const format = file.name.toLowerCase().endsWith(".csv") ? "csv" : "json";
+
       const transactions = parseDataset({ format, data: content });
       const summary = createDatasetSummary(transactions);
-      
-      console.log('Dataset loaded:', summary);
+
+      console.log("Dataset loaded:", summary);
       onDatasetLoaded(transactions);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to parse file');
+      setError(err instanceof Error ? err.message : "Failed to parse file");
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +60,7 @@ export function DatasetLoader({ onDatasetLoaded, disabled }: DatasetLoaderProps)
 
   const handlePastedData = () => {
     if (!pastedData.trim()) {
-      setError('Please paste some data');
+      setError("Please paste some data");
       return;
     }
 
@@ -68,12 +70,12 @@ export function DatasetLoader({ onDatasetLoaded, disabled }: DatasetLoaderProps)
     try {
       const transactions = parseDataset({ format: dataFormat, data: pastedData });
       const summary = createDatasetSummary(transactions);
-      
-      console.log('Dataset loaded:', summary);
+
+      console.log("Dataset loaded:", summary);
       onDatasetLoaded(transactions);
-      setPastedData('');
+      setPastedData("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to parse data');
+      setError(err instanceof Error ? err.message : "Failed to parse data");
     } finally {
       setIsLoading(false);
     }
@@ -85,32 +87,32 @@ export function DatasetLoader({ onDatasetLoaded, disabled }: DatasetLoaderProps)
 
     try {
       const transactions = generateSyntheticData(syntheticOptions);
-      
+
       if (!transactions || transactions.length === 0) {
-        throw new Error('No transactions generated - check synthetic data configuration');
+        throw new Error("No transactions generated - check synthetic data configuration");
       }
-      
+
       const summary = createDatasetSummary(transactions);
       onDatasetLoaded(transactions);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate synthetic data');
+      setError(err instanceof Error ? err.message : "Failed to generate synthetic data");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleScenario = (scenario: 'ambiguous' | 'clear' | 'mixed') => {
+  const handleScenario = (scenario: "ambiguous" | "clear" | "mixed") => {
     setIsLoading(true);
     setError(null);
 
     try {
       const transactions = generateScenario(scenario);
       const summary = createDatasetSummary(transactions);
-      
-      console.log('Scenario loaded:', summary);
+
+      console.log("Scenario loaded:", summary);
       onDatasetLoaded(transactions);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load scenario');
+      setError(err instanceof Error ? err.message : "Failed to load scenario");
     } finally {
       setIsLoading(false);
     }
@@ -135,7 +137,7 @@ export function DatasetLoader({ onDatasetLoaded, disabled }: DatasetLoaderProps)
           </select>
         </div>
 
-        {uploadMethod === 'file' && (
+        {uploadMethod === "file" && (
           <div>
             <Label htmlFor="file-upload">Upload CSV or JSON File</Label>
             <Input
@@ -147,20 +149,18 @@ export function DatasetLoader({ onDatasetLoaded, disabled }: DatasetLoaderProps)
               className="mt-1"
               data-testid="file-input"
             />
-            <p className="text-sm text-gray-500 mt-1">
-              Supports CSV with headers or JSON format
-            </p>
+            <p className="text-sm text-gray-500 mt-1">Supports CSV with headers or JSON format</p>
           </div>
         )}
 
-        {uploadMethod === 'paste' && (
+        {uploadMethod === "paste" && (
           <div className="space-y-4">
             <div>
               <Label htmlFor="data-format">Data Format</Label>
               <select
                 id="data-format"
                 value={dataFormat}
-                onChange={(e) => setDataFormat(e.target.value as 'json' | 'csv')}
+                onChange={(e) => setDataFormat(e.target.value as "json" | "csv")}
                 className="w-full mt-1 rounded-md border border-gray-300 bg-white text-black py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 disabled={disabled}
               >
@@ -176,23 +176,24 @@ export function DatasetLoader({ onDatasetLoaded, disabled }: DatasetLoaderProps)
                 onChange={(e) => setPastedData(e.target.value)}
                 rows={10}
                 className="w-full mt-1 rounded-md border border-gray-300 bg-white text-black py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                placeholder={dataFormat === 'json' ? 
-                  '[\n  {\n    "id": "tx-1",\n    "description": "STARBUCKS STORE #123",\n    "amountCents": "-500",\n    "categoryId": "meals"\n  }\n]' :
-                  'id,description,amount_cents,category_id\ntx-1,STARBUCKS STORE #123,-500,meals'
+                placeholder={
+                  dataFormat === "json"
+                    ? '[\n  {\n    "id": "tx-1",\n    "description": "STARBUCKS STORE #123",\n    "amountCents": "-500",\n    "categoryId": "meals"\n  }\n]'
+                    : "id,description,amount_cents,category_id\ntx-1,STARBUCKS STORE #123,-500,meals"
                 }
                 disabled={disabled}
               />
             </div>
-            <Button 
+            <Button
               onClick={handlePastedData}
               disabled={disabled || isLoading || !pastedData.trim()}
             >
-              {isLoading ? 'Processing...' : 'Load Data'}
+              {isLoading ? "Processing..." : "Load Data"}
             </Button>
           </div>
         )}
 
-        {uploadMethod === 'synthetic' && (
+        {uploadMethod === "synthetic" && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -203,10 +204,12 @@ export function DatasetLoader({ onDatasetLoaded, disabled }: DatasetLoaderProps)
                   min="1"
                   max="1000"
                   value={syntheticOptions.count}
-                  onChange={(e) => setSyntheticOptions(prev => ({
-                    ...prev,
-                    count: parseInt(e.target.value) || 50
-                  }))}
+                  onChange={(e) =>
+                    setSyntheticOptions((prev) => ({
+                      ...prev,
+                      count: parseInt(e.target.value) || 50,
+                    }))
+                  }
                   disabled={disabled}
                 />
               </div>
@@ -218,25 +221,29 @@ export function DatasetLoader({ onDatasetLoaded, disabled }: DatasetLoaderProps)
                   min="0"
                   max="100"
                   value={syntheticOptions.vendorNoisePercent}
-                  onChange={(e) => setSyntheticOptions(prev => ({
-                    ...prev,
-                    vendorNoisePercent: parseInt(e.target.value) || 10
-                  }))}
+                  onChange={(e) =>
+                    setSyntheticOptions((prev) => ({
+                      ...prev,
+                      vendorNoisePercent: parseInt(e.target.value) || 10,
+                    }))
+                  }
                   disabled={disabled}
                 />
               </div>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="mcc-mix">MCC Mix</Label>
                 <select
                   id="mcc-mix"
                   value={syntheticOptions.mccMix}
-                  onChange={(e) => setSyntheticOptions(prev => ({
-                    ...prev,
-                    mccMix: e.target.value as SyntheticOptions['mccMix']
-                  }))}
+                  onChange={(e) =>
+                    setSyntheticOptions((prev) => ({
+                      ...prev,
+                      mccMix: e.target.value as SyntheticOptions["mccMix"],
+                    }))
+                  }
                   className="w-full mt-1 rounded-md border border-gray-300 bg-white text-black py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   disabled={disabled}
                 >
@@ -250,56 +257,64 @@ export function DatasetLoader({ onDatasetLoaded, disabled }: DatasetLoaderProps)
                 <Label htmlFor="seed">Random Seed</Label>
                 <Input
                   id="seed"
-                  value={syntheticOptions.seed || ''}
-                  onChange={(e) => setSyntheticOptions(prev => ({
-                    ...prev,
-                    seed: e.target.value || undefined
-                  }))}
+                  value={syntheticOptions.seed || ""}
+                  onChange={(e) =>
+                    setSyntheticOptions((prev) => ({
+                      ...prev,
+                      seed: e.target.value || undefined,
+                    }))
+                  }
                   placeholder="test-seed"
                   disabled={disabled}
                 />
               </div>
             </div>
 
-            <Button 
+            <Button
               onClick={handleSyntheticData}
               disabled={disabled || isLoading}
               className="w-full"
             >
-              {isLoading ? 'Generating...' : 'Generate Synthetic Data'}
+              {isLoading ? "Generating..." : "Generate Synthetic Data"}
             </Button>
           </div>
         )}
 
-        {uploadMethod === 'scenario' && (
+        {uploadMethod === "scenario" && (
           <div className="space-y-4">
             <p className="text-sm text-gray-600">
               Load predefined test scenarios to evaluate categorization behavior.
             </p>
             <div className="grid grid-cols-3 gap-4">
-              <Button 
+              <Button
                 variant="outline"
-                onClick={() => handleScenario('clear')}
+                onClick={() => handleScenario("clear")}
                 disabled={disabled || isLoading}
               >
                 Clear Cases
-                <Badge variant="secondary" className="ml-2">2 txs</Badge>
+                <Badge variant="secondary" className="ml-2">
+                  2 txs
+                </Badge>
               </Button>
-              <Button 
+              <Button
                 variant="outline"
-                onClick={() => handleScenario('ambiguous')}
+                onClick={() => handleScenario("ambiguous")}
                 disabled={disabled || isLoading}
               >
                 Ambiguous Cases
-                <Badge variant="secondary" className="ml-2">2 txs</Badge>
+                <Badge variant="secondary" className="ml-2">
+                  2 txs
+                </Badge>
               </Button>
-              <Button 
+              <Button
                 variant="outline"
-                onClick={() => handleScenario('mixed')}
+                onClick={() => handleScenario("mixed")}
                 disabled={disabled || isLoading}
               >
                 Mixed Cases
-                <Badge variant="secondary" className="ml-2">4 txs</Badge>
+                <Badge variant="secondary" className="ml-2">
+                  4 txs
+                </Badge>
               </Button>
             </div>
           </div>
@@ -312,15 +327,31 @@ export function DatasetLoader({ onDatasetLoaded, disabled }: DatasetLoaderProps)
         )}
 
         <div className="text-sm text-gray-500">
-          <p><strong>Expected Format:</strong></p>
+          <p>
+            <strong>Expected Format:</strong>
+          </p>
           <ul className="list-disc list-inside mt-1 space-y-1">
-            <li><code>id</code> - Unique transaction identifier</li>
-            <li><code>description</code> - Transaction description (required)</li>
-            <li><code>amountCents</code> - Amount in cents as string (required)</li>
-            <li><code>merchantName</code> - Merchant name (optional)</li>
-            <li><code>mcc</code> - Merchant category code (optional)</li>
-            <li><code>date</code> - Date in YYYY-MM-DD format (optional)</li>
-            <li><code>categoryId</code> - Ground truth category (optional, for accuracy)</li>
+            <li>
+              <code>id</code> - Unique transaction identifier
+            </li>
+            <li>
+              <code>description</code> - Transaction description (required)
+            </li>
+            <li>
+              <code>amountCents</code> - Amount in cents as string (required)
+            </li>
+            <li>
+              <code>merchantName</code> - Merchant name (optional)
+            </li>
+            <li>
+              <code>mcc</code> - Merchant category code (optional)
+            </li>
+            <li>
+              <code>date</code> - Date in YYYY-MM-DD format (optional)
+            </li>
+            <li>
+              <code>categoryId</code> - Ground truth category (optional, for accuracy)
+            </li>
           </ul>
         </div>
       </div>

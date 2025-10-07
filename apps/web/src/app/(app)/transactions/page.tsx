@@ -1,27 +1,46 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { CategoryPill, type CategoryTier1 } from '@/components/ui/category-pill';
-import { ConfidenceBadge } from '@/components/ui/confidence-badge';
-import { MoreHorizontal, Receipt, Trash2 } from 'lucide-react';
-import { createClient } from '@/lib/supabase';
-import { filterTransactions, isLowConfidence, getActiveFilterKeys, type FilterState } from '@/lib/transaction-filters';
-import { UI_FEATURE_FLAGS, isUIFeatureEnabled, ANALYTICS_EVENTS, type TransactionsFilterChangedProps, type TransactionCategoryCorrectedProps, type TransactionLowConfWarningShownProps, type TransactionsDeletedProps } from '@nexus/types';
-import { getPosthogClientBrowser } from '@nexus/analytics/client';
-import { useToast } from '@/components/ui/use-toast';
-import { cn } from '@/lib/utils';
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { CategoryPill, type CategoryTier1 } from "@/components/ui/category-pill";
+import { ConfidenceBadge } from "@/components/ui/confidence-badge";
+import { MoreHorizontal, Receipt, Trash2 } from "lucide-react";
+import { createClient } from "@/lib/supabase";
+import {
+  filterTransactions,
+  isLowConfidence,
+  getActiveFilterKeys,
+  type FilterState,
+} from "@/lib/transaction-filters";
+import {
+  UI_FEATURE_FLAGS,
+  isUIFeatureEnabled,
+  ANALYTICS_EVENTS,
+  type TransactionsFilterChangedProps,
+  type TransactionCategoryCorrectedProps,
+  type TransactionLowConfWarningShownProps,
+  type TransactionsDeletedProps,
+} from "@nexus/types";
+import { getPosthogClientBrowser } from "@nexus/analytics/client";
+import { useToast } from "@/components/ui/use-toast";
+import { cn } from "@/lib/utils";
 
 // Local currency formatting function
-function formatAmount(amountCents: string, currency: string = 'USD'): string {
+function formatAmount(amountCents: string, currency: string = "USD"): string {
   const amount = parseInt(amountCents) / 100;
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
     currency,
   }).format(amount);
 }
@@ -29,9 +48,9 @@ function formatAmount(amountCents: string, currency: string = 'USD'): string {
 // Map category type to tier1
 function getCategoryTier1(categoryType?: string | null): CategoryTier1 {
   if (!categoryType) return null;
-  if (categoryType === 'revenue') return 'revenue';
-  if (categoryType === 'cogs') return 'cogs';
-  if (categoryType === 'opex') return 'opex';
+  if (categoryType === "revenue") return "revenue";
+  if (categoryType === "cogs") return "cogs";
+  if (categoryType === "opex") return "opex";
   return null;
 }
 
@@ -65,28 +84,30 @@ interface Transaction {
   category_type?: string | null;
 }
 
-interface TransactionWithNormalized extends Omit<Transaction, 'category_name' | 'account_name'> {
+interface TransactionWithNormalized extends Omit<Transaction, "category_name" | "account_name"> {
   account_name: string;
   category_name: string | null;
   category_type?: string | null;
 }
 
 const initialFilterState: FilterState = {
-  search: '',
-  merchant: '',
-  account: '__all__',
-  categoryId: '__all__',
-  dateFrom: '',
-  dateTo: '',
-  minAmount: '',
-  maxAmount: '',
+  search: "",
+  merchant: "",
+  account: "__all__",
+  categoryId: "__all__",
+  dateFrom: "",
+  dateTo: "",
+  minAmount: "",
+  maxAmount: "",
   lowConfidenceOnly: false,
 };
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<TransactionWithNormalized[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedTransaction, setSelectedTransaction] = useState<TransactionWithNormalized | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionWithNormalized | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<FilterState>(initialFilterState);
   const [updatingCategories, setUpdatingCategories] = useState<Set<string>>(new Set());
@@ -96,7 +117,9 @@ export default function TransactionsPage() {
   const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(new Set());
   const [deletingTransactions, setDeletingTransactions] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
-  const [deletionProgress, setDeletionProgress] = useState<{ done: number; total: number } | null>(null);
+  const [deletionProgress, setDeletionProgress] = useState<{ done: number; total: number } | null>(
+    null
+  );
 
   const supabase = createClient();
   const posthog = getPosthogClientBrowser();
@@ -121,7 +144,7 @@ export default function TransactionsPage() {
 
   const distinctAccounts = useMemo(() => {
     const accounts = transactions
-      .map(tx => tx.account_name)
+      .map((tx) => tx.account_name)
       .filter(Boolean)
       .filter((value, index, self) => self.indexOf(value) === index);
     return accounts.sort();
@@ -147,44 +170,134 @@ export default function TransactionsPage() {
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [filters, filteredTransactions.length, isEnhancedUIEnabled, posthog, currentUserId, currentOrgId]);
+  }, [
+    filters,
+    filteredTransactions.length,
+    isEnhancedUIEnabled,
+    posthog,
+    currentUserId,
+    currentOrgId,
+  ]);
 
-  const handleCategoryChange = useCallback(async (txId: string, newCategoryId: string) => {
-    if (!currentUserId || !currentOrgId) return;
+  const handleCategoryChange = useCallback(
+    async (txId: string, newCategoryId: string) => {
+      if (!currentUserId || !currentOrgId) return;
 
-    const transaction = transactions.find(tx => tx.id === txId) as TransactionWithNormalized;
-    if (!transaction) return;
+      const transaction = transactions.find((tx) => tx.id === txId) as TransactionWithNormalized;
+      if (!transaction) return;
 
-    if (newCategoryId === '__none__') {
-      setUpdatingCategories(prev => new Set(prev).add(txId));
+      if (newCategoryId === "__none__") {
+        setUpdatingCategories((prev) => new Set(prev).add(txId));
 
-      setTransactions(prev => prev.map(tx =>
-        tx.id === txId
-          ? {
-              ...tx,
-              category_id: null,
-              category_name: null,
-              category_type: null,
-              needs_review: false
-            } as TransactionWithNormalized
-          : tx
-      ));
+        setTransactions((prev) =>
+          prev.map((tx) =>
+            tx.id === txId
+              ? ({
+                  ...tx,
+                  category_id: null,
+                  category_name: null,
+                  category_type: null,
+                  needs_review: false,
+                } as TransactionWithNormalized)
+              : tx
+          )
+        );
+
+        try {
+          const response = await fetch("/api/transactions/correct", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ txId, newCategoryId: null }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to update category");
+          }
+
+          if (posthog) {
+            const props: TransactionCategoryCorrectedProps = {
+              old_category_id: transaction.category_id || null,
+              new_category_id: null,
+              confidence: transaction.confidence || null,
+              tx_amount_cents: parseInt(transaction.amount_cents),
+              org_id: currentOrgId,
+              user_id: currentUserId,
+              transaction_id: txId,
+            };
+
+            posthog.capture(ANALYTICS_EVENTS.TRANSACTION_CATEGORY_CORRECTED, props);
+          }
+
+          toast({
+            title: "Category Updated",
+            description: "Transaction set to uncategorized",
+          });
+        } catch (error) {
+          console.error("Failed to update category:", error);
+
+          setTransactions((prev) =>
+            prev.map((tx) =>
+              tx.id === txId
+                ? ({
+                    ...tx,
+                    category_id: transaction.category_id,
+                    category_name: transaction.category_name,
+                    category_type: transaction.category_type,
+                    needs_review: transaction.needs_review,
+                  } as TransactionWithNormalized)
+                : tx
+            )
+          );
+
+          toast({
+            title: "Error",
+            description: "Failed to update category. Please try again.",
+            variant: "destructive",
+          });
+        } finally {
+          setUpdatingCategories((prev) => {
+            const next = new Set(prev);
+            next.delete(txId);
+            return next;
+          });
+        }
+        return;
+      }
+
+      const newCategory = categories.find((cat) => cat.id === newCategoryId);
+      if (!newCategory) return;
+
+      setUpdatingCategories((prev) => new Set(prev).add(txId));
+
+      setTransactions((prev) =>
+        prev.map((tx) =>
+          tx.id === txId
+            ? ({
+                ...tx,
+                category_id: newCategoryId,
+                category_name: newCategory.name,
+                category_type: newCategory.type ?? null,
+                needs_review: false,
+              } as TransactionWithNormalized)
+            : tx
+        )
+      );
 
       try {
-        const response = await fetch('/api/transactions/correct', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ txId, newCategoryId: null }),
+        const response = await fetch("/api/transactions/correct", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ txId, newCategoryId }),
         });
 
         if (!response.ok) {
-          throw new Error('Failed to update category');
+          throw new Error("Failed to update category");
         }
 
         if (posthog) {
           const props: TransactionCategoryCorrectedProps = {
             old_category_id: transaction.category_id || null,
-            new_category_id: null,
+            new_category_id: newCategoryId,
             confidence: transaction.confidence || null,
             tx_amount_cents: parseInt(transaction.amount_cents),
             org_id: currentOrgId,
@@ -197,22 +310,24 @@ export default function TransactionsPage() {
 
         toast({
           title: "Category Updated",
-          description: "Transaction set to uncategorized",
+          description: `Transaction categorized as "${newCategory.name}"`,
         });
       } catch (error) {
-        console.error('Failed to update category:', error);
+        console.error("Failed to update category:", error);
 
-        setTransactions(prev => prev.map(tx =>
-          tx.id === txId
-            ? {
-                ...tx,
-                category_id: transaction.category_id,
-                category_name: transaction.category_name,
-                category_type: transaction.category_type,
-                needs_review: transaction.needs_review
-              } as TransactionWithNormalized
-            : tx
-        ));
+        setTransactions((prev) =>
+          prev.map((tx) =>
+            tx.id === txId
+              ? ({
+                  ...tx,
+                  category_id: transaction.category_id,
+                  category_name: transaction.category_name,
+                  category_type: transaction.category_type,
+                  needs_review: transaction.needs_review,
+                } as TransactionWithNormalized)
+              : tx
+          )
+        );
 
         toast({
           title: "Error",
@@ -220,89 +335,15 @@ export default function TransactionsPage() {
           variant: "destructive",
         });
       } finally {
-        setUpdatingCategories(prev => {
+        setUpdatingCategories((prev) => {
           const next = new Set(prev);
           next.delete(txId);
           return next;
         });
       }
-      return;
-    }
-
-    const newCategory = categories.find(cat => cat.id === newCategoryId);
-    if (!newCategory) return;
-
-    setUpdatingCategories(prev => new Set(prev).add(txId));
-
-    setTransactions(prev => prev.map(tx =>
-      tx.id === txId
-        ? {
-            ...tx,
-            category_id: newCategoryId,
-            category_name: newCategory.name,
-            category_type: newCategory.type ?? null,
-            needs_review: false
-          } as TransactionWithNormalized
-        : tx
-    ));
-
-    try {
-      const response = await fetch('/api/transactions/correct', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ txId, newCategoryId }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update category');
-      }
-
-      if (posthog) {
-        const props: TransactionCategoryCorrectedProps = {
-          old_category_id: transaction.category_id || null,
-          new_category_id: newCategoryId,
-          confidence: transaction.confidence || null,
-          tx_amount_cents: parseInt(transaction.amount_cents),
-          org_id: currentOrgId,
-          user_id: currentUserId,
-          transaction_id: txId,
-        };
-
-        posthog.capture(ANALYTICS_EVENTS.TRANSACTION_CATEGORY_CORRECTED, props);
-      }
-
-      toast({
-        title: "Category Updated",
-        description: `Transaction categorized as "${newCategory.name}"`,
-      });
-    } catch (error) {
-      console.error('Failed to update category:', error);
-
-      setTransactions(prev => prev.map(tx =>
-        tx.id === txId
-          ? {
-              ...tx,
-              category_id: transaction.category_id,
-              category_name: transaction.category_name,
-              category_type: transaction.category_type,
-              needs_review: transaction.needs_review
-            } as TransactionWithNormalized
-          : tx
-      ));
-
-      toast({
-        title: "Error",
-        description: "Failed to update category. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setUpdatingCategories(prev => {
-        const next = new Set(prev);
-        next.delete(txId);
-        return next;
-      });
-    }
-  }, [transactions, categories, currentUserId, currentOrgId, posthog, toast]);
+    },
+    [transactions, categories, currentUserId, currentOrgId, posthog, toast]
+  );
 
   const clearFilters = useCallback(() => {
     setFilters(initialFilterState);
@@ -314,7 +355,7 @@ export default function TransactionsPage() {
   }, []);
 
   const toggleSelect = useCallback((txId: string) => {
-    setSelectedTransactions(prev => {
+    setSelectedTransactions((prev) => {
       const next = new Set(prev);
       if (next.has(txId)) {
         next.delete(txId);
@@ -326,7 +367,7 @@ export default function TransactionsPage() {
   }, []);
 
   const selectAll = useCallback(() => {
-    const allIds = new Set(filteredTransactions.map(tx => tx.id));
+    const allIds = new Set(filteredTransactions.map((tx) => tx.id));
     setSelectedTransactions(allIds);
   }, [filteredTransactions]);
 
@@ -335,7 +376,7 @@ export default function TransactionsPage() {
   }, []);
 
   const toggleSelectionMode = useCallback(() => {
-    setSelectionMode(prev => !prev);
+    setSelectionMode((prev) => !prev);
     // Clear selections when exiting selection mode
     if (selectionMode) {
       setSelectedTransactions(new Set());
@@ -346,15 +387,19 @@ export default function TransactionsPage() {
     if (selectedTransactions.size === 0 || !currentUserId || !currentOrgId) return;
 
     // Confirmation dialog
-    if (!confirm(`Are you sure you want to delete ${selectedTransactions.size} transaction(s)? This action cannot be undone.`)) {
+    if (
+      !confirm(
+        `Are you sure you want to delete ${selectedTransactions.size} transaction(s)? This action cannot be undone.`
+      )
+    ) {
       return;
     }
 
     setDeletingTransactions(true);
-    
+
     const MAX_PER_REQUEST = 100;
     const ids = Array.from(selectedTransactions);
-    
+
     // Chunk IDs into batches
     const chunk = <T,>(items: T[], size: number): T[][] => {
       const chunks: T[][] = [];
@@ -363,7 +408,7 @@ export default function TransactionsPage() {
       }
       return chunks;
     };
-    
+
     const batches = chunk(ids, MAX_PER_REQUEST);
     let totalDeleted = 0;
     const allErrors: Array<{ tx_id: string; error: string }> = [];
@@ -373,16 +418,16 @@ export default function TransactionsPage() {
       // Process batches sequentially
       for (let i = 0; i < batches.length; i++) {
         const batch = batches[i]!;
-        
+
         // Update progress
         setDeletionProgress({ done: i, total: batches.length });
 
         try {
-          const response = await fetch('/api/transactions/delete', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              txIds: batch 
+          const response = await fetch("/api/transactions/delete", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              txIds: batch,
             }),
           });
 
@@ -390,29 +435,28 @@ export default function TransactionsPage() {
             // Treat entire batch as failed
             const errorMessage = `Batch ${i + 1} failed with status ${response.status}`;
             console.error(errorMessage);
-            batch.forEach(id => {
+            batch.forEach((id) => {
               allErrors.push({ tx_id: id, error: errorMessage });
             });
             continue;
           }
 
           const result = await response.json();
-          
+
           // Accumulate results
           totalDeleted += result.deleted_count || 0;
           if (result.errors && Array.isArray(result.errors)) {
             allErrors.push(...result.errors);
           }
-          
-          // Track successfully processed IDs from this batch
-          batch.forEach(id => processedIds.add(id));
 
+          // Track successfully processed IDs from this batch
+          batch.forEach((id) => processedIds.add(id));
         } catch (batchError) {
           console.error(`Error processing batch ${i + 1}:`, batchError);
-          batch.forEach(id => {
-            allErrors.push({ 
-              tx_id: id, 
-              error: batchError instanceof Error ? batchError.message : 'Network error' 
+          batch.forEach((id) => {
+            allErrors.push({
+              tx_id: id,
+              error: batchError instanceof Error ? batchError.message : "Network error",
             });
           });
         }
@@ -436,10 +480,8 @@ export default function TransactionsPage() {
 
       // Optimistically update UI - remove only successfully processed IDs
       if (processedIds.size > 0) {
-        setTransactions(prev => 
-          prev.filter(tx => !processedIds.has(tx.id))
-        );
-        
+        setTransactions((prev) => prev.filter((tx) => !processedIds.has(tx.id)));
+
         clearSelection();
         setSelectionMode(false); // Exit selection mode after deletion
       }
@@ -463,9 +505,8 @@ export default function TransactionsPage() {
           variant: "destructive",
         });
       }
-
     } catch (error) {
-      console.error('Failed to delete transactions:', error);
+      console.error("Failed to delete transactions:", error);
       toast({
         title: "Error",
         description: "Failed to delete transactions. Please try again.",
@@ -480,11 +521,11 @@ export default function TransactionsPage() {
   useEffect(() => {
     if (!isEnhancedUIEnabled || !posthog || !currentUserId || !currentOrgId) return;
 
-    filteredTransactions.forEach(tx => {
+    filteredTransactions.forEach((tx) => {
       const lowConfidence = isLowConfidence(tx.confidence);
 
       if (lowConfidence && !shownLowConfWarnings.has(tx.id)) {
-        setShownLowConfWarnings(prev => new Set(prev).add(tx.id));
+        setShownLowConfWarnings((prev) => new Set(prev).add(tx.id));
 
         const props: TransactionLowConfWarningShownProps = {
           transaction_id: tx.id,
@@ -497,18 +538,27 @@ export default function TransactionsPage() {
         posthog.capture(ANALYTICS_EVENTS.TRANSACTION_CATEGORY_LOW_CONF_WARNING_SHOWN, props);
       }
     });
-  }, [filteredTransactions, shownLowConfWarnings, isEnhancedUIEnabled, posthog, currentUserId, currentOrgId]);
+  }, [
+    filteredTransactions,
+    shownLowConfWarnings,
+    isEnhancedUIEnabled,
+    posthog,
+    currentUserId,
+    currentOrgId,
+  ]);
 
   const fetchTransactions = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       setCurrentUserId(user.id);
 
-      const cookies = document.cookie.split(';');
-      const orgCookie = cookies.find(cookie => cookie.trim().startsWith('orgId='));
-      const orgId = orgCookie ? orgCookie.split('=')[1] : null;
+      const cookies = document.cookie.split(";");
+      const orgCookie = cookies.find((cookie) => cookie.trim().startsWith("orgId="));
+      const orgId = orgCookie ? orgCookie.split("=")[1] : null;
 
       if (!orgId) return;
       setCurrentOrgId(orgId);
@@ -520,21 +570,21 @@ export default function TransactionsPage() {
           accounts(name),
           categories(name, type)
         `
-        : '*';
+        : "*";
 
       const { data, error } = await supabase
-        .from('transactions')
+        .from("transactions")
         .select(selectQuery)
-        .eq('org_id', orgId)
-        .order('date', { ascending: false })
+        .eq("org_id", orgId)
+        .order("date", { ascending: false })
         .limit(200);
 
       if (error) {
-        console.error('Error fetching transactions:', error);
+        console.error("Error fetching transactions:", error);
         return;
       }
 
-      const normalizedTransactions = (data || []).map(t => {
+      const normalizedTransactions = (data || []).map((t) => {
         const accountName = (t as any).accounts
           ? Array.isArray((t as any).accounts)
             ? (t as any).accounts?.[0]?.name
@@ -549,7 +599,7 @@ export default function TransactionsPage() {
 
         return {
           ...(t as any),
-          account_name: accountName || 'Unknown',
+          account_name: accountName || "Unknown",
           category_name: categoryData?.name || null,
           category_type: categoryData?.type || null,
         } as TransactionWithNormalized;
@@ -557,7 +607,7 @@ export default function TransactionsPage() {
 
       setTransactions(normalizedTransactions);
     } catch (error) {
-      console.error('Failed to fetch transactions:', error);
+      console.error("Failed to fetch transactions:", error);
     } finally {
       setLoading(false);
     }
@@ -569,14 +619,14 @@ export default function TransactionsPage() {
     try {
       // Fetch active categories only (filters out legacy fine-grained categories)
       const { data, error } = await supabase
-        .from('categories')
-        .select('id, name, type, org_id')
+        .from("categories")
+        .select("id, name, type, org_id")
         .or(`org_id.eq.${currentOrgId},org_id.is.null`)
-        .eq('is_active', true)
-        .order('name');
+        .eq("is_active", true)
+        .order("name");
 
       if (error) {
-        console.error('Error fetching categories:', error);
+        console.error("Error fetching categories:", error);
         return;
       }
 
@@ -591,17 +641,17 @@ export default function TransactionsPage() {
         if (!existing || (isOrgSpecific && !existing.orgSpecific)) {
           categoriesMap.set(category.name, {
             category: { id: category.id, name: category.name, type: category.type },
-            orgSpecific: isOrgSpecific
+            orgSpecific: isOrgSpecific,
           });
         }
       });
 
       const deduplicatedCategories = Array.from(categoriesMap.values())
-        .map(item => item.category)
+        .map((item) => item.category)
         .sort((a, b) => a.name.localeCompare(b.name));
       setCategories(deduplicatedCategories);
     } catch (error) {
-      console.error('Failed to fetch categories:', error);
+      console.error("Failed to fetch categories:", error);
     }
   };
 
@@ -616,7 +666,10 @@ export default function TransactionsPage() {
           <CardContent className="p-6">
             <div className="space-y-4">
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="flex items-center justify-between py-3 border-b border-border-subtle last:border-0">
+                <div
+                  key={i}
+                  className="flex items-center justify-between py-3 border-b border-border-subtle last:border-0"
+                >
                   <div className="animate-pulse flex-1 space-y-2">
                     <div className="h-4 bg-muted rounded w-1/4"></div>
                     <div className="h-3 bg-muted rounded w-1/3"></div>
@@ -648,56 +701,74 @@ export default function TransactionsPage() {
           <CardContent className="p-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="search" className="text-xs">Search</Label>
+                <Label htmlFor="search" className="text-xs">
+                  Search
+                </Label>
                 <Input
                   id="search"
                   placeholder="Description or merchant..."
                   value={filters.search}
-                  onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="account" className="text-xs">Account</Label>
-                <Select value={filters.account} onValueChange={value => setFilters(prev => ({ ...prev, account: value }))}>
+                <Label htmlFor="account" className="text-xs">
+                  Account
+                </Label>
+                <Select
+                  value={filters.account}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, account: value }))}
+                >
                   <SelectTrigger id="account">
                     <SelectValue placeholder="All accounts" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__all__">All accounts</SelectItem>
-                    {distinctAccounts.map(account => (
-                      <SelectItem key={account} value={account}>{account}</SelectItem>
+                    {distinctAccounts.map((account) => (
+                      <SelectItem key={account} value={account}>
+                        {account}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="category" className="text-xs">Category</Label>
-                <Select value={filters.categoryId} onValueChange={value => setFilters(prev => ({ ...prev, categoryId: value }))}>
+                <Label htmlFor="category" className="text-xs">
+                  Category
+                </Label>
+                <Select
+                  value={filters.categoryId}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, categoryId: value }))}
+                >
                   <SelectTrigger id="category">
                     <SelectValue placeholder="All categories" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__all__">All categories</SelectItem>
-                    {categories.map(category => (
-                      <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="dateFrom" className="text-xs">Date Range</Label>
+                <Label htmlFor="dateFrom" className="text-xs">
+                  Date Range
+                </Label>
                 <div className="flex gap-2">
                   <Input
                     id="dateFrom"
                     type="date"
                     value={filters.dateFrom}
-                    onChange={e => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
+                    onChange={(e) => setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))}
                     className="flex-1"
                   />
                   <Input
                     type="date"
                     value={filters.dateTo}
-                    onChange={e => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
+                    onChange={(e) => setFilters((prev) => ({ ...prev, dateTo: e.target.value }))}
                     className="flex-1"
                   />
                 </div>
@@ -708,19 +779,21 @@ export default function TransactionsPage() {
                 <Checkbox
                   id="lowConfOnly"
                   checked={filters.lowConfidenceOnly}
-                  onCheckedChange={checked => setFilters(prev => ({ ...prev, lowConfidenceOnly: !!checked }))}
+                  onCheckedChange={(checked) =>
+                    setFilters((prev) => ({ ...prev, lowConfidenceOnly: !!checked }))
+                  }
                 />
                 <Label htmlFor="lowConfOnly" className="text-sm font-normal">
                   Only low-confidence (&lt;95%)
                 </Label>
               </div>
               <div className="flex gap-2">
-                <Button 
-                  variant={selectionMode ? "default" : "outline"} 
-                  size="sm" 
+                <Button
+                  variant={selectionMode ? "default" : "outline"}
+                  size="sm"
                   onClick={toggleSelectionMode}
                 >
-                  {selectionMode ? 'Done Selecting' : 'Select'}
+                  {selectionMode ? "Done Selecting" : "Select"}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={clearFilters}>
                   Clear Filters
@@ -759,11 +832,11 @@ export default function TransactionsPage() {
                 disabled={deletingTransactions}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                {deletingTransactions 
-                  ? deletionProgress 
+                {deletingTransactions
+                  ? deletionProgress
                     ? `Deleting... (${deletionProgress.done + 1}/${deletionProgress.total})`
-                    : 'Deleting...'
-                  : 'Delete Selected'}
+                    : "Deleting..."
+                  : "Delete Selected"}
               </Button>
             </div>
           </CardContent>
@@ -781,8 +854,11 @@ export default function TransactionsPage() {
                     {selectionMode && (
                       <th className="px-4 py-3 text-center">
                         <Checkbox
-                          checked={selectedTransactions.size === filteredTransactions.length && filteredTransactions.length > 0}
-                          onCheckedChange={(checked) => checked ? selectAll() : clearSelection()}
+                          checked={
+                            selectedTransactions.size === filteredTransactions.length &&
+                            filteredTransactions.length > 0
+                          }
+                          onCheckedChange={(checked) => (checked ? selectAll() : clearSelection())}
                           aria-label="Select all transactions"
                         />
                       </th>
@@ -812,108 +888,115 @@ export default function TransactionsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                {filteredTransactions.map((transaction) => {
-                  const isUpdating = updatingCategories.has(transaction.id);
-                  const tier1 = getCategoryTier1(transaction.category_type);
-                  const isSelected = selectedTransactions.has(transaction.id);
+                  {filteredTransactions.map((transaction) => {
+                    const isUpdating = updatingCategories.has(transaction.id);
+                    const tier1 = getCategoryTier1(transaction.category_type);
+                    const isSelected = selectedTransactions.has(transaction.id);
 
-                  return (
-                    <tr 
-                      key={transaction.id} 
-                      className={cn(
-                        "border-b border-border-subtle last:border-0 hover:bg-muted/30 transition-colors",
-                        isSelected && selectionMode && "bg-primary/5"
-                      )}
-                    >
-                      {selectionMode && (
-                        <td className="px-4 py-3 text-center">
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() => toggleSelect(transaction.id)}
-                            aria-label={`Select transaction ${transaction.description}`}
-                          />
+                    return (
+                      <tr
+                        key={transaction.id}
+                        className={cn(
+                          "border-b border-border-subtle last:border-0 hover:bg-muted/30 transition-colors",
+                          isSelected && selectionMode && "bg-primary/5"
+                        )}
+                      >
+                        {selectionMode && (
+                          <td className="px-4 py-3 text-center">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleSelect(transaction.id)}
+                              aria-label={`Select transaction ${transaction.description}`}
+                            />
+                          </td>
+                        )}
+                        <td className="px-4 py-3 text-sm">
+                          {new Date(transaction.date).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
                         </td>
-                      )}
-                      <td className="px-4 py-3 text-sm">
-                        {new Date(transaction.date).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium">
-                            {transaction.merchant_name || transaction.description}
-                          </span>
-                          {transaction.merchant_name && (
-                            <span className="text-xs text-muted-foreground">
-                              {transaction.description}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums">
-                        {formatAmount(transaction.amount_cents, transaction.currency)}
-                      </td>
-                      {isEnhancedUIEnabled && (
                         <td className="px-4 py-3">
-                          {isUpdating ? (
-                            <span className="text-xs text-muted-foreground">Saving...</span>
-                          ) : (
-                            <Select
-                              value={transaction.category_id || '__none__'}
-                              onValueChange={(value) => handleCategoryChange(transaction.id, value)}
-                              disabled={isUpdating}
-                            >
-                              <SelectTrigger className="h-8 w-full border-none bg-transparent hover:bg-muted/50 focus:bg-muted/50 transition-colors">
-                                <SelectValue>
-                                  <CategoryPill 
-                                    tier1={tier1} 
-                                    {...(transaction.category_name ? { tier2: transaction.category_name } : {})}
-                                    size="sm"
-                                  />
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">
-                                  <span className="text-muted-foreground">Uncategorized</span>
-                                </SelectItem>
-                                {categories.map(category => {
-                                  const catTier1 = getCategoryTier1(category.type);
-                                  return (
-                                    <SelectItem key={category.id} value={category.id}>
-                                      <div className="flex items-center gap-2">
-                                        <CategoryPill 
-                                          tier1={catTier1}
-                                          tier2={category.name}
-                                          size="sm"
-                                        />
-                                      </div>
-                                    </SelectItem>
-                                  );
-                                })}
-                              </SelectContent>
-                            </Select>
-                          )}
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium">
+                              {transaction.merchant_name || transaction.description}
+                            </span>
+                            {transaction.merchant_name && (
+                              <span className="text-xs text-muted-foreground">
+                                {transaction.description}
+                              </span>
+                            )}
+                          </div>
                         </td>
-                      )}
-                      {isEnhancedUIEnabled && (
+                        <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums">
+                          {formatAmount(transaction.amount_cents, transaction.currency)}
+                        </td>
+                        {isEnhancedUIEnabled && (
+                          <td className="px-4 py-3">
+                            {isUpdating ? (
+                              <span className="text-xs text-muted-foreground">Saving...</span>
+                            ) : (
+                              <Select
+                                value={transaction.category_id || "__none__"}
+                                onValueChange={(value) =>
+                                  handleCategoryChange(transaction.id, value)
+                                }
+                                disabled={isUpdating}
+                              >
+                                <SelectTrigger className="h-8 w-full border-none bg-transparent hover:bg-muted/50 focus:bg-muted/50 transition-colors">
+                                  <SelectValue>
+                                    <CategoryPill
+                                      tier1={tier1}
+                                      {...(transaction.category_name
+                                        ? { tier2: transaction.category_name }
+                                        : {})}
+                                      size="sm"
+                                    />
+                                  </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__none__">
+                                    <span className="text-muted-foreground">Uncategorized</span>
+                                  </SelectItem>
+                                  {categories.map((category) => {
+                                    const catTier1 = getCategoryTier1(category.type);
+                                    return (
+                                      <SelectItem key={category.id} value={category.id}>
+                                        <div className="flex items-center gap-2">
+                                          <CategoryPill
+                                            tier1={catTier1}
+                                            tier2={category.name}
+                                            size="sm"
+                                          />
+                                        </div>
+                                      </SelectItem>
+                                    );
+                                  })}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </td>
+                        )}
+                        {isEnhancedUIEnabled && (
+                          <td className="px-4 py-3 text-center">
+                            <ConfidenceBadge
+                              confidence={transaction.confidence ?? null}
+                              size="sm"
+                            />
+                          </td>
+                        )}
                         <td className="px-4 py-3 text-center">
-                          <ConfidenceBadge confidence={transaction.confidence ?? null} size="sm" />
+                          <button
+                            className="p-1.5 rounded hover:bg-muted transition-colors"
+                            onClick={() => setSelectedTransaction(transaction)}
+                          >
+                            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                          </button>
                         </td>
-                      )}
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          className="p-1.5 rounded hover:bg-muted transition-colors"
-                          onClick={() => setSelectedTransaction(transaction)}
-                        >
-                          <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -932,10 +1015,10 @@ export default function TransactionsPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="text-xs text-muted-foreground">
-                          {new Date(transaction.date).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
+                          {new Date(transaction.date).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
                           })}
                         </div>
                         <div className="text-base font-semibold mt-1">
@@ -970,14 +1053,18 @@ export default function TransactionsPage() {
                         ) : (
                           <div className="flex-1 min-w-0">
                             <Select
-                              value={transaction.category_id || '__none__'}
+                              value={transaction.category_id || "__none__"}
                               onValueChange={(value) => handleCategoryChange(transaction.id, value)}
                               disabled={isUpdating}
                             >
                               <SelectTrigger className="h-9 w-full border-none bg-muted/50 hover:bg-muted">
                                 <SelectValue>
                                   {transaction.category_name ? (
-                                    <CategoryPill tier1={tier1} tier2={transaction.category_name} size="sm" />
+                                    <CategoryPill
+                                      tier1={tier1}
+                                      tier2={transaction.category_name}
+                                      size="sm"
+                                    />
                                   ) : (
                                     <CategoryPill tier1={null} tier2="Uncategorized" size="sm" />
                                   )}
@@ -987,11 +1074,15 @@ export default function TransactionsPage() {
                                 <SelectItem value="__none__">
                                   <CategoryPill tier1={null} tier2="Uncategorized" size="sm" />
                                 </SelectItem>
-                                {categories.map(category => {
+                                {categories.map((category) => {
                                   const catTier1 = getCategoryTier1(category.type);
                                   return (
                                     <SelectItem key={category.id} value={category.id}>
-                                      <CategoryPill tier1={catTier1} tier2={category.name} size="sm" />
+                                      <CategoryPill
+                                        tier1={catTier1}
+                                        tier2={category.name}
+                                        size="sm"
+                                      />
                                     </SelectItem>
                                   );
                                 })}
@@ -1035,11 +1126,7 @@ export default function TransactionsPage() {
           <Card className="max-w-2xl w-full max-h-[80vh] overflow-hidden">
             <div className="flex justify-between items-center p-4 border-b border-border-subtle">
               <h3 className="font-semibold">Raw Transaction Data</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSelectedTransaction(null)}
-              >
+              <Button variant="ghost" size="sm" onClick={() => setSelectedTransaction(null)}>
                 Close
               </Button>
             </div>

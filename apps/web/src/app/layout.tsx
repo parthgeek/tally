@@ -19,7 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nexus - AI Financial Automation",
+  title: "Tally - AI Financial Automation",
   description: "AI-powered financial automation platform for SMBs",
 };
 
@@ -30,9 +30,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${inter.variable} ${jetbrainsMono.variable} antialiased font-sans`}
-      >
+      <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased font-sans`}>
         <ErrorBoundary>
           <Providers>{children}</Providers>
         </ErrorBoundary>

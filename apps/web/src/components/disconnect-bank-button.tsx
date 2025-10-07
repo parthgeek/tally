@@ -70,7 +70,8 @@ export function DisconnectBankButton({
     } catch (error) {
       console.error("Disconnect error:", error);
 
-      const errorMessage = error instanceof Error ? error.message : "Failed to disconnect bank account";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to disconnect bank account";
 
       toast({
         title: "Disconnect failed",
@@ -108,33 +109,28 @@ export function DisconnectBankButton({
               <strong>What happens when you disconnect:</strong>
             </div>
             <ul className="list-disc list-inside space-y-2 ml-4">
-              <li>Your {accountCount} connected account{accountCount !== 1 ? 's' : ''} will be deactivated</li>
+              <li>
+                Your {accountCount} connected account{accountCount !== 1 ? "s" : ""} will be
+                deactivated
+              </li>
               <li>New transactions will no longer be imported automatically</li>
               <li>Existing transaction history will be preserved</li>
               <li>You can reconnect this bank account at any time</li>
             </ul>
             <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
               <p className="text-amber-800 text-xs">
-                <strong>Note:</strong> This action will revoke access to your bank account data.
-                All historical transactions will remain in your account for tax and reporting purposes.
+                <strong>Note:</strong> This action will revoke access to your bank account data. All
+                historical transactions will remain in your account for tax and reporting purposes.
               </p>
             </div>
           </div>
         </div>
 
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => setIsOpen(false)}
-            disabled={isLoading}
-          >
+          <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isLoading}>
             Cancel
           </Button>
-          <Button
-            variant="destructive"
-            onClick={handleDisconnect}
-            disabled={isLoading}
-          >
+          <Button variant="destructive" onClick={handleDisconnect} disabled={isLoading}>
             {isLoading ? "Disconnecting..." : "Disconnect Bank"}
           </Button>
         </DialogFooter>

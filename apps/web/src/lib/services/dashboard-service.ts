@@ -99,7 +99,7 @@ export class DashboardService {
     const prev30_to = new Date(today);
     prev30_to.setDate(prev30_to.getDate() - 30);
 
-    const formatDate = (date: Date): string => date.toISOString().split('T')[0] || '';
+    const formatDate = (date: Date): string => date.toISOString().split("T")[0] || "";
 
     const formattedToday = formatDate(today);
     const formattedD30From = formatDate(d30_from);
@@ -119,63 +119,69 @@ export class DashboardService {
   async getCashMetrics(orgId: OrgId): Promise<CashMetrics> {
     // Get liquid account balances
     const { data: accounts } = await this.supabase
-      .from('accounts')
-      .select('current_balance_cents')
-      .eq('org_id', orgId)
-      .in('type', ['checking', 'savings', 'cash'])
-      .eq('is_active', true);
+      .from("accounts")
+      .select("current_balance_cents")
+      .eq("org_id", orgId)
+      .in("type", ["checking", "savings", "cash"])
+      .eq("is_active", true);
 
     const cashOnHandCents = sumCents(
-      (accounts || []).map((a: { current_balance_cents: string | null }) => a.current_balance_cents || '0')
+      (accounts || []).map(
+        (a: { current_balance_cents: string | null }) => a.current_balance_cents || "0"
+      )
     );
 
     // For safe-to-spend, we need daily averages which we'll calculate in getInflowOutflow
     // This is a placeholder - we'll calculate it in the main function
     return {
       cashOnHandCents,
-      safeToSpend14Cents: '0', // Will be calculated later with inflow/outflow data
+      safeToSpend14Cents: "0", // Will be calculated later with inflow/outflow data
     };
   }
 
   async getInflowOutflowMetrics(orgId: OrgId, windows: TimeWindows): Promise<InflowOutflowMetrics> {
     // Get 30d transactions
     const { data: transactions30 } = await this.supabase
-      .from('transactions')
-      .select('amount_cents')
-      .eq('org_id', orgId)
-      .gte('date', windows.d30_from)
-      .lte('date', windows.today);
+      .from("transactions")
+      .select("amount_cents")
+      .eq("org_id", orgId)
+      .gte("date", windows.d30_from)
+      .lte("date", windows.today);
 
     // Get 90d transactions
     const { data: transactions90 } = await this.supabase
-      .from('transactions')
-      .select('amount_cents')
-      .eq('org_id', orgId)
-      .gte('date', windows.d90_from)
-      .lte('date', windows.today);
+      .from("transactions")
+      .select("amount_cents")
+      .eq("org_id", orgId)
+      .gte("date", windows.d90_from)
+      .lte("date", windows.today);
 
     // Calculate 30d metrics
     const inflow30 = sumCents(
       (transactions30 || [])
-        .filter((t: { amount_cents: string | null }) => BigInt(t.amount_cents || '0') > BigInt(0))
-        .map((t: { amount_cents: string | null }) => t.amount_cents || '0')
+        .filter((t: { amount_cents: string | null }) => BigInt(t.amount_cents || "0") > BigInt(0))
+        .map((t: { amount_cents: string | null }) => t.amount_cents || "0")
     );
     const outflow30 = sumCents(
       (transactions30 || [])
-        .filter((t: { amount_cents: string | null }) => BigInt(t.amount_cents || '0') < BigInt(0))
-        .map((t: { amount_cents: string | null }) => (BigInt(t.amount_cents || '0') * -BigInt(1)).toString())
+        .filter((t: { amount_cents: string | null }) => BigInt(t.amount_cents || "0") < BigInt(0))
+        .map((t: { amount_cents: string | null }) =>
+          (BigInt(t.amount_cents || "0") * -BigInt(1)).toString()
+        )
     );
 
     // Calculate 90d metrics
     const inflow90 = sumCents(
       (transactions90 || [])
-        .filter((t: { amount_cents: string | null }) => BigInt(t.amount_cents || '0') > BigInt(0))
-        .map((t: { amount_cents: string | null }) => t.amount_cents || '0')
+        .filter((t: { amount_cents: string | null }) => BigInt(t.amount_cents || "0") > BigInt(0))
+        .map((t: { amount_cents: string | null }) => t.amount_cents || "0")
     );
     const outflow90 = sumCents(
       (transactions90 || [])
-        .filter((t: { amount_cents: string | null }) => BigInt(t.amount_cents || '0') < BigInt(0))
-        .map((t: { amount_cents: string | null }) => (BigInt(t.amount_cents || '0') * -BigInt(1)).toString())
+        .filter((t: { amount_cents: string | null }) => BigInt(t.amount_cents || "0") < BigInt(0))
+        .map((t: { amount_cents: string | null }) =>
+          (BigInt(t.amount_cents || "0") * -BigInt(1)).toString()
+        )
     );
 
     // Calculate daily averages for 30d
@@ -198,24 +204,26 @@ export class DashboardService {
 
   async getTopExpenses(orgId: OrgId, windows: TimeWindows): Promise<TopExpense[]> {
     const { data: categoryExpenses } = await this.supabase
-      .from('transactions')
-      .select(`
+      .from("transactions")
+      .select(
+        `
         category_id,
         amount_cents,
         categories(name)
-      `)
-      .eq('org_id', orgId)
-      .gte('date', windows.d30_from)
-      .lte('date', windows.today)
-      .lt('amount_cents', '0'); // Only expenses (negative amounts)
+      `
+      )
+      .eq("org_id", orgId)
+      .gte("date", windows.d30_from)
+      .lte("date", windows.today)
+      .lt("amount_cents", "0"); // Only expenses (negative amounts)
 
     const categoryTotals = new Map<string, { name: string; cents: string }>();
-    
+
     for (const tx of (categoryExpenses || []) as RawTransactionWithCategory[]) {
-      const categoryId = String(tx.category_id || 'uncategorized');
-      const categoryName = String(tx.categories?.name || 'Uncategorized');
-      const absAmount = (BigInt(String(tx.amount_cents || '0')) * -BigInt(1)).toString();
-      
+      const categoryId = String(tx.category_id || "uncategorized");
+      const categoryName = String(tx.categories?.name || "Uncategorized");
+      const absAmount = (BigInt(String(tx.amount_cents || "0")) * -BigInt(1)).toString();
+
       if (categoryTotals.has(categoryId)) {
         const existing = categoryTotals.get(categoryId)!;
         existing.cents = sumCents([existing.cents, absAmount]);
@@ -230,18 +238,24 @@ export class DashboardService {
       .slice(0, 5);
   }
 
-  async getTrendMetrics(orgId: OrgId, windows: TimeWindows, currentOutflow: string): Promise<{ outflowDeltaPct: number }> {
+  async getTrendMetrics(
+    orgId: OrgId,
+    windows: TimeWindows,
+    currentOutflow: string
+  ): Promise<{ outflowDeltaPct: number }> {
     const { data: prevTransactions } = await this.supabase
-      .from('transactions')
-      .select('amount_cents')
-      .eq('org_id', orgId)
-      .gte('date', windows.prev30_from)
-      .lt('date', windows.prev30_to);
+      .from("transactions")
+      .select("amount_cents")
+      .eq("org_id", orgId)
+      .gte("date", windows.prev30_from)
+      .lt("date", windows.prev30_to);
 
     const prevOutflow30 = sumCents(
       (prevTransactions || [])
-        .filter((t: { amount_cents: string | null }) => BigInt(t.amount_cents || '0') < BigInt(0))
-        .map((t: { amount_cents: string | null }) => (BigInt(t.amount_cents || '0') * -BigInt(1)).toString())
+        .filter((t: { amount_cents: string | null }) => BigInt(t.amount_cents || "0") < BigInt(0))
+        .map((t: { amount_cents: string | null }) =>
+          (BigInt(t.amount_cents || "0") * -BigInt(1)).toString()
+        )
     );
 
     const outflowDeltaPct = pctDelta(
@@ -255,20 +269,20 @@ export class DashboardService {
   async getAlertMetrics(orgId: OrgId, cashOnHandCents: string): Promise<AlertMetrics> {
     // Get org threshold
     const { data: orgData } = await this.supabase
-      .from('orgs')
-      .select('low_balance_threshold_cents')
-      .eq('id', orgId)
+      .from("orgs")
+      .select("low_balance_threshold_cents")
+      .eq("id", orgId)
       .single();
 
-    const thresholdCents = orgData?.low_balance_threshold_cents || '100000';
+    const thresholdCents = orgData?.low_balance_threshold_cents || "100000";
     const lowBalance = BigInt(cashOnHandCents) < BigInt(thresholdCents);
 
     // Get needs review count
     const { count: needsReviewCount } = await this.supabase
-      .from('transactions')
-      .select('id', { count: 'exact', head: true })
-      .eq('org_id', orgId)
-      .eq('needs_review', true);
+      .from("transactions")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", orgId)
+      .eq("needs_review", true);
 
     // Calculate unusual spend using weekly data
     const unusualSpend = await this.calculateUnusualSpend(orgId);
@@ -282,24 +296,24 @@ export class DashboardService {
 
   private async calculateUnusualSpend(orgId: OrgId): Promise<boolean> {
     const { data: weeklyData } = await this.supabase
-      .from('transactions')
-      .select('amount_cents, date')
-      .eq('org_id', orgId)
-      .gte('date', new Date(Date.now() - 84 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]) // 12 weeks
-      .lt('amount_cents', '0');
+      .from("transactions")
+      .select("amount_cents, date")
+      .eq("org_id", orgId)
+      .gte("date", new Date(Date.now() - 84 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]) // 12 weeks
+      .lt("amount_cents", "0");
 
     // Group by week and calculate outflows
     const weeklyOutflows: number[] = [];
     const weekMap = new Map<string, string[]>();
-    
+
     for (const tx of weeklyData || []) {
       if (!tx.date || !tx.amount_cents) continue;
-      
+
       const date = new Date(tx.date);
       const weekStart = new Date(date);
       weekStart.setDate(date.getDate() - date.getDay()); // Start of week
-      const weekKey = weekStart.toISOString().split('T')[0] || '';
-      
+      const weekKey = weekStart.toISOString().split("T")[0] || "";
+
       if (weekKey && !weekMap.has(weekKey)) {
         weekMap.set(weekKey, []);
       }
@@ -311,9 +325,10 @@ export class DashboardService {
     // Convert to weekly totals (excluding current week)
     const sortedWeeks = Array.from(weekMap.keys()).sort();
     const currentWeek = sortedWeeks[sortedWeeks.length - 1];
-    
+
     for (const [week, amounts] of weekMap.entries()) {
-      if (week !== currentWeek) { // Exclude current week from baseline
+      if (week !== currentWeek) {
+        // Exclude current week from baseline
         const weekTotal = Number(BigInt(sumCents(amounts))) / 100; // Convert to dollars
         weeklyOutflows.push(weekTotal);
       }
@@ -331,8 +346,8 @@ export class DashboardService {
 
   private async calculateSafeToSpend(
     orgId: OrgId,
-    cashOnHandCents: string, 
-    dailyAvgInflowCents: string, 
+    cashOnHandCents: string,
+    dailyAvgInflowCents: string,
     dailyAvgOutflowCents: string,
     windows: TimeWindows
   ): Promise<string> {
@@ -340,9 +355,9 @@ export class DashboardService {
     const reservedFixed14Cents = await this.estimateFixedCosts14d(orgId, windows);
 
     return (
-      BigInt(cashOnHandCents) + 
-      (BigInt(dailyAvgInflowCents) * BigInt(14)) - 
-      (BigInt(dailyAvgOutflowCents) * BigInt(14)) -
+      BigInt(cashOnHandCents) +
+      BigInt(dailyAvgInflowCents) * BigInt(14) -
+      BigInt(dailyAvgOutflowCents) * BigInt(14) -
       BigInt(reservedFixed14Cents)
     ).toString();
   }
@@ -351,20 +366,22 @@ export class DashboardService {
     try {
       // Get transactions from last 30 days that match fixed cost patterns
       const { data: transactions, error } = await this.supabase
-        .from('transactions')
-        .select(`
+        .from("transactions")
+        .select(
+          `
           amount_cents,
           description,
           merchant_name,
           categories!inner(name)
-        `)
-        .eq('org_id', orgId)
-        .gte('date', windows.d30_from)
-        .lte('date', windows.today)
-        .lt('amount_cents', 0); // Outflows only
+        `
+        )
+        .eq("org_id", orgId)
+        .gte("date", windows.d30_from)
+        .lte("date", windows.today)
+        .lt("amount_cents", 0); // Outflows only
 
       if (error || !transactions) {
-        return '0'; // Gracefully degrade to v0 behavior
+        return "0"; // Gracefully degrade to v0 behavior
       }
 
       // Fixed cost patterns (case-insensitive)
@@ -381,51 +398,50 @@ export class DashboardService {
         /\b(loan|payment|financing|credit)\b/i,
       ];
 
-      const categoryPatterns = [
-        /\b(rent|utilities|insurance|software|subscription|loan)\b/i,
-      ];
+      const categoryPatterns = [/\b(rent|utilities|insurance|software|subscription|loan)\b/i];
 
-      const fixedCostTransactions = (transactions as RawTransactionWithDetails[]).filter((tx: RawTransactionWithDetails) => {
-        const description = String(tx.description || '').toLowerCase();
-        const merchantName = String(tx.merchant_name || '').toLowerCase();
-        const categoryName = String(tx.categories?.[0]?.name || '').toLowerCase();
+      const fixedCostTransactions = (transactions as RawTransactionWithDetails[]).filter(
+        (tx: RawTransactionWithDetails) => {
+          const description = String(tx.description || "").toLowerCase();
+          const merchantName = String(tx.merchant_name || "").toLowerCase();
+          const categoryName = String(tx.categories?.[0]?.name || "").toLowerCase();
 
-        // Check against description and merchant name patterns
-        const matchesPattern = fixedCostPatterns.some(pattern => 
-          pattern.test(description) || pattern.test(merchantName)
-        );
+          // Check against description and merchant name patterns
+          const matchesPattern = fixedCostPatterns.some(
+            (pattern) => pattern.test(description) || pattern.test(merchantName)
+          );
 
-        // Check against category patterns
-        const matchesCategory = categoryPatterns.some(pattern =>
-          pattern.test(categoryName)
-        );
+          // Check against category patterns
+          const matchesCategory = categoryPatterns.some((pattern) => pattern.test(categoryName));
 
-        return matchesPattern || matchesCategory;
-      });
+          return matchesPattern || matchesCategory;
+        }
+      );
 
       if (fixedCostTransactions.length === 0) {
-        return '0'; // No fixed costs detected
+        return "0"; // No fixed costs detected
       }
 
       // Calculate total fixed costs from last 30 days
       const totalFixed30d = sumCents(
-        fixedCostTransactions.map((tx: RawTransactionWithDetails) => Math.abs(parseInt(String(tx.amount_cents))).toString())
+        fixedCostTransactions.map((tx: RawTransactionWithDetails) =>
+          Math.abs(parseInt(String(tx.amount_cents))).toString()
+        )
       );
 
       // Estimate 14-day fixed costs (roughly half of 30-day)
-      const estimated14d = Math.round(parseInt(totalFixed30d) * 14 / 30);
+      const estimated14d = Math.round((parseInt(totalFixed30d) * 14) / 30);
 
       return estimated14d.toString();
-
     } catch (error) {
-      console.error('Error estimating fixed costs:', error);
-      return '0'; // Gracefully degrade to v0 behavior
+      console.error("Error estimating fixed costs:", error);
+      return "0"; // Gracefully degrade to v0 behavior
     }
   }
 
   async getDashboardData(orgId: OrgId): Promise<DashboardDTO> {
     const windows = this.calculateTimeWindows();
-    
+
     // Get all metrics
     const [cashMetrics, inflowOutflowMetrics, topExpenses] = await Promise.all([
       this.getCashMetrics(orgId),

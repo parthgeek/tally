@@ -1,17 +1,15 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { RationalePopover, type RationaleData } from './rationale-popover';
-import { InfoIcon, AlertTriangleIcon } from 'lucide-react';
-import type { LabTransaction, TransactionResult } from '@/lib/categorizer-lab/types';
-import {
-  formatCategoryForDisplay
-} from '@/lib/categorizer-lab/taxonomy-helpers';
-import { CategoryHierarchy } from '@/lib/categorizer-lab/category-badge';
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { RationalePopover, type RationaleData } from "./rationale-popover";
+import { InfoIcon, AlertTriangleIcon } from "lucide-react";
+import type { LabTransaction, TransactionResult } from "@/lib/categorizer-lab/types";
+import { formatCategoryForDisplay } from "@/lib/categorizer-lab/taxonomy-helpers";
+import { CategoryHierarchy } from "@/lib/categorizer-lab/category-badge";
 
 interface ResultsTableProps {
   originalTransactions: LabTransaction[];
@@ -19,18 +17,18 @@ interface ResultsTableProps {
 }
 
 export function ResultsTable({ originalTransactions, results }: ResultsTableProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterEngine, setFilterEngine] = useState<'all' | 'pass1' | 'llm'>('all');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'success' | 'error'>('all');
-  const [sortBy, setSortBy] = useState<'id' | 'confidence' | 'timing'>('id');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterEngine, setFilterEngine] = useState<"all" | "pass1" | "llm">("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "success" | "error">("all");
+  const [sortBy, setSortBy] = useState<"id" | "confidence" | "timing">("id");
   const [sortDesc, setSortDesc] = useState(false);
 
   // Create lookup map for original transactions
-  const originalMap = new Map(originalTransactions.map(tx => [tx.id, tx]));
+  const originalMap = new Map(originalTransactions.map((tx) => [tx.id, tx]));
 
   // Filter and sort results
   const filteredResults = results
-    .filter(result => {
+    .filter((result) => {
       // Search filter
       if (searchTerm) {
         const original = originalMap.get(result.id);
@@ -39,10 +37,10 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
         // Get category names for search
         const groundTruthCategoryName = original?.categoryId
           ? formatCategoryForDisplay(original.categoryId).toLowerCase()
-          : '';
+          : "";
         const predictedCategoryName = result.predictedCategoryId
           ? formatCategoryForDisplay(result.predictedCategoryId).toLowerCase()
-          : '';
+          : "";
 
         if (
           !result.id.toLowerCase().includes(searchLower) &&
@@ -57,15 +55,15 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
       }
 
       // Engine filter
-      if (filterEngine !== 'all' && result.engine !== filterEngine) {
+      if (filterEngine !== "all" && result.engine !== filterEngine) {
         return false;
       }
 
       // Status filter
-      if (filterStatus === 'success' && result.error) {
+      if (filterStatus === "success" && result.error) {
         return false;
       }
-      if (filterStatus === 'error' && !result.error) {
+      if (filterStatus === "error" && !result.error) {
         return false;
       }
 
@@ -73,19 +71,19 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
     })
     .sort((a, b) => {
       let comparison = 0;
-      
+
       switch (sortBy) {
-        case 'id':
+        case "id":
           comparison = a.id.localeCompare(b.id);
           break;
-        case 'confidence':
+        case "confidence":
           comparison = (a.confidence || 0) - (b.confidence || 0);
           break;
-        case 'timing':
+        case "timing":
           comparison = a.timings.totalMs - b.timings.totalMs;
           break;
       }
-      
+
       return sortDesc ? -comparison : comparison;
     });
 
@@ -102,16 +100,16 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
     const cents = parseInt(amountCents, 10);
     const dollars = cents / 100;
     const isNegative = cents < 0;
-    return `${isNegative ? '-' : ''}$${Math.abs(dollars).toFixed(2)}`;
+    return `${isNegative ? "-" : ""}$${Math.abs(dollars).toFixed(2)}`;
   };
 
   const getConfidenceBadge = (confidence?: number) => {
     if (confidence === undefined) return null;
-    
-    let variant: 'default' | 'secondary' | 'destructive' = 'secondary';
-    if (confidence >= 0.8) variant = 'default';
-    else if (confidence < 0.5) variant = 'destructive';
-    
+
+    let variant: "default" | "secondary" | "destructive" = "secondary";
+    if (confidence >= 0.8) variant = "default";
+    else if (confidence < 0.5) variant = "destructive";
+
     return (
       <Badge variant={variant} className="text-xs">
         {(confidence * 100).toFixed(0)}%
@@ -125,8 +123,8 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
 
     const isCorrect = original.categoryId === result.predictedCategoryId;
     return (
-      <Badge variant={isCorrect ? 'default' : 'destructive'} className="text-xs">
-        {isCorrect ? '✓' : '✗'}
+      <Badge variant={isCorrect ? "default" : "destructive"} className="text-xs">
+        {isCorrect ? "✓" : "✗"}
       </Badge>
     );
   };
@@ -144,12 +142,12 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
     // Extract rationale data from result
     const rationaleData: RationaleData = {
       rationale: result.rationale || [],
-      engine: result.engine as 'pass1' | 'llm',
+      engine: result.engine as "pass1" | "llm",
       // Check if this is an enhanced result with additional data
       signals: (result as any).signals || undefined,
       guardrailsApplied: (result as any).guardrailsApplied || false,
       guardrailViolations: (result as any).guardrailViolations || [],
-      pass1Context: (result as any).pass1Context || undefined
+      pass1Context: (result as any).pass1Context || undefined,
     };
 
     // Only add predictedCategoryId if it exists
@@ -167,13 +165,11 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
       rationaleData.rationale.length > 0,
       rationaleData.signals && rationaleData.signals.length > 0,
       rationaleData.pass1Context,
-      rationaleData.guardrailsApplied
+      rationaleData.guardrailsApplied,
     ].filter(Boolean).length;
 
     if (detailsCount === 0) {
-      return (
-        <span className="text-gray-400 text-xs">No details</span>
-      );
+      return <span className="text-gray-400 text-xs">No details</span>;
     }
 
     return (
@@ -181,7 +177,7 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
         <div className="flex items-center gap-1 text-blue-600 hover:text-blue-800">
           <InfoIcon className="w-3 h-3" />
           <span className="text-xs">
-            {detailsCount} detail{detailsCount > 1 ? 's' : ''}
+            {detailsCount} detail{detailsCount > 1 ? "s" : ""}
           </span>
           {rationaleData.guardrailsApplied && (
             <AlertTriangleIcon className="w-3 h-3 text-amber-500" />
@@ -208,8 +204,8 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
           <h3 className="text-lg font-semibold">Results ({filteredResults.length})</h3>
           <div className="flex items-center space-x-2">
             <Badge variant="outline">{results.length} total</Badge>
-            <Badge variant="outline">{results.filter(r => !r.error).length} success</Badge>
-            <Badge variant="outline">{results.filter(r => r.error).length} errors</Badge>
+            <Badge variant="outline">{results.filter((r) => !r.error).length} success</Badge>
+            <Badge variant="outline">{results.filter((r) => r.error).length} errors</Badge>
           </div>
         </div>
 
@@ -257,29 +253,29 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-gray-50 text-black">
-                <th 
+                <th
                   className="text-left p-3 cursor-pointer hover:bg-gray-100 hover:text-black"
-                  onClick={() => handleSort('id')}
+                  onClick={() => handleSort("id")}
                 >
-                  Transaction ID {sortBy === 'id' && (sortDesc ? '↓' : '↑')}
+                  Transaction ID {sortBy === "id" && (sortDesc ? "↓" : "↑")}
                 </th>
                 <th className="text-left p-3">Description</th>
                 <th className="text-left p-3">Amount</th>
                 <th className="text-left p-3">Ground Truth</th>
                 <th className="text-left p-3">Predicted</th>
-                <th 
+                <th
                   className="text-left p-3 cursor-pointer hover:bg-gray-100 hover:text-black"
-                  onClick={() => handleSort('confidence')}
+                  onClick={() => handleSort("confidence")}
                 >
-                  Confidence {sortBy === 'confidence' && (sortDesc ? '↓' : '↑')}
+                  Confidence {sortBy === "confidence" && (sortDesc ? "↓" : "↑")}
                 </th>
                 <th className="text-left p-3">Engine</th>
                 <th className="text-left p-3">Rationale</th>
                 <th
                   className="text-left p-3 cursor-pointer hover:bg-gray-100 hover:text-black"
-                  onClick={() => handleSort('timing')}
+                  onClick={() => handleSort("timing")}
                 >
-                  Timing {sortBy === 'timing' && (sortDesc ? '↓' : '↑')}
+                  Timing {sortBy === "timing" && (sortDesc ? "↓" : "↑")}
                 </th>
                 <th className="text-left p-3">Accuracy</th>
               </tr>
@@ -301,7 +297,7 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
                       )}
                     </td>
                     <td className="p-3 font-mono text-sm">
-                      {original ? formatAmount(original.amountCents) : '—'}
+                      {original ? formatAmount(original.amountCents) : "—"}
                     </td>
                     <td className="p-3">
                       {original?.categoryId ? (
@@ -321,20 +317,16 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
                         <span className="text-gray-400">—</span>
                       )}
                     </td>
+                    <td className="p-3">{getConfidenceBadge(result.confidence)}</td>
                     <td className="p-3">
-                      {getConfidenceBadge(result.confidence)}
-                    </td>
-                    <td className="p-3">
-                      <Badge 
-                        variant={result.engine === 'llm' ? 'default' : 'secondary'}
+                      <Badge
+                        variant={result.engine === "llm" ? "default" : "secondary"}
                         className="text-xs"
                       >
-                        {result.engine === 'llm' ? 'LLM' : 'Pass-1'}
+                        {result.engine === "llm" ? "LLM" : "Pass-1"}
                       </Badge>
                     </td>
-                    <td className="p-3">
-                      {getRationaleView(result)}
-                    </td>
+                    <td className="p-3">{getRationaleView(result)}</td>
                     <td className="p-3 font-mono text-xs">
                       <div>{result.timings.totalMs}ms</div>
                       {result.timings.pass1Ms && (
@@ -344,9 +336,7 @@ export function ResultsTable({ originalTransactions, results }: ResultsTableProp
                         <div className="text-gray-500">P2: {result.timings.pass2Ms}ms</div>
                       )}
                     </td>
-                    <td className="p-3">
-                      {getAccuracyIndicator(result)}
-                    </td>
+                    <td className="p-3">{getAccuracyIndicator(result)}</td>
                   </tr>
                 );
               })}

@@ -32,9 +32,9 @@ interface RateLimitResult {
 export async function checkRateLimit(config: RateLimitConfig): Promise<RateLimitResult> {
   const { key, limit, windowMs } = config;
   const now = Date.now();
-  
+
   let bucket = buckets.get(key);
-  
+
   if (!bucket) {
     bucket = {
       tokens: limit,
@@ -42,16 +42,16 @@ export async function checkRateLimit(config: RateLimitConfig): Promise<RateLimit
     };
     buckets.set(key, bucket);
   }
-  
+
   // Calculate tokens to add based on time elapsed
   const timeSinceRefill = now - bucket.lastRefill;
   const tokensToAdd = Math.floor((timeSinceRefill / windowMs) * limit);
-  
+
   if (tokensToAdd > 0) {
     bucket.tokens = Math.min(limit, bucket.tokens + tokensToAdd);
     bucket.lastRefill = now;
   }
-  
+
   // Check if request can be allowed
   if (bucket.tokens > 0) {
     bucket.tokens--;
@@ -61,7 +61,7 @@ export async function checkRateLimit(config: RateLimitConfig): Promise<RateLimit
       resetTime: now + windowMs,
     };
   }
-  
+
   return {
     allowed: false,
     remaining: 0,
@@ -77,12 +77,12 @@ export function getRateLimitKey(request: Request, userId?: string): string {
   if (userId) {
     return `user:${userId}`;
   }
-  
+
   // Extract IP from headers (handling proxies)
-  const forwarded = request.headers.get('x-forwarded-for');
-  const realIp = request.headers.get('x-real-ip');
-  const ip = forwarded?.split(',')[0] || realIp || 'unknown';
-  
+  const forwarded = request.headers.get("x-forwarded-for");
+  const realIp = request.headers.get("x-real-ip");
+  const ip = forwarded?.split(",")[0] || realIp || "unknown";
+
   return `ip:${ip}`;
 }
 
@@ -91,18 +91,18 @@ export function getRateLimitKey(request: Request, userId?: string): string {
  */
 export function createRateLimitResponse(resetTime: number): Response {
   const retryAfter = Math.max(0, Math.ceil((resetTime - Date.now()) / 1000));
-  
+
   return new Response(
     JSON.stringify({
-      error: 'Too many requests',
-      message: 'Rate limit exceeded. Please try again later.',
+      error: "Too many requests",
+      message: "Rate limit exceeded. Please try again later.",
     }),
     {
       status: 429,
       headers: {
-        'Content-Type': 'application/json',
-        'Retry-After': retryAfter.toString(),
-        'X-RateLimit-Remaining': '0',
+        "Content-Type": "application/json",
+        "Retry-After": retryAfter.toString(),
+        "X-RateLimit-Remaining": "0",
       },
     }
   );
@@ -114,10 +114,10 @@ export function createRateLimitResponse(resetTime: number): Response {
 export const RATE_LIMITS = {
   // Plaid link token creation - generous limit for legitimate usage
   PLAID_LINK_TOKEN: { limit: 20, windowMs: 60 * 1000 }, // 20 per minute
-  
+
   // Plaid token exchange - stricter limit for security
   PLAID_EXCHANGE: { limit: 5, windowMs: 60 * 1000 }, // 5 per minute
-  
+
   // General API endpoints
   API_DEFAULT: { limit: 100, windowMs: 60 * 1000 }, // 100 per minute
 } as const;

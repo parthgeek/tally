@@ -27,12 +27,8 @@ export function DashboardEmpty({ orgName }: DashboardEmptyProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold tracking-tight text-muted-foreground">
-              $0.00
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Connect accounts to see data
-            </p>
+            <div className="text-3xl font-bold tracking-tight text-muted-foreground">$0.00</div>
+            <p className="text-xs text-muted-foreground mt-1">Connect accounts to see data</p>
           </CardContent>
         </Card>
 
@@ -44,12 +40,8 @@ export function DashboardEmpty({ orgName }: DashboardEmptyProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold tracking-tight text-muted-foreground">
-              $0.00
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Connect accounts to see data
-            </p>
+            <div className="text-3xl font-bold tracking-tight text-muted-foreground">$0.00</div>
+            <p className="text-xs text-muted-foreground mt-1">Connect accounts to see data</p>
           </CardContent>
         </Card>
 
@@ -61,12 +53,8 @@ export function DashboardEmpty({ orgName }: DashboardEmptyProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold tracking-tight text-muted-foreground">
-              0
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              No transactions to review
-            </p>
+            <div className="text-3xl font-bold tracking-tight text-muted-foreground">0</div>
+            <p className="text-xs text-muted-foreground mt-1">No transactions to review</p>
           </CardContent>
         </Card>
 
@@ -78,12 +66,8 @@ export function DashboardEmpty({ orgName }: DashboardEmptyProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold tracking-tight text-muted-foreground">
-              0
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              No accounts connected
-            </p>
+            <div className="text-3xl font-bold tracking-tight text-muted-foreground">0</div>
+            <p className="text-xs text-muted-foreground mt-1">No accounts connected</p>
           </CardContent>
         </Card>
       </div>
@@ -98,14 +82,12 @@ export function DashboardEmpty({ orgName }: DashboardEmptyProps) {
             <div className="space-y-2 max-w-md">
               <h3 className="text-xl font-semibold">Connect your bank to get started</h3>
               <p className="text-sm text-muted-foreground">
-                Connect your bank accounts and payment processors to automatically track your 
+                Connect your bank accounts and payment processors to automatically track your
                 income, expenses, and get insights into your business finances.
               </p>
             </div>
             <Button asChild size="lg" className="mt-2">
-              <Link href="/settings/connections">
-                Connect Your Bank
-              </Link>
+              <Link href="/settings/connections">Connect Your Bank</Link>
             </Button>
             <p className="text-xs text-muted-foreground mt-2">
               🔒 Secure connection powered by Plaid • Bank-level encryption

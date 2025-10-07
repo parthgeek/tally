@@ -23,35 +23,35 @@ const SENSITIVE_PATTERNS = [
  */
 export function redactSensitiveFields(obj: any, depth = 0): any {
   // Prevent infinite recursion
-  if (depth > 5) return '[MAX_DEPTH_REACHED]';
-  
+  if (depth > 5) return "[MAX_DEPTH_REACHED]";
+
   if (obj === null || obj === undefined) return obj;
-  
+
   // Handle arrays
   if (Array.isArray(obj)) {
-    return obj.map(item => redactSensitiveFields(item, depth + 1));
+    return obj.map((item) => redactSensitiveFields(item, depth + 1));
   }
-  
+
   // Handle objects
-  if (typeof obj === 'object') {
+  if (typeof obj === "object") {
     const redacted: any = {};
-    
+
     for (const [key, value] of Object.entries(obj)) {
       // Check if field name matches sensitive patterns
-      const isSensitive = SENSITIVE_PATTERNS.some(pattern => pattern.test(key));
-      
+      const isSensitive = SENSITIVE_PATTERNS.some((pattern) => pattern.test(key));
+
       if (isSensitive) {
-        redacted[key] = '[REDACTED]';
-      } else if (typeof value === 'object') {
+        redacted[key] = "[REDACTED]";
+      } else if (typeof value === "object") {
         redacted[key] = redactSensitiveFields(value, depth + 1);
       } else {
         redacted[key] = value;
       }
     }
-    
+
     return redacted;
   }
-  
+
   return obj;
 }
 
@@ -62,13 +62,13 @@ export function logError(message: string, error: any, context?: any): void {
   const safeError = {
     message: error?.message || String(error),
     name: error?.name,
-    stack: error?.stack?.split('\n').slice(0, 5).join('\n'), // Limit stack trace
+    stack: error?.stack?.split("\n").slice(0, 5).join("\n"), // Limit stack trace
     code: error?.code,
     status: error?.status,
   };
-  
+
   const safeContext = context ? redactSensitiveFields(context) : undefined;
-  
+
   console.error(message, {
     error: safeError,
     context: safeContext,
@@ -80,7 +80,7 @@ export function logError(message: string, error: any, context?: any): void {
  */
 export function safeRequestLog(request: Request): any {
   const url = new URL(request.url);
-  
+
   return {
     method: request.method,
     pathname: url.pathname,
@@ -117,6 +117,6 @@ export function logPlaidError(operation: string, error: any, requestId?: string)
     request_id: requestId || error?.request_id,
     status: error?.status || error?.response?.status,
   };
-  
-  console.error('Plaid API error', safeError);
+
+  console.error("Plaid API error", safeError);
 }

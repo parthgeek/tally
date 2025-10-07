@@ -1,19 +1,24 @@
 import { NextRequest } from "next/server";
 import { withOrgFromRequest, createErrorResponse } from "@/lib/api/with-org";
 import { createLinkToken, PlaidClientError, PlaidError } from "@/lib/plaid/client";
-import { checkRateLimit, getRateLimitKey, createRateLimitResponse, getRateLimitConfig } from "@/lib/rate-limit-redis";
+import {
+  checkRateLimit,
+  getRateLimitKey,
+  createRateLimitResponse,
+  getRateLimitConfig,
+} from "@/lib/rate-limit-redis";
 
 export async function POST(request: NextRequest) {
   try {
     const { userId, orgId } = await withOrgFromRequest(request);
-    
+
     // Apply rate limiting
     const rateLimitKey = getRateLimitKey(request, userId);
     const rateLimitResult = await checkRateLimit({
       key: rateLimitKey,
-      ...getRateLimitConfig('PLAID_LINK_TOKEN'),
+      ...getRateLimitConfig("PLAID_LINK_TOKEN"),
     });
-    
+
     if (!rateLimitResult.allowed) {
       return createRateLimitResponse(rateLimitResult.resetTime);
     }
@@ -25,10 +30,9 @@ export async function POST(request: NextRequest) {
     });
 
     return Response.json({ linkToken });
-
   } catch (error) {
     if (error instanceof Response) return error;
-    
+
     if (error instanceof PlaidClientError) {
       const statusCode = error.code === PlaidError.RATE_LIMIT ? 429 : 400;
       return createErrorResponse(`Plaid error: ${error.message}`, statusCode);

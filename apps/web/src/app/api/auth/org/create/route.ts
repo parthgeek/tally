@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
       {
         auth: {
           autoRefreshToken: false,
-          persistSession: false
-        }
+          persistSession: false,
+        },
       }
     );
 
@@ -67,13 +67,11 @@ export async function POST(request: NextRequest) {
     const orgId = orgData.id as OrgId;
 
     // Insert into user_org_roles with role 'owner'
-    const { error: roleError } = await supabaseAdmin
-      .from("user_org_roles")
-      .insert({
-        user_id: user.id,
-        org_id: orgId,
-        role: "owner",
-      });
+    const { error: roleError } = await supabaseAdmin.from("user_org_roles").insert({
+      user_id: user.id,
+      org_id: orgId,
+      role: "owner",
+    });
 
     if (roleError) {
       console.error("Error creating user org role:", roleError);
@@ -94,10 +92,10 @@ export async function POST(request: NextRequest) {
     if (globalCategories && globalCategories.length > 0) {
       // Create mapping of global category IDs to new org-specific category IDs
       const categoryMapping: Record<string, string> = {};
-      
+
       // First pass: insert root categories (no parent)
-      const rootCategories = globalCategories.filter(cat => !cat.parent_id);
-      
+      const rootCategories = globalCategories.filter((cat) => !cat.parent_id);
+
       for (const category of rootCategories) {
         const { data: insertedCategory, error: insertError } = await supabaseAdmin
           .from("categories")
@@ -115,8 +113,8 @@ export async function POST(request: NextRequest) {
       }
 
       // Second pass: insert child categories with parent references
-      const childCategories = globalCategories.filter(cat => cat.parent_id);
-      
+      const childCategories = globalCategories.filter((cat) => cat.parent_id);
+
       for (const category of childCategories) {
         const parentId = category.parent_id ? categoryMapping[category.parent_id] : null;
 

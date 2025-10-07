@@ -1,19 +1,15 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from '@/components/ui/popover';
-import { InfoIcon, AlertTriangleIcon, ZapIcon, TagIcon } from 'lucide-react';
+import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { InfoIcon, AlertTriangleIcon, ZapIcon, TagIcon } from "lucide-react";
 import {
   formatCategoryForDisplay,
   getCategoryHierarchy,
-  getCategoryTypeBadgeVariant
-} from '@/lib/categorizer-lab/taxonomy-helpers';
+  getCategoryTypeBadgeVariant,
+} from "@/lib/categorizer-lab/taxonomy-helpers";
 
 interface Signal {
   type: string;
@@ -23,19 +19,20 @@ interface Signal {
   category?: string;
 }
 
-
 export interface RationaleData {
   rationale: string[];
   signals?: Signal[];
   guardrailsApplied?: boolean;
   guardrailViolations?: string[];
-  pass1Context?: {
-    topSignals: string[];
-    mccMapping?: string;
-    vendorMatch?: string;
-    confidence: number;
-  } | undefined;
-  engine: 'pass1' | 'llm';
+  pass1Context?:
+    | {
+        topSignals: string[];
+        mccMapping?: string;
+        vendorMatch?: string;
+        confidence: number;
+      }
+    | undefined;
+  engine: "pass1" | "llm";
   confidence?: number;
   predictedCategoryId?: string;
 }
@@ -68,8 +65,11 @@ export function RationalePopover({ data, children }: RationalePopoverProps) {
                 Categorization Details
               </h4>
               <div className="flex items-center gap-2">
-                <Badge variant={data.engine === 'llm' ? 'default' : 'secondary'} className="text-xs">
-                  {data.engine === 'llm' ? 'LLM' : 'Pass-1'}
+                <Badge
+                  variant={data.engine === "llm" ? "default" : "secondary"}
+                  className="text-xs"
+                >
+                  {data.engine === "llm" ? "LLM" : "Pass-1"}
                 </Badge>
                 {data.confidence && (
                   <Badge variant="outline" className="text-xs">
@@ -109,7 +109,9 @@ export function RationalePopover({ data, children }: RationalePopoverProps) {
                             variant={getCategoryTypeBadgeVariant(data.predictedCategoryId)}
                             className="text-sm"
                           >
-                            {formatCategoryForDisplay(data.predictedCategoryId, { format: 'compact' })}
+                            {formatCategoryForDisplay(data.predictedCategoryId, {
+                              format: "compact",
+                            })}
                           </Badge>
                           <Badge variant="outline" className="text-xs">
                             Tier {hierarchy.tier}
@@ -125,7 +127,9 @@ export function RationalePopover({ data, children }: RationalePopoverProps) {
                               <span className="font-medium">Type:</span>
                               <span className="capitalize">{hierarchy.type}</span>
                               {hierarchy.isPnL && (
-                                <Badge variant="outline" className="text-xs ml-1">P&L</Badge>
+                                <Badge variant="outline" className="text-xs ml-1">
+                                  P&L
+                                </Badge>
                               )}
                             </div>
                           </div>
@@ -138,21 +142,26 @@ export function RationalePopover({ data, children }: RationalePopoverProps) {
             )}
 
             {/* Guardrail Violations */}
-            {data.guardrailsApplied && data.guardrailViolations && data.guardrailViolations.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-amber-600">
-                  <AlertTriangleIcon className="w-4 h-4" />
-                  <span className="font-medium text-sm">Guardrails Applied</span>
+            {data.guardrailsApplied &&
+              data.guardrailViolations &&
+              data.guardrailViolations.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-amber-600">
+                    <AlertTriangleIcon className="w-4 h-4" />
+                    <span className="font-medium text-sm">Guardrails Applied</span>
+                  </div>
+                  <div className="space-y-1">
+                    {data.guardrailViolations.map((violation, index) => (
+                      <div
+                        key={index}
+                        className="text-xs bg-amber-50 border border-amber-200 rounded p-2"
+                      >
+                        {violation}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  {data.guardrailViolations.map((violation, index) => (
-                    <div key={index} className="text-xs bg-amber-50 border border-amber-200 rounded p-2">
-                      {violation}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+              )}
 
             {/* Signals Table (for Pass-1) */}
             {data.signals && data.signals.length > 0 && (
@@ -166,14 +175,17 @@ export function RationalePopover({ data, children }: RationalePopoverProps) {
                     .sort((a, b) => b.confidence - a.confidence)
                     .slice(0, 5) // Show top 5 signals
                     .map((signal, index) => (
-                      <div key={index} className="flex items-center justify-between text-xs bg-gray-50 rounded p-2">
+                      <div
+                        key={index}
+                        className="flex items-center justify-between text-xs bg-gray-50 rounded p-2"
+                      >
                         <div className="flex items-center gap-2">
                           <Badge
                             variant="outline"
                             className="text-xs"
                             style={{
                               borderColor: getSignalColor(signal.type),
-                              color: getSignalColor(signal.type)
+                              color: getSignalColor(signal.type),
                             }}
                           >
                             {signal.type}
@@ -225,7 +237,9 @@ export function RationalePopover({ data, children }: RationalePopoverProps) {
                       <strong>Signals:</strong>
                       <ul className="mt-1 space-y-1 ml-2">
                         {data.pass1Context.topSignals.map((signal, index) => (
-                          <li key={index} className="text-xs">• {signal}</li>
+                          <li key={index} className="text-xs">
+                            • {signal}
+                          </li>
                         ))}
                       </ul>
                     </div>
@@ -240,7 +254,10 @@ export function RationalePopover({ data, children }: RationalePopoverProps) {
                 <span className="font-medium text-sm">Reasoning</span>
                 <div className="space-y-1">
                   {data.rationale.map((reason, index) => (
-                    <div key={index} className="text-xs bg-blue-50 border border-blue-200 rounded p-2">
+                    <div
+                      key={index}
+                      className="text-xs bg-blue-50 border border-blue-200 rounded p-2"
+                    >
                       {reason}
                     </div>
                   ))}
@@ -250,13 +267,13 @@ export function RationalePopover({ data, children }: RationalePopoverProps) {
 
             {/* Empty state */}
             {(!data.rationale || data.rationale.length === 0) &&
-             (!data.signals || data.signals.length === 0) &&
-             !data.pass1Context && (
-              <div className="text-center text-gray-500 py-4">
-                <InfoIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No detailed rationale available</p>
-              </div>
-            )}
+              (!data.signals || data.signals.length === 0) &&
+              !data.pass1Context && (
+                <div className="text-center text-gray-500 py-4">
+                  <InfoIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No detailed rationale available</p>
+                </div>
+              )}
           </div>
         </div>
       </PopoverContent>
@@ -269,12 +286,12 @@ export function RationalePopover({ data, children }: RationalePopoverProps) {
  */
 function getSignalColor(signalType: string): string {
   const colors = {
-    mcc: '#3b82f6', // blue
-    vendor: '#10b981', // emerald
-    keyword: '#f59e0b', // amber
-    amount: '#8b5cf6', // violet
-    pattern: '#ef4444', // red
-    default: '#6b7280' // gray
+    mcc: "#3b82f6", // blue
+    vendor: "#10b981", // emerald
+    keyword: "#f59e0b", // amber
+    amount: "#8b5cf6", // violet
+    pattern: "#ef4444", // red
+    default: "#6b7280", // gray
   };
 
   return colors[signalType as keyof typeof colors] || colors.default;

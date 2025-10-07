@@ -3,11 +3,11 @@
  * Real-time threat detection, incident response, and security event correlation
  */
 
-import { captureException, captureMessage } from '@nexus/analytics';
+import { captureException, captureMessage } from "@nexus/analytics";
 
 export interface SecurityEvent {
   type: SecurityEventType;
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  severity: "low" | "medium" | "high" | "critical";
   timestamp: Date;
   source: string;
   details: Record<string, any>;
@@ -19,32 +19,32 @@ export interface SecurityEvent {
 }
 
 export type SecurityEventType =
-  | 'authentication_failure'
-  | 'authorization_failure'
-  | 'rate_limit_exceeded'
-  | 'suspicious_activity'
-  | 'data_access_violation'
-  | 'injection_attempt'
-  | 'xss_attempt'
-  | 'csrf_attempt'
-  | 'webhook_verification_failed'
-  | 'invalid_input'
-  | 'file_upload_threat'
-  | 'privilege_escalation'
-  | 'anomalous_behavior'
-  | 'security_configuration_change';
+  | "authentication_failure"
+  | "authorization_failure"
+  | "rate_limit_exceeded"
+  | "suspicious_activity"
+  | "data_access_violation"
+  | "injection_attempt"
+  | "xss_attempt"
+  | "csrf_attempt"
+  | "webhook_verification_failed"
+  | "invalid_input"
+  | "file_upload_threat"
+  | "privilege_escalation"
+  | "anomalous_behavior"
+  | "security_configuration_change";
 
 export interface SecurityAlert {
   id: string;
   type: SecurityEventType;
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  severity: "low" | "medium" | "high" | "critical";
   title: string;
   description: string;
   events: SecurityEvent[];
   firstSeen: Date;
   lastSeen: Date;
   count: number;
-  status: 'open' | 'investigating' | 'resolved' | 'false_positive';
+  status: "open" | "investigating" | "resolved" | "false_positive";
   assignee?: string;
   tags: string[];
 }
@@ -55,13 +55,13 @@ export interface ThreatDetectionRule {
   description: string;
   eventTypes: SecurityEventType[];
   conditions: ThreatCondition[];
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  severity: "low" | "medium" | "high" | "critical";
   enabled: boolean;
 }
 
 export interface ThreatCondition {
   field: string;
-  operator: 'equals' | 'contains' | 'greater_than' | 'less_than' | 'regex' | 'in_range';
+  operator: "equals" | "contains" | "greater_than" | "less_than" | "regex" | "in_range";
   value: any;
   timeWindow?: number; // seconds
 }
@@ -83,7 +83,7 @@ export class SecurityMonitor {
   /**
    * Record a security event
    */
-  async recordEvent(event: Omit<SecurityEvent, 'timestamp'>): Promise<void> {
+  async recordEvent(event: Omit<SecurityEvent, "timestamp">): Promise<void> {
     const securityEvent: SecurityEvent = {
       ...event,
       timestamp: new Date(),
@@ -141,29 +141,30 @@ export class SecurityMonitor {
     let value = this.getFieldValue(event, condition.field);
 
     switch (condition.operator) {
-      case 'equals':
+      case "equals":
         return value === condition.value;
 
-      case 'contains':
-        return typeof value === 'string' && value.includes(condition.value);
+      case "contains":
+        return typeof value === "string" && value.includes(condition.value);
 
-      case 'greater_than':
-        return typeof value === 'number' && value > condition.value;
+      case "greater_than":
+        return typeof value === "number" && value > condition.value;
 
-      case 'less_than':
-        return typeof value === 'number' && value < condition.value;
+      case "less_than":
+        return typeof value === "number" && value < condition.value;
 
-      case 'regex':
-        return typeof value === 'string' && new RegExp(condition.value).test(value);
+      case "regex":
+        return typeof value === "string" && new RegExp(condition.value).test(value);
 
-      case 'in_range':
-        if (condition.timeWindow && typeof value === 'number') {
+      case "in_range":
+        if (condition.timeWindow && typeof value === "number") {
           const now = Date.now();
-          const windowStart = now - (condition.timeWindow * 1000);
-          const recentEvents = this.events.filter(e =>
-            e.timestamp.getTime() >= windowStart &&
-            e.type === event.type &&
-            this.getFieldValue(e, condition.field) === value
+          const windowStart = now - condition.timeWindow * 1000;
+          const recentEvents = this.events.filter(
+            (e) =>
+              e.timestamp.getTime() >= windowStart &&
+              e.type === event.type &&
+              this.getFieldValue(e, condition.field) === value
           );
           return recentEvents.length >= condition.value;
         }
@@ -178,8 +179,8 @@ export class SecurityMonitor {
    * Get field value from event
    */
   private getFieldValue(event: SecurityEvent, field: string): any {
-    if (field.includes('.')) {
-      const parts = field.split('.');
+    if (field.includes(".")) {
+      const parts = field.split(".");
       let value: any = event;
       for (const part of parts) {
         value = value?.[part];
@@ -192,7 +193,10 @@ export class SecurityMonitor {
   /**
    * Create or update security alert
    */
-  private async createOrUpdateAlert(rule: ThreatDetectionRule, event: SecurityEvent): Promise<void> {
+  private async createOrUpdateAlert(
+    rule: ThreatDetectionRule,
+    event: SecurityEvent
+  ): Promise<void> {
     const alertId = this.generateAlertId(rule, event);
     const existingAlert = this.alerts.get(alertId);
 
@@ -203,8 +207,8 @@ export class SecurityMonitor {
       existingAlert.count++;
 
       // Escalate severity if needed
-      if (existingAlert.count >= 10 && existingAlert.severity !== 'critical') {
-        existingAlert.severity = 'critical';
+      if (existingAlert.count >= 10 && existingAlert.severity !== "critical") {
+        existingAlert.severity = "critical";
         await this.sendCriticalAlert(existingAlert);
       }
     } else {
@@ -219,7 +223,7 @@ export class SecurityMonitor {
         firstSeen: event.timestamp,
         lastSeen: event.timestamp,
         count: 1,
-        status: 'open',
+        status: "open",
         tags: this.generateAlertTags(rule, event),
       };
 
@@ -234,117 +238,117 @@ export class SecurityMonitor {
   private initializeDefaultRules(): void {
     this.rules = [
       {
-        id: 'auth_brute_force',
-        name: 'Authentication Brute Force',
-        description: 'Multiple failed login attempts from same IP',
-        eventTypes: ['authentication_failure'],
+        id: "auth_brute_force",
+        name: "Authentication Brute Force",
+        description: "Multiple failed login attempts from same IP",
+        eventTypes: ["authentication_failure"],
         conditions: [
           {
-            field: 'clientIP',
-            operator: 'in_range',
+            field: "clientIP",
+            operator: "in_range",
             value: 5,
             timeWindow: 300, // 5 minutes
           },
         ],
-        severity: 'high',
+        severity: "high",
         enabled: true,
       },
       {
-        id: 'rate_limit_abuse',
-        name: 'Rate Limit Abuse',
-        description: 'Excessive rate limit violations',
-        eventTypes: ['rate_limit_exceeded'],
+        id: "rate_limit_abuse",
+        name: "Rate Limit Abuse",
+        description: "Excessive rate limit violations",
+        eventTypes: ["rate_limit_exceeded"],
         conditions: [
           {
-            field: 'clientIP',
-            operator: 'in_range',
+            field: "clientIP",
+            operator: "in_range",
             value: 10,
             timeWindow: 600, // 10 minutes
           },
         ],
-        severity: 'medium',
+        severity: "medium",
         enabled: true,
       },
       {
-        id: 'injection_attempt',
-        name: 'SQL/NoSQL Injection Attempt',
-        description: 'Potential injection attack detected',
-        eventTypes: ['injection_attempt'],
+        id: "injection_attempt",
+        name: "SQL/NoSQL Injection Attempt",
+        description: "Potential injection attack detected",
+        eventTypes: ["injection_attempt"],
         conditions: [
           {
-            field: 'details.payload',
-            operator: 'regex',
-            value: '(union|select|insert|update|delete|drop|create|alter|exec|script)',
+            field: "details.payload",
+            operator: "regex",
+            value: "(union|select|insert|update|delete|drop|create|alter|exec|script)",
           },
         ],
-        severity: 'high',
+        severity: "high",
         enabled: true,
       },
       {
-        id: 'xss_attempt',
-        name: 'Cross-Site Scripting Attempt',
-        description: 'Potential XSS attack detected',
-        eventTypes: ['xss_attempt'],
+        id: "xss_attempt",
+        name: "Cross-Site Scripting Attempt",
+        description: "Potential XSS attack detected",
+        eventTypes: ["xss_attempt"],
         conditions: [
           {
-            field: 'details.payload',
-            operator: 'regex',
-            value: '(<script|javascript:|on\\w+\\s*=)',
+            field: "details.payload",
+            operator: "regex",
+            value: "(<script|javascript:|on\\w+\\s*=)",
           },
         ],
-        severity: 'high',
+        severity: "high",
         enabled: true,
       },
       {
-        id: 'privilege_escalation',
-        name: 'Privilege Escalation Attempt',
-        description: 'User attempting to access restricted resources',
-        eventTypes: ['authorization_failure'],
+        id: "privilege_escalation",
+        name: "Privilege Escalation Attempt",
+        description: "User attempting to access restricted resources",
+        eventTypes: ["authorization_failure"],
         conditions: [
           {
-            field: 'details.attempted_role',
-            operator: 'equals',
-            value: 'admin',
+            field: "details.attempted_role",
+            operator: "equals",
+            value: "admin",
           },
           {
-            field: 'userId',
-            operator: 'in_range',
+            field: "userId",
+            operator: "in_range",
             value: 3,
             timeWindow: 3600, // 1 hour
           },
         ],
-        severity: 'critical',
+        severity: "critical",
         enabled: true,
       },
       {
-        id: 'webhook_compromise',
-        name: 'Webhook Verification Failures',
-        description: 'Multiple webhook verification failures',
-        eventTypes: ['webhook_verification_failed'],
+        id: "webhook_compromise",
+        name: "Webhook Verification Failures",
+        description: "Multiple webhook verification failures",
+        eventTypes: ["webhook_verification_failed"],
         conditions: [
           {
-            field: 'clientIP',
-            operator: 'in_range',
+            field: "clientIP",
+            operator: "in_range",
             value: 5,
             timeWindow: 900, // 15 minutes
           },
         ],
-        severity: 'high',
+        severity: "high",
         enabled: true,
       },
       {
-        id: 'anomalous_data_access',
-        name: 'Anomalous Data Access Pattern',
-        description: 'Unusual data access patterns detected',
-        eventTypes: ['data_access_violation'],
+        id: "anomalous_data_access",
+        name: "Anomalous Data Access Pattern",
+        description: "Unusual data access patterns detected",
+        eventTypes: ["data_access_violation"],
         conditions: [
           {
-            field: 'details.records_accessed',
-            operator: 'greater_than',
+            field: "details.records_accessed",
+            operator: "greater_than",
             value: 1000,
           },
         ],
-        severity: 'medium',
+        severity: "medium",
         enabled: true,
       },
     ];
@@ -354,15 +358,15 @@ export class SecurityMonitor {
    * Generate unique alert ID
    */
   private generateAlertId(rule: ThreatDetectionRule, event: SecurityEvent): string {
-    const key = `${rule.id}_${event.clientIP || 'unknown'}_${event.userId || 'anonymous'}`;
-    return Buffer.from(key).toString('base64').slice(0, 16);
+    const key = `${rule.id}_${event.clientIP || "unknown"}_${event.userId || "anonymous"}`;
+    return Buffer.from(key).toString("base64").slice(0, 16);
   }
 
   /**
    * Generate alert title
    */
   private generateAlertTitle(rule: ThreatDetectionRule, event: SecurityEvent): string {
-    const source = event.clientIP ? ` from ${event.clientIP}` : '';
+    const source = event.clientIP ? ` from ${event.clientIP}` : "";
     return `${rule.name}${source}`;
   }
 
@@ -394,9 +398,9 @@ export class SecurityMonitor {
     }
 
     if (event.userId) {
-      tags.push('authenticated');
+      tags.push("authenticated");
     } else {
-      tags.push('anonymous');
+      tags.push("anonymous");
     }
 
     return tags;
@@ -417,12 +421,12 @@ export class SecurityMonitor {
       details: event.details,
     };
 
-    console.log('SECURITY_EVENT:', JSON.stringify(logEntry));
+    console.log("SECURITY_EVENT:", JSON.stringify(logEntry));
 
     // Send to application monitoring
     captureMessage(
       `Security event: ${event.type}`,
-      event.severity === 'critical' ? 'error' : 'warning',
+      event.severity === "critical" ? "error" : "warning",
       {
         tags: {
           security_event: event.type,
@@ -437,7 +441,7 @@ export class SecurityMonitor {
    * Send new alert notification
    */
   private async sendNewAlert(alert: SecurityAlert): Promise<void> {
-    console.warn('NEW_SECURITY_ALERT:', {
+    console.warn("NEW_SECURITY_ALERT:", {
       id: alert.id,
       type: alert.type,
       severity: alert.severity,
@@ -450,7 +454,7 @@ export class SecurityMonitor {
     await this.sendToEmail(alert);
 
     // Critical alerts need immediate attention
-    if (alert.severity === 'critical') {
+    if (alert.severity === "critical") {
       await this.sendCriticalAlert(alert);
     }
   }
@@ -459,7 +463,7 @@ export class SecurityMonitor {
    * Send critical alert with escalation
    */
   private async sendCriticalAlert(alert: SecurityAlert): Promise<void> {
-    console.error('CRITICAL_SECURITY_ALERT:', {
+    console.error("CRITICAL_SECURITY_ALERT:", {
       id: alert.id,
       type: alert.type,
       title: alert.title,
@@ -468,7 +472,7 @@ export class SecurityMonitor {
     });
 
     // In production, trigger incident response
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === "production") {
       // TODO: Integrate with incident response system
       // TODO: Send to PagerDuty/OpsGenie for on-call escalation
     }
@@ -501,10 +505,10 @@ export class SecurityMonitor {
           {
             color: this.getSeverityColor(alert.severity),
             fields: [
-              { title: 'Severity', value: alert.severity.toUpperCase(), short: true },
-              { title: 'Type', value: alert.type, short: true },
-              { title: 'Count', value: alert.count.toString(), short: true },
-              { title: 'First Seen', value: alert.firstSeen.toISOString(), short: true },
+              { title: "Severity", value: alert.severity.toUpperCase(), short: true },
+              { title: "Type", value: alert.type, short: true },
+              { title: "Count", value: alert.count.toString(), short: true },
+              { title: "First Seen", value: alert.firstSeen.toISOString(), short: true },
             ],
             text: alert.description,
           },
@@ -512,12 +516,12 @@ export class SecurityMonitor {
       };
 
       await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
     } catch (error) {
-      console.error('Failed to send Slack alert:', error);
+      console.error("Failed to send Slack alert:", error);
     }
   }
 
@@ -527,7 +531,7 @@ export class SecurityMonitor {
   private async sendToEmail(alert: SecurityAlert): Promise<void> {
     // TODO: Implement email alerting
     // This would integrate with your email service (SendGrid, SES, etc.)
-    console.log('Email alert would be sent for:', alert.id);
+    console.log("Email alert would be sent for:", alert.id);
   }
 
   /**
@@ -551,11 +555,16 @@ export class SecurityMonitor {
    */
   private getSeverityColor(severity: string): string {
     switch (severity) {
-      case 'critical': return '#FF0000';
-      case 'high': return '#FF8C00';
-      case 'medium': return '#FFD700';
-      case 'low': return '#32CD32';
-      default: return '#808080';
+      case "critical":
+        return "#FF0000";
+      case "high":
+        return "#FF8C00";
+      case "medium":
+        return "#FFD700";
+      case "low":
+        return "#32CD32";
+      default:
+        return "#808080";
     }
   }
 
@@ -568,19 +577,22 @@ export class SecurityMonitor {
     criticalAlerts: number;
     topEventTypes: Array<{ type: string; count: number }>;
   } {
-    const last24h = Date.now() - (24 * 60 * 60 * 1000);
-    const recentEvents = this.events.filter(e => e.timestamp.getTime() >= last24h);
+    const last24h = Date.now() - 24 * 60 * 60 * 1000;
+    const recentEvents = this.events.filter((e) => e.timestamp.getTime() >= last24h);
 
-    const openAlerts = Array.from(this.alerts.values()).filter(a => a.status === 'open');
-    const criticalAlerts = openAlerts.filter(a => a.severity === 'critical');
+    const openAlerts = Array.from(this.alerts.values()).filter((a) => a.status === "open");
+    const criticalAlerts = openAlerts.filter((a) => a.severity === "critical");
 
-    const eventTypeCounts = recentEvents.reduce((acc, event) => {
-      acc[event.type] = (acc[event.type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const eventTypeCounts = recentEvents.reduce(
+      (acc, event) => {
+        acc[event.type] = (acc[event.type] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     const topEventTypes = Object.entries(eventTypeCounts)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, 5)
       .map(([type, count]) => ({ type, count }));
 
@@ -596,18 +608,21 @@ export class SecurityMonitor {
    * Periodic cleanup of old events
    */
   private startPeriodicCleanup(): void {
-    setInterval(() => {
-      const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-      this.events = this.events.filter(e => e.timestamp.getTime() >= oneWeekAgo);
+    setInterval(
+      () => {
+        const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        this.events = this.events.filter((e) => e.timestamp.getTime() >= oneWeekAgo);
 
-      // Clean up resolved alerts older than 30 days
-      const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-      for (const [id, alert] of this.alerts.entries()) {
-        if (alert.status === 'resolved' && alert.lastSeen.getTime() < thirtyDaysAgo) {
-          this.alerts.delete(id);
+        // Clean up resolved alerts older than 30 days
+        const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+        for (const [id, alert] of this.alerts.entries()) {
+          if (alert.status === "resolved" && alert.lastSeen.getTime() < thirtyDaysAgo) {
+            this.alerts.delete(id);
+          }
         }
-      }
-    }, 60 * 60 * 1000); // Run every hour
+      },
+      60 * 60 * 1000
+    ); // Run every hour
   }
 }
 
@@ -627,41 +642,51 @@ export function getSecurityMonitor(): SecurityMonitor {
 export const SecurityEvents = {
   authenticationFailure: (details: { email?: string; reason: string; clientIP?: string }) =>
     getSecurityMonitor().recordEvent({
-      type: 'authentication_failure',
-      severity: 'medium',
-      source: 'auth_system',
+      type: "authentication_failure",
+      severity: "medium",
+      source: "auth_system",
       details,
     }),
 
-  rateLimitExceeded: (details: { endpoint: string; limit: number; clientIP?: string; userId?: string }) =>
+  rateLimitExceeded: (details: {
+    endpoint: string;
+    limit: number;
+    clientIP?: string;
+    userId?: string;
+  }) =>
     getSecurityMonitor().recordEvent({
-      type: 'rate_limit_exceeded',
-      severity: 'medium',
-      source: 'rate_limiter',
+      type: "rate_limit_exceeded",
+      severity: "medium",
+      source: "rate_limiter",
       details,
     }),
 
-  suspiciousActivity: (details: { activity: string; reason: string; clientIP?: string; userId?: string }) =>
+  suspiciousActivity: (details: {
+    activity: string;
+    reason: string;
+    clientIP?: string;
+    userId?: string;
+  }) =>
     getSecurityMonitor().recordEvent({
-      type: 'suspicious_activity',
-      severity: 'high',
-      source: 'system',
+      type: "suspicious_activity",
+      severity: "high",
+      source: "system",
       details,
     }),
 
   injectionAttempt: (details: { payload: string; endpoint: string; clientIP?: string }) =>
     getSecurityMonitor().recordEvent({
-      type: 'injection_attempt',
-      severity: 'high',
-      source: 'input_validation',
+      type: "injection_attempt",
+      severity: "high",
+      source: "input_validation",
       details,
     }),
 
   webhookVerificationFailed: (details: { provider: string; reason: string; clientIP?: string }) =>
     getSecurityMonitor().recordEvent({
-      type: 'webhook_verification_failed',
-      severity: 'medium',
-      source: 'webhook_security',
+      type: "webhook_verification_failed",
+      severity: "medium",
+      source: "webhook_security",
       details,
     }),
 };

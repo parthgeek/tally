@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Common validation schemas for API requests
@@ -9,16 +9,23 @@ import { z } from 'zod';
  */
 export const plaidExchangeSchema = z.object({
   public_token: z.string().min(10).max(500),
-  metadata: z.object({
-    institution_id: z.string().optional(),
-    institution_name: z.string().optional(),
-    accounts: z.array(z.object({
-      id: z.string(),
-      name: z.string(),
-      type: z.string(),
-      subtype: z.string().nullable(),
-    })).optional(),
-  }).passthrough().optional(), // Use passthrough to not trust nested data
+  metadata: z
+    .object({
+      institution_id: z.string().optional(),
+      institution_name: z.string().optional(),
+      accounts: z
+        .array(
+          z.object({
+            id: z.string(),
+            name: z.string(),
+            type: z.string(),
+            subtype: z.string().nullable(),
+          })
+        )
+        .optional(),
+    })
+    .passthrough()
+    .optional(), // Use passthrough to not trust nested data
 });
 
 export type PlaidExchangeRequest = z.infer<typeof plaidExchangeSchema>;

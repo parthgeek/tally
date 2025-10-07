@@ -1,21 +1,21 @@
-'use client';
+"use client";
 
-import { Badge } from '@/components/ui/badge';
-import { ArrowRightIcon, TreePineIcon } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
+import { ArrowRightIcon, TreePineIcon } from "lucide-react";
 import {
   formatCategoryForDisplay,
   getCategoryHierarchy,
   getCategoryTypeBadgeVariant,
   getCategoryTier,
-  isValidCategoryId
-} from './taxonomy-helpers';
+  isValidCategoryId,
+} from "./taxonomy-helpers";
 
 interface CategoryBadgeProps {
   categoryId: string;
-  format?: 'full' | 'compact' | 'child-only' | 'parent-only';
+  format?: "full" | "compact" | "child-only" | "parent-only";
   showTier?: boolean;
   showWarning?: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
   className?: string;
 }
 
@@ -24,11 +24,11 @@ interface CategoryBadgeProps {
  */
 export function CategoryBadge({
   categoryId,
-  format = 'compact',
+  format = "compact",
   showTier = true,
   showWarning = true,
-  size = 'sm',
-  className = ''
+  size = "sm",
+  className = "",
 }: CategoryBadgeProps) {
   const hierarchy = getCategoryHierarchy(categoryId);
   const isValid = isValidCategoryId(categoryId);
@@ -39,7 +39,10 @@ export function CategoryBadge({
         <Badge variant="outline" className={`text-${size}`}>
           {categoryId}
         </Badge>
-        <span className={`text-${size} text-amber-600`} title={`Invalid category ID: ${categoryId}`}>
+        <span
+          className={`text-${size} text-amber-600`}
+          title={`Invalid category ID: ${categoryId}`}
+        >
           ⚠️
         </span>
       </div>
@@ -102,7 +105,7 @@ interface CategoryHierarchyProps {
 export function CategoryHierarchy({
   categoryId,
   showFullPath = true,
-  className = ''
+  className = "",
 }: CategoryHierarchyProps) {
   const hierarchy = getCategoryHierarchy(categoryId);
 
@@ -139,11 +142,7 @@ export function CategoryHierarchy({
       )}
 
       {/* Child category */}
-      <CategoryBadge
-        categoryId={categoryId}
-        format="child-only"
-        showTier={false}
-      />
+      <CategoryBadge categoryId={categoryId} format="child-only" showTier={false} />
     </div>
   );
 }
@@ -153,35 +152,35 @@ export function CategoryHierarchy({
  */
 export const categoryTypeColors = {
   revenue: {
-    bg: 'bg-green-50',
-    border: 'border-green-200',
-    text: 'text-green-800',
-    badge: 'bg-green-100 text-green-800'
+    bg: "bg-green-50",
+    border: "border-green-200",
+    text: "text-green-800",
+    badge: "bg-green-100 text-green-800",
   },
   cogs: {
-    bg: 'bg-blue-50',
-    border: 'border-blue-200',
-    text: 'text-blue-800',
-    badge: 'bg-blue-100 text-blue-800'
+    bg: "bg-blue-50",
+    border: "border-blue-200",
+    text: "text-blue-800",
+    badge: "bg-blue-100 text-blue-800",
   },
   opex: {
-    bg: 'bg-orange-50',
-    border: 'border-orange-200',
-    text: 'text-orange-800',
-    badge: 'bg-orange-100 text-orange-800'
+    bg: "bg-orange-50",
+    border: "border-orange-200",
+    text: "text-orange-800",
+    badge: "bg-orange-100 text-orange-800",
   },
   liability: {
-    bg: 'bg-purple-50',
-    border: 'border-purple-200',
-    text: 'text-purple-800',
-    badge: 'bg-purple-100 text-purple-800'
+    bg: "bg-purple-50",
+    border: "border-purple-200",
+    text: "text-purple-800",
+    badge: "bg-purple-100 text-purple-800",
   },
   clearing: {
-    bg: 'bg-gray-50',
-    border: 'border-gray-200',
-    text: 'text-gray-800',
-    badge: 'bg-gray-100 text-gray-800'
-  }
+    bg: "bg-gray-50",
+    border: "border-gray-200",
+    text: "text-gray-800",
+    badge: "bg-gray-100 text-gray-800",
+  },
 } as const;
 
 /**

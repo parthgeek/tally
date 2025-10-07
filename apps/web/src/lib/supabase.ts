@@ -1,4 +1,7 @@
-import { createBrowserClient, createServerClient as createSupabaseServerClient } from '@supabase/ssr'
+import {
+  createBrowserClient,
+  createServerClient as createSupabaseServerClient,
+} from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -57,9 +60,7 @@ export function createMiddlewareSupabaseClient(req: NextRequest, res: NextRespon
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value));
-          cookiesToSet.forEach(({ name, value, options }) =>
-            res.cookies.set(name, value, options)
-          );
+          cookiesToSet.forEach(({ name, value, options }) => res.cookies.set(name, value, options));
         },
       },
     }

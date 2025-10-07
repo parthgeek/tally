@@ -24,12 +24,14 @@ const tier1Labels: Record<NonNullable<CategoryTier1>, string> = {
 export function CategoryPill({ tier1, tier2, size = "md", className }: CategoryPillProps) {
   if (!tier1) {
     return (
-      <span className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-        "bg-muted text-muted-foreground",
-        size === "sm" && "px-2 py-0.5 text-tiny",
-        className
-      )}>
+      <span
+        className={cn(
+          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+          "bg-muted text-muted-foreground",
+          size === "sm" && "px-2 py-0.5 text-tiny",
+          className
+        )}
+      >
         Uncategorized
       </span>
     );
@@ -38,21 +40,25 @@ export function CategoryPill({ tier1, tier2, size = "md", className }: CategoryP
   return (
     <div className={cn("inline-flex items-center gap-1.5", className)}>
       {/* Tier 1 */}
-      <span className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-        tier1Styles[tier1],
-        size === "sm" && "px-2 py-0.5 text-tiny"
-      )}>
+      <span
+        className={cn(
+          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+          tier1Styles[tier1],
+          size === "sm" && "px-2 py-0.5 text-tiny"
+        )}
+      >
         {tier1Labels[tier1]}
       </span>
 
       {/* Tier 2 (if provided) */}
       {tier2 && (
-        <span className={cn(
-          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-          "bg-muted text-foreground",
-          size === "sm" && "px-2 py-0.5 text-tiny"
-        )}>
+        <span
+          className={cn(
+            "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+            "bg-muted text-foreground",
+            size === "sm" && "px-2 py-0.5 text-tiny"
+          )}
+        >
           {tier2}
         </span>
       )}

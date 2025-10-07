@@ -32,10 +32,10 @@ export default function SignInPage() {
       } else if (data.session) {
         // Synchronize session to server cookies
         try {
-          const response = await fetch('/api/auth/set-session', {
-            method: 'POST',
+          const response = await fetch("/api/auth/set-session", {
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
               access_token: data.session.access_token,
@@ -44,13 +44,13 @@ export default function SignInPage() {
           });
 
           if (!response.ok) {
-            throw new Error('Failed to set session');
+            throw new Error("Failed to set session");
           }
 
           router.push("/dashboard");
           router.refresh();
         } catch (sessionError) {
-          console.error('Error setting session:', sessionError);
+          console.error("Error setting session:", sessionError);
           setError("Authentication succeeded but session setup failed. Please try again.");
         }
       }
@@ -79,10 +79,7 @@ export default function SignInPage() {
             )}
 
             <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium leading-6"
-              >
+              <label htmlFor="email" className="block text-sm font-medium leading-6">
                 Email address
               </label>
               <div className="mt-2">
@@ -99,10 +96,7 @@ export default function SignInPage() {
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium leading-6"
-              >
+              <label htmlFor="password" className="block text-sm font-medium leading-6">
                 Password
               </label>
               <div className="mt-2">
@@ -128,10 +122,7 @@ export default function SignInPage() {
           <div className="mt-6">
             <p className="text-center text-sm text-muted-foreground">
               Don&apos;t have an account?{" "}
-              <Link
-                href="/sign-up"
-                className="font-semibold text-primary hover:underline"
-              >
+              <Link href="/sign-up" className="font-semibold text-primary hover:underline">
                 Sign up
               </Link>
             </p>

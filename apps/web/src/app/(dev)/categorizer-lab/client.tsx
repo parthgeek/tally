@@ -1,28 +1,30 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { DatasetLoader } from '@/components/categorizer-lab/dataset-loader';
-import { RunControls } from '@/components/categorizer-lab/run-controls';
-import { ProgressPanel } from '@/components/categorizer-lab/progress-panel';
-import { ResultsTable } from '@/components/categorizer-lab/results-table';
-import { MetricsSummary } from '@/components/categorizer-lab/metrics-summary';
-import { Charts } from '@/components/categorizer-lab/charts';
-import { ExportButtons } from '@/components/categorizer-lab/export-buttons';
-import { FeatureStatusIndicator } from '@/components/categorizer-lab/feature-status';
-import { runWithProgress } from '@/lib/categorizer-lab/client';
-import type { 
-  LabTransaction, 
-  LabRunRequest, 
+import { useState, useEffect } from "react";
+import { DatasetLoader } from "@/components/categorizer-lab/dataset-loader";
+import { RunControls } from "@/components/categorizer-lab/run-controls";
+import { ProgressPanel } from "@/components/categorizer-lab/progress-panel";
+import { ResultsTable } from "@/components/categorizer-lab/results-table";
+import { MetricsSummary } from "@/components/categorizer-lab/metrics-summary";
+import { Charts } from "@/components/categorizer-lab/charts";
+import { ExportButtons } from "@/components/categorizer-lab/export-buttons";
+import { FeatureStatusIndicator } from "@/components/categorizer-lab/feature-status";
+import { runWithProgress } from "@/lib/categorizer-lab/client";
+import type {
+  LabTransaction,
+  LabRunRequest,
   LabRunResponse,
   TransactionResult,
-  Metrics 
-} from '@/lib/categorizer-lab/types';
+  Metrics,
+} from "@/lib/categorizer-lab/types";
 
 export default function CategorizerLabClient() {
   const [dataset, setDataset] = useState<LabTransaction[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [runCompleted, setRunCompleted] = useState(false);
-  const [progress, setProgress] = useState<{ processed: number; total: number; current?: string } | undefined>();
+  const [progress, setProgress] = useState<
+    { processed: number; total: number; current?: string } | undefined
+  >();
   const [results, setResults] = useState<TransactionResult[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [runResponse, setRunResponse] = useState<LabRunResponse | null>(null);
@@ -43,7 +45,7 @@ export default function CategorizerLabClient() {
     setErrors([]);
     setProgress(undefined);
     setRunCompleted(false);
-    console.log('Dataset loaded:', transactions.length);
+    console.log("Dataset loaded:", transactions.length);
   };
 
   const handleRunStart = async (request: LabRunRequest) => {
@@ -52,7 +54,7 @@ export default function CategorizerLabClient() {
     setRunCompleted(false);
     setProgress({ processed: 0, total: request.dataset.length });
     setErrors([]);
-    console.log('Run started...');
+    console.log("Run started...");
 
     try {
       // 2. Await the async operation
@@ -65,9 +67,9 @@ export default function CategorizerLabClient() {
       setErrors(response.errors);
     } catch (error) {
       // 4. Handle errors by setting an error state
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       setErrors([errorMessage]);
-      console.error('Lab run failed:', error);
+      console.error("Lab run failed:", error);
     } finally {
       // 5. Always mark the run as completed and no longer running in the finally block
       setIsRunning(false);
@@ -84,7 +86,8 @@ export default function CategorizerLabClient() {
         </p>
         <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-md text-black">
           <p className="text-sm text-amber-800">
-            <strong>Development Tool:</strong> This lab is for testing purposes only and does not affect production data.
+            <strong>Development Tool:</strong> This lab is for testing purposes only and does not
+            affect production data.
           </p>
         </div>
 
@@ -99,24 +102,21 @@ export default function CategorizerLabClient() {
         <div>
           <h2 className="text-xl font-semibold mb-4">1. Dataset</h2>
           {/* Debug info */}
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-black" data-testid="dataset-debug-info">
-            <strong>🔧 Debug Info:</strong> Dataset has {dataset.length} transactions loaded | Hydrated: {isHydrated ? '✅' : '❌'}
+          <div
+            className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-black"
+            data-testid="dataset-debug-info"
+          >
+            <strong>🔧 Debug Info:</strong> Dataset has {dataset.length} transactions loaded |
+            Hydrated: {isHydrated ? "✅" : "❌"}
           </div>
-          <DatasetLoader 
-            onDatasetLoaded={handleDatasetLoaded}
-            disabled={isRunning}
-          />
+          <DatasetLoader onDatasetLoaded={handleDatasetLoaded} disabled={isRunning} />
         </div>
 
         {/* Run Controls Section */}
         {dataset.length > 0 && (
           <div>
             <h2 className="text-xl font-semibold mb-4">2. Configuration</h2>
-            <RunControls 
-              dataset={dataset}
-              onRunStart={handleRunStart}
-              isRunning={isRunning}
-            />
+            <RunControls dataset={dataset} onRunStart={handleRunStart} isRunning={isRunning} />
           </div>
         )}
 
@@ -124,11 +124,7 @@ export default function CategorizerLabClient() {
         {(isRunning || (progress && !runCompleted)) && (
           <div>
             <h2 className="text-xl font-semibold mb-4">3. Progress</h2>
-            <ProgressPanel 
-              isRunning={isRunning}
-              progress={progress}
-              errors={errors}
-            />
+            <ProgressPanel isRunning={isRunning} progress={progress} errors={errors} />
           </div>
         )}
 
@@ -147,10 +143,7 @@ export default function CategorizerLabClient() {
               <>
                 <div>
                   <h2 className="text-xl font-semibold mb-4">4. Results</h2>
-                  <ResultsTable 
-                    originalTransactions={dataset}
-                    results={results}
-                  />
+                  <ResultsTable originalTransactions={dataset} results={results} />
                 </div>
 
                 {/* Metrics Section */}
@@ -168,7 +161,7 @@ export default function CategorizerLabClient() {
                 {/* Export Section */}
                 <div>
                   <h2 className="text-xl font-semibold mb-4">7. Export</h2>
-                  <ExportButtons 
+                  <ExportButtons
                     originalTransactions={dataset}
                     results={results}
                     metrics={metrics}

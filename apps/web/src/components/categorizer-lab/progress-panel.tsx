@@ -1,18 +1,20 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Alert } from '@/components/ui/alert';
+import { useState, useEffect } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Alert } from "@/components/ui/alert";
 
 interface ProgressPanelProps {
   isRunning: boolean;
-  progress?: {
-    processed: number;
-    total: number;
-    current?: string;
-  } | undefined;
+  progress?:
+    | {
+        processed: number;
+        total: number;
+        current?: string;
+      }
+    | undefined;
   errors?: string[];
   onCancel?: () => void;
 }
@@ -67,7 +69,7 @@ export function ProgressPanel({ isRunning, progress, errors = [], onCancel }: Pr
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">
-            {isRunning ? 'Categorization in Progress' : 'Progress Summary'}
+            {isRunning ? "Categorization in Progress" : "Progress Summary"}
           </h3>
           {isRunning && onCancel && (
             <Button variant="outline" size="sm" onClick={onCancel}>
@@ -82,10 +84,12 @@ export function ProgressPanel({ isRunning, progress, errors = [], onCancel }: Pr
             <div>
               <div className="flex justify-between text-sm text-gray-600 mb-1">
                 <span>Progress</span>
-                <span>{progress.processed} / {progress.total}</span>
+                <span>
+                  {progress.processed} / {progress.total}
+                </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
+                <div
                   className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${progressPercent}%` }}
                 />
@@ -103,13 +107,13 @@ export function ProgressPanel({ isRunning, progress, errors = [], onCancel }: Pr
               </div>
               <div>
                 <div className="text-lg font-semibold text-green-600">
-                  {throughput > 0 ? throughput.toFixed(1) : '0'}
+                  {throughput > 0 ? throughput.toFixed(1) : "0"}
                 </div>
                 <div className="text-sm text-gray-500">Throughput (/s)</div>
               </div>
               <div>
                 <div className="text-lg font-semibold text-purple-600">
-                  {eta > 0 && isRunning ? formatTime(Math.ceil(eta)) : '—'}
+                  {eta > 0 && isRunning ? formatTime(Math.ceil(eta)) : "—"}
                 </div>
                 <div className="text-sm text-gray-500">ETA</div>
               </div>
@@ -156,7 +160,7 @@ export function ProgressPanel({ isRunning, progress, errors = [], onCancel }: Pr
                 Download Error Log
               </Button>
             </div>
-            
+
             <div className="max-h-32 overflow-y-auto">
               {errors.slice(0, 5).map((error, index) => (
                 <Alert key={index} className="mb-2">
@@ -175,13 +179,18 @@ export function ProgressPanel({ isRunning, progress, errors = [], onCancel }: Pr
         {/* Performance Notes */}
         {!isRunning && progress && (
           <div className="text-sm text-gray-500 border-t pt-3">
-            <p><strong>Performance Summary:</strong></p>
+            <p>
+              <strong>Performance Summary:</strong>
+            </p>
             <ul className="list-disc list-inside mt-1 space-y-1">
-              <li>Processed {progress.total} transactions in {formatTime(elapsedSeconds)}</li>
+              <li>
+                Processed {progress.total} transactions in {formatTime(elapsedSeconds)}
+              </li>
               <li>Average throughput: {throughput.toFixed(2)} transactions/second</li>
               {errors.length > 0 && (
                 <li className="text-red-600">
-                  {errors.length} transactions failed ({((errors.length / progress.total) * 100).toFixed(1)}% error rate)
+                  {errors.length} transactions failed (
+                  {((errors.length / progress.total) * 100).toFixed(1)}% error rate)
                 </li>
               )}
             </ul>

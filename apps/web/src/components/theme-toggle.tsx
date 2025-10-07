@@ -23,7 +23,9 @@ export function ThemeToggle() {
     );
   }
 
-  const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const isDark =
+    theme === "dark" ||
+    (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
 
   return (
     <Button
@@ -32,14 +34,18 @@ export function ThemeToggle() {
       onClick={() => setTheme(isDark ? "light" : "dark")}
       title={`Switch to ${isDark ? "light" : "dark"} mode`}
     >
-      <Sun className={cn(
-        "h-4 w-4 transition-all",
-        isDark ? "rotate-90 scale-0" : "rotate-0 scale-100"
-      )} />
-      <Moon className={cn(
-        "absolute h-4 w-4 transition-all",
-        isDark ? "rotate-0 scale-100" : "rotate-90 scale-0"
-      )} />
+      <Sun
+        className={cn(
+          "h-4 w-4 transition-all",
+          isDark ? "rotate-90 scale-0" : "rotate-0 scale-100"
+        )}
+      />
+      <Moon
+        className={cn(
+          "absolute h-4 w-4 transition-all",
+          isDark ? "rotate-0 scale-100" : "rotate-90 scale-0"
+        )}
+      />
       <span className="sr-only">Toggle theme</span>
     </Button>
   );

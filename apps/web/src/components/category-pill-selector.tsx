@@ -12,19 +12,15 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CategoryPill, type CategoryTier1 } from "@/components/ui/category-pill";
 
 // Map category type to tier1
 function getCategoryTier1(categoryType?: string | null): CategoryTier1 {
   if (!categoryType) return null;
-  if (categoryType === 'revenue') return 'revenue';
-  if (categoryType === 'cogs') return 'cogs';
-  if (categoryType === 'opex') return 'opex';
+  if (categoryType === "revenue") return "revenue";
+  if (categoryType === "cogs") return "cogs";
+  if (categoryType === "opex") return "opex";
   return null;
 }
 
@@ -60,9 +56,7 @@ export function CategoryPillSelector({
   const filteredCategories = React.useMemo(() => {
     if (!searchQuery) return categories;
     const query = searchQuery.toLowerCase();
-    return categories.filter((cat) =>
-      cat.name.toLowerCase().includes(query)
-    );
+    return categories.filter((cat) => cat.name.toLowerCase().includes(query));
   }, [categories, searchQuery]);
 
   return (
@@ -80,11 +74,7 @@ export function CategoryPillSelector({
           )}
         >
           {value && selectedCategory ? (
-            <CategoryPill
-              tier1={tier1}
-              tier2={selectedCategory.name}
-              size="sm"
-            />
+            <CategoryPill tier1={tier1} tier2={selectedCategory.name} size="sm" />
           ) : (
             <span className="text-sm">{placeholder}</span>
           )}
@@ -115,15 +105,10 @@ export function CategoryPillSelector({
                 }}
                 className="cursor-pointer"
               >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    !value ? "opacity-100" : "opacity-0"
-                  )}
-                />
+                <Check className={cn("mr-2 h-4 w-4", !value ? "opacity-100" : "opacity-0")} />
                 <span className="text-muted-foreground">Uncategorized</span>
               </CommandItem>
-              
+
               {/* Category options */}
               {filteredCategories.map((category) => {
                 const catTier1 = getCategoryTier1(category.type);
@@ -144,11 +129,7 @@ export function CategoryPillSelector({
                         value === category.id ? "opacity-100" : "opacity-0"
                       )}
                     />
-                    <CategoryPill
-                      tier1={catTier1}
-                      tier2={category.name}
-                      size="sm"
-                    />
+                    <CategoryPill tier1={catTier1} tier2={category.name} size="sm" />
                   </CommandItem>
                 );
               })}

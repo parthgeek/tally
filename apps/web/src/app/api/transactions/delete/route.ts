@@ -1,11 +1,11 @@
 import { NextRequest } from "next/server";
-import { 
-  withOrgFromRequest, 
-  createValidationErrorResponse, 
-  createErrorResponse 
+import {
+  withOrgFromRequest,
+  createValidationErrorResponse,
+  createErrorResponse,
 } from "@/lib/api/with-org";
 import { createServerClient } from "@/lib/supabase";
-import { 
+import {
   transactionDeleteRequestSchema,
   type TransactionDeleteRequest,
   type TransactionDeleteResponse,
@@ -16,10 +16,10 @@ import { ANALYTICS_EVENTS, type TransactionsDeletedProps } from "@nexus/types";
 
 /**
  * DELETE /api/transactions/delete
- * 
+ *
  * Bulk deletion endpoint for removing transactions from the database.
  * Creates audit trail and tracks analytics.
- * 
+ *
  * Request Body:
  * - txIds: string[] - Array of transaction IDs (1-100 items)
  */
@@ -40,15 +40,14 @@ export async function DELETE(request: NextRequest) {
     const supabase = await createServerClient();
 
     // Execute deletion using database function for atomicity
-    const { data: deleteResult, error: deleteError } = await supabase
-      .rpc('delete_transactions', {
-        p_tx_ids: validatedRequest.txIds,
-        p_org_id: orgId,
-        p_user_id: userId,
-      });
+    const { data: deleteResult, error: deleteError } = await supabase.rpc("delete_transactions", {
+      p_tx_ids: validatedRequest.txIds,
+      p_org_id: orgId,
+      p_user_id: userId,
+    });
 
     if (deleteError) {
-      console.error('Failed to execute transaction deletion:', deleteError);
+      console.error("Failed to execute transaction deletion:", deleteError);
       return createErrorResponse("Failed to delete transactions", 500);
     }
 
@@ -80,7 +79,7 @@ export async function DELETE(request: NextRequest) {
         });
       }
     } catch (analyticsError) {
-      console.error('Failed to capture deletion analytics:', analyticsError);
+      console.error("Failed to capture deletion analytics:", analyticsError);
       // Don't fail the request if analytics fails
     }
 
@@ -88,30 +87,33 @@ export async function DELETE(request: NextRequest) {
     const response: TransactionDeleteResponse = {
       success: successCount > 0,
       deleted_count: successCount,
-      message: errors.length > 0 
-        ? `Deleted ${successCount} transaction(s) with ${errors.length} error(s)`
-        : `Successfully deleted ${successCount} transaction(s)`,
-      errors: errors.length > 0 ? errors.map((err: any) => ({
-        tx_id: err.tx_id,
-        error: err.error,
-      })) : undefined,
+      message:
+        errors.length > 0
+          ? `Deleted ${successCount} transaction(s) with ${errors.length} error(s)`
+          : `Successfully deleted ${successCount} transaction(s)`,
+      errors:
+        errors.length > 0
+          ? errors.map((err: any) => ({
+              tx_id: err.tx_id,
+              error: err.error,
+            }))
+          : undefined,
     };
 
     return Response.json(response);
-
   } catch (error) {
     if (error instanceof Response) {
       return error;
     }
-    
+
     console.error("Error in DELETE /api/transactions/delete:", error);
-    
+
     try {
-      await captureException(error instanceof Error ? error : new Error('Unknown deletion error'));
+      await captureException(error instanceof Error ? error : new Error("Unknown deletion error"));
     } catch (analyticsError) {
-      console.error('Failed to capture exception:', analyticsError);
+      console.error("Failed to capture exception:", analyticsError);
     }
-    
+
     return createErrorResponse("Internal server error", 500);
   }
 }

@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { Card } from '@/components/ui/card';
-import type { Metrics } from '@/lib/categorizer-lab/types';
+import { Card } from "@/components/ui/card";
+import type { Metrics } from "@/lib/categorizer-lab/types";
 
 interface ChartsProps {
   metrics: Metrics | null;
@@ -28,7 +28,7 @@ export function Charts({ metrics }: ChartsProps) {
         <div className="mb-6 grid grid-cols-3 gap-4 text-center">
           <div className="bg-blue-50 rounded-lg p-3">
             <div className="text-2xl font-bold text-blue-600">
-              {metrics.confidence.mean ? (metrics.confidence.mean * 100).toFixed(1) : '—'}%
+              {metrics.confidence.mean ? (metrics.confidence.mean * 100).toFixed(1) : "—"}%
             </div>
             <div className="text-sm text-gray-600">Average</div>
           </div>
@@ -48,21 +48,22 @@ export function Charts({ metrics }: ChartsProps) {
 
         <div className="space-y-2">
           {metrics.confidence.histogram.map((bin, index) => {
-            const maxCount = Math.max(...metrics.confidence.histogram.map(b => b.count));
+            const maxCount = Math.max(...metrics.confidence.histogram.map((b) => b.count));
             const widthPercent = maxCount > 0 ? (bin.count / maxCount) * 100 : 0;
-            const isLowConfidence = bin.bin.includes('0.') && bin.bin < '0.5';
-            const isHighConfidence = bin.bin.includes('0.9') || bin.bin.includes('1.0');
+            const isLowConfidence = bin.bin.includes("0.") && bin.bin < "0.5";
+            const isHighConfidence = bin.bin.includes("0.9") || bin.bin.includes("1.0");
 
             return (
               <div key={bin.bin} className="flex items-center space-x-3">
-                <div className="w-20 text-sm text-gray-600 font-mono text-right">
-                  {bin.bin}
-                </div>
+                <div className="w-20 text-sm text-gray-600 font-mono text-right">{bin.bin}</div>
                 <div className="flex-1 bg-gray-200 rounded-full h-6 relative">
                   <div
                     className={`h-6 rounded-full flex items-center justify-end pr-2 ${
-                      isLowConfidence ? 'bg-red-400' :
-                      isHighConfidence ? 'bg-green-500' : 'bg-blue-500'
+                      isLowConfidence
+                        ? "bg-red-400"
+                        : isHighConfidence
+                          ? "bg-green-500"
+                          : "bg-blue-500"
                     }`}
                     style={{ width: `${widthPercent}%` }}
                   >
@@ -144,15 +145,15 @@ export function Charts({ metrics }: ChartsProps) {
               <div className="text-sm text-gray-500">P99</div>
             </div>
           </div>
-          
+
           {/* Simple latency visualization */}
           <div className="mt-6">
             <div className="flex items-end justify-center space-x-2 h-24">
               {[
-                { label: 'Mean', value: metrics.latency.mean, color: 'bg-blue-500' },
-                { label: 'P50', value: metrics.latency.p50, color: 'bg-green-500' },
-                { label: 'P95', value: metrics.latency.p95, color: 'bg-orange-500' },
-                { label: 'P99', value: metrics.latency.p99, color: 'bg-red-500' },
+                { label: "Mean", value: metrics.latency.mean, color: "bg-blue-500" },
+                { label: "P50", value: metrics.latency.p50, color: "bg-green-500" },
+                { label: "P95", value: metrics.latency.p95, color: "bg-orange-500" },
+                { label: "P99", value: metrics.latency.p99, color: "bg-red-500" },
               ].map((item) => {
                 const maxValue = Math.max(
                   metrics.latency.mean,
@@ -161,10 +162,10 @@ export function Charts({ metrics }: ChartsProps) {
                   metrics.latency.p99
                 );
                 const heightPercent = (item.value / maxValue) * 100;
-                
+
                 return (
                   <div key={item.label} className="flex flex-col items-center">
-                    <div 
+                    <div
                       className={`w-12 ${item.color} rounded-t`}
                       style={{ height: `${heightPercent}%` }}
                     />
@@ -212,17 +213,17 @@ export function Charts({ metrics }: ChartsProps) {
                       const maxCount = Math.max(...metrics.accuracy!.confusionMatrix.flat());
                       const intensity = maxCount > 0 ? count / maxCount : 0;
                       const isCorrect = i === j;
-                      
+
                       return (
-                        <td 
-                          key={j} 
+                        <td
+                          key={j}
                           className={`p-2 text-center text-xs ${
-                            isCorrect ? 'bg-green-100' : 'bg-red-50'
+                            isCorrect ? "bg-green-100" : "bg-red-50"
                           }`}
                           style={{
-                            backgroundColor: isCorrect 
+                            backgroundColor: isCorrect
                               ? `rgba(34, 197, 94, ${0.1 + intensity * 0.9})`
-                              : `rgba(239, 68, 68, ${intensity * 0.3})`
+                              : `rgba(239, 68, 68, ${intensity * 0.3})`,
                           }}
                         >
                           {count}
@@ -243,9 +244,11 @@ export function Charts({ metrics }: ChartsProps) {
       {/* Notes about charts */}
       <Card className="p-4 bg-gray-50 text-black">
         <div className="text-sm text-gray-600">
-          <p><strong>Note:</strong> These are simplified visualizations for the lab environment.
-          In a production dashboard, you would typically use a charting library like Chart.js,
-          D3.js, or Recharts for more sophisticated visualizations.</p>
+          <p>
+            <strong>Note:</strong> These are simplified visualizations for the lab environment. In a
+            production dashboard, you would typically use a charting library like Chart.js, D3.js,
+            or Recharts for more sophisticated visualizations.
+          </p>
         </div>
       </Card>
     </div>
@@ -264,7 +267,7 @@ function getP95FromHistogram(histogram: Array<{ bin: string; count: number }>): 
 
   // Sort histogram by bin value
   const sortedHistogram = histogram
-    .map(h => ({ ...h, binValue: parseFloat(h.bin) }))
+    .map((h) => ({ ...h, binValue: parseFloat(h.bin) }))
     .sort((a, b) => a.binValue - b.binValue);
 
   for (const bin of sortedHistogram) {
@@ -281,10 +284,10 @@ function getP95FromHistogram(histogram: Array<{ bin: string; count: number }>): 
  * Calculate confidence spread (difference between highest and lowest bins with data)
  */
 function getConfidenceSpread(histogram: Array<{ bin: string; count: number }>): number {
-  const binsWithData = histogram.filter(h => h.count > 0);
+  const binsWithData = histogram.filter((h) => h.count > 0);
   if (binsWithData.length === 0) return 0;
 
-  const binValues = binsWithData.map(h => parseFloat(h.bin));
+  const binValues = binsWithData.map((h) => parseFloat(h.bin));
   const min = Math.min(...binValues);
   const max = Math.max(...binValues);
 
@@ -296,32 +299,32 @@ function getConfidenceSpread(histogram: Array<{ bin: string; count: number }>): 
  */
 function getConfidenceQuality(histogram: Array<{ bin: string; count: number }>): string {
   const totalTransactions = histogram.reduce((sum, h) => sum + h.count, 0);
-  if (totalTransactions === 0) return 'No data';
+  if (totalTransactions === 0) return "No data";
 
   // Count high confidence transactions (>= 0.8)
   const highConfidenceCount = histogram
-    .filter(h => parseFloat(h.bin) >= 0.8)
+    .filter((h) => parseFloat(h.bin) >= 0.8)
     .reduce((sum, h) => sum + h.count, 0);
 
   // Count medium confidence transactions (0.5 - 0.8)
   const mediumConfidenceCount = histogram
-    .filter(h => parseFloat(h.bin) >= 0.5 && parseFloat(h.bin) < 0.8)
+    .filter((h) => parseFloat(h.bin) >= 0.5 && parseFloat(h.bin) < 0.8)
     .reduce((sum, h) => sum + h.count, 0);
 
   // Count low confidence transactions (< 0.5)
   const lowConfidenceCount = histogram
-    .filter(h => parseFloat(h.bin) < 0.5)
+    .filter((h) => parseFloat(h.bin) < 0.5)
     .reduce((sum, h) => sum + h.count, 0);
 
   const highPct = (highConfidenceCount / totalTransactions) * 100;
   const lowPct = (lowConfidenceCount / totalTransactions) * 100;
 
   // Check for uniform distribution (all in one bucket)
-  const maxBinCount = Math.max(...histogram.map(h => h.count));
-  const isUniform = (maxBinCount / totalTransactions) > 0.8;
+  const maxBinCount = Math.max(...histogram.map((h) => h.count));
+  const isUniform = maxBinCount / totalTransactions > 0.8;
 
   if (isUniform) {
-    return '⚠️ Too uniform - lacks confidence variance';
+    return "⚠️ Too uniform - lacks confidence variance";
   } else if (highPct >= 60) {
     return `✅ Excellent (${highPct.toFixed(0)}% high confidence)`;
   } else if (highPct >= 40) {

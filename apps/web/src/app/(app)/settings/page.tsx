@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Link as LinkIcon, Bell, Users } from "lucide-react";
 
@@ -51,11 +51,11 @@ export default function SettingsPage() {
         {settingsItems.map((item) => {
           const Icon = item.icon;
           const content = (
-            <Card className={`transition-colors ${
-              item.disabled 
-                ? 'opacity-50 cursor-not-allowed' 
-                : 'hover:bg-muted/50 cursor-pointer'
-            }`}>
+            <Card
+              className={`transition-colors ${
+                item.disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-muted/50 cursor-pointer"
+              }`}
+            >
               <CardHeader>
                 <CardTitle className="flex items-center space-x-3">
                   <Icon className={`h-5 w-5 ${item.color}`} />
@@ -64,19 +64,13 @@ export default function SettingsPage() {
                 <CardDescription>{item.description}</CardDescription>
               </CardHeader>
               <CardContent>
-                {item.disabled && (
-                  <p className="text-xs text-muted-foreground">Coming soon</p>
-                )}
+                {item.disabled && <p className="text-xs text-muted-foreground">Coming soon</p>}
               </CardContent>
             </Card>
           );
 
           if (item.disabled) {
-            return (
-              <div key={item.title}>
-                {content}
-              </div>
-            );
+            return <div key={item.title}>{content}</div>;
           }
 
           return (

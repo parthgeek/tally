@@ -24,7 +24,7 @@ export default function ResetPasswordPage() {
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const accessToken = hashParams.get("access_token");
     const type = hashParams.get("type");
-    
+
     if (type === "recovery" && accessToken) {
       setStep("reset");
     }
@@ -115,10 +115,7 @@ export default function ResetPasswordPage() {
               )}
 
               <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium leading-6"
-                >
+                <label htmlFor="email" className="block text-sm font-medium leading-6">
                   Email address
                 </label>
                 <div className="mt-2">
@@ -155,10 +152,7 @@ export default function ResetPasswordPage() {
               )}
 
               <div>
-                <label
-                  htmlFor="newPassword"
-                  className="block text-sm font-medium leading-6"
-                >
+                <label htmlFor="newPassword" className="block text-sm font-medium leading-6">
                   New Password
                 </label>
                 <div className="mt-2">
@@ -175,10 +169,7 @@ export default function ResetPasswordPage() {
               </div>
 
               <div>
-                <label
-                  htmlFor="confirmPassword"
-                  className="block text-sm font-medium leading-6"
-                >
+                <label htmlFor="confirmPassword" className="block text-sm font-medium leading-6">
                   Confirm New Password
                 </label>
                 <div className="mt-2">
@@ -205,10 +196,7 @@ export default function ResetPasswordPage() {
           <div className="mt-6">
             <p className="text-center text-sm text-muted-foreground">
               Remember your password?{" "}
-              <Link
-                href="/sign-in"
-                className="font-semibold text-primary hover:underline"
-              >
+              <Link href="/sign-in" className="font-semibold text-primary hover:underline">
                 Sign in
               </Link>
             </p>

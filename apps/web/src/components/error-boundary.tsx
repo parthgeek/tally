@@ -58,7 +58,13 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 }
 
-function DefaultErrorFallback({ error, resetError }: { error: Error | undefined; resetError: () => void }) {
+function DefaultErrorFallback({
+  error,
+  resetError,
+}: {
+  error: Error | undefined;
+  resetError: () => void;
+}) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="max-w-md p-6 text-center">
@@ -69,9 +75,7 @@ function DefaultErrorFallback({ error, resetError }: { error: Error | undefined;
         {error && (
           <details className="text-xs text-muted-foreground mb-4">
             <summary className="cursor-pointer mb-2">Error details</summary>
-            <pre className="text-left bg-muted p-2 rounded overflow-auto">
-              {error.message}
-            </pre>
+            <pre className="text-left bg-muted p-2 rounded overflow-auto">{error.message}</pre>
           </details>
         )}
         <div className="flex gap-2 justify-center">

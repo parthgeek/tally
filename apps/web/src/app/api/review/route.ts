@@ -1,7 +1,11 @@
 import { NextRequest } from "next/server";
-import { withOrgFromRequest, createValidationErrorResponse, createErrorResponse } from "@/lib/api/with-org";
+import {
+  withOrgFromRequest,
+  createValidationErrorResponse,
+  createErrorResponse,
+} from "@/lib/api/with-org";
 import { createServerClient } from "@/lib/supabase";
-import { 
+import {
   reviewListRequestSchema,
   type ReviewListRequest,
   type ReviewListResponse,
@@ -10,10 +14,10 @@ import {
 
 /**
  * GET /api/review
- * 
+ *
  * High-performance review queue API with cursor-based pagination.
  * Supports filtering by review status, confidence levels, and search.
- * 
+ *
  * Query Parameters:
  * - cursor?: string - Cursor for pagination
  * - limit?: number - Max items per page (1-1000, default 100)
@@ -29,7 +33,7 @@ export async function GET(request: NextRequest) {
     // Parse and validate query parameters
     const url = new URL(request.url);
     const searchParams = url.searchParams;
-    
+
     let validatedRequest: ReviewListRequest;
     try {
       validatedRequest = reviewListRequestSchema.parse({
@@ -37,9 +41,13 @@ export async function GET(request: NextRequest) {
         limit: searchParams.get("limit") ? parseInt(searchParams.get("limit")!) : undefined,
         filter: {
           needsReviewOnly: searchParams.get("needsReviewOnly") !== "false",
-          minConfidence: searchParams.get("minConfidence") ? parseFloat(searchParams.get("minConfidence")!) : undefined,
-          maxConfidence: searchParams.get("maxConfidence") ? parseFloat(searchParams.get("maxConfidence")!) : undefined,
-        }
+          minConfidence: searchParams.get("minConfidence")
+            ? parseFloat(searchParams.get("minConfidence")!)
+            : undefined,
+          maxConfidence: searchParams.get("maxConfidence")
+            ? parseFloat(searchParams.get("maxConfidence")!)
+            : undefined,
+        },
       });
     } catch (error) {
       return createValidationErrorResponse(error);
@@ -49,8 +57,9 @@ export async function GET(request: NextRequest) {
 
     // Build optimized query using the review_queue view for better performance
     let query = supabase
-      .from('review_queue')
-      .select(`
+      .from("review_queue")
+      .select(
+        `
         id,
         date,
         merchant_name,
@@ -65,28 +74,36 @@ export async function GET(request: NextRequest) {
         decision_source,
         decision_confidence,
         decision_created_at
-      `)
-      .eq('org_id', orgId);
+      `
+      )
+      .eq("org_id", orgId);
 
     // Apply filters
     if (validatedRequest.filter?.needsReviewOnly) {
-      query = query.eq('needs_review', true);
+      query = query.eq("needs_review", true);
     }
 
-    if (validatedRequest.filter?.minConfidence !== undefined && validatedRequest.filter.minConfidence > 0) {
-      query = query.gte('confidence', validatedRequest.filter.minConfidence);
+    if (
+      validatedRequest.filter?.minConfidence !== undefined &&
+      validatedRequest.filter.minConfidence > 0
+    ) {
+      query = query.gte("confidence", validatedRequest.filter.minConfidence);
     }
 
-    if (validatedRequest.filter?.maxConfidence !== undefined && validatedRequest.filter.maxConfidence < 1) {
-      query = query.lte('confidence', validatedRequest.filter.maxConfidence);
+    if (
+      validatedRequest.filter?.maxConfidence !== undefined &&
+      validatedRequest.filter.maxConfidence < 1
+    ) {
+      query = query.lte("confidence", validatedRequest.filter.maxConfidence);
     }
 
     // Apply cursor-based pagination
     if (validatedRequest.cursor) {
       try {
-        const cursorData = JSON.parse(Buffer.from(validatedRequest.cursor, 'base64').toString());
-        query = query
-          .or(`date.lt.${cursorData.date},and(date.eq.${cursorData.date},confidence.gt.${cursorData.confidence || 0})`);
+        const cursorData = JSON.parse(Buffer.from(validatedRequest.cursor, "base64").toString());
+        query = query.or(
+          `date.lt.${cursorData.date},and(date.eq.${cursorData.date},confidence.gt.${cursorData.confidence || 0})`
+        );
       } catch (error) {
         return createErrorResponse("Invalid cursor format", 400);
       }
@@ -94,14 +111,14 @@ export async function GET(request: NextRequest) {
 
     // Order for consistent pagination (date DESC, confidence ASC for prioritizing low-confidence items)
     query = query
-      .order('date', { ascending: false })
-      .order('confidence', { ascending: true, nullsFirst: false })
+      .order("date", { ascending: false })
+      .order("confidence", { ascending: true, nullsFirst: false })
       .limit(validatedRequest.limit + 1); // Fetch one extra to determine if there are more pages
 
     const { data: rawTransactions, error } = await query;
 
     if (error) {
-      console.error('Failed to fetch review queue:', error);
+      console.error("Failed to fetch review queue:", error);
       return createErrorResponse("Failed to fetch review queue", 500);
     }
 
@@ -118,13 +135,13 @@ export async function GET(request: NextRequest) {
         try {
           if (Array.isArray(tx.rationale)) {
             rationaleStrings = tx.rationale.slice(0, 3); // Take top 3 reasons
-          } else if (typeof tx.rationale === 'object' && tx.rationale.reasons) {
+          } else if (typeof tx.rationale === "object" && tx.rationale.reasons) {
             rationaleStrings = tx.rationale.reasons.slice(0, 3);
-          } else if (typeof tx.rationale === 'string') {
+          } else if (typeof tx.rationale === "string") {
             rationaleStrings = [tx.rationale];
           }
         } catch (e) {
-          console.warn('Failed to parse rationale for transaction', tx.id, e);
+          console.warn("Failed to parse rationale for transaction", tx.id, e);
           rationaleStrings = [];
         }
       }
@@ -135,7 +152,7 @@ export async function GET(request: NextRequest) {
         merchant_name: tx.merchant_name,
         description: tx.description,
         amount_cents: tx.amount_cents,
-        currency: tx.currency || 'USD',
+        currency: tx.currency || "USD",
         category_id: tx.category_id,
         category_name: tx.category_name,
         confidence: tx.confidence,
@@ -155,7 +172,7 @@ export async function GET(request: NextRequest) {
           date: lastItem.date,
           confidence: lastItem.confidence || 0,
         };
-        nextCursor = Buffer.from(JSON.stringify(cursorData)).toString('base64');
+        nextCursor = Buffer.from(JSON.stringify(cursorData)).toString("base64");
       }
     }
 
@@ -167,12 +184,11 @@ export async function GET(request: NextRequest) {
     };
 
     return Response.json(response);
-
   } catch (error) {
     if (error instanceof Response) {
       return error;
     }
-    
+
     console.error("Error in GET /api/review:", error);
     return createErrorResponse("Internal server error", 500);
   }

@@ -42,7 +42,7 @@ export function Navigation() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <span className="font-bold text-xl">Nexus</span>
+            <span className="font-bold text-xl">Tally</span>
           </div>
 
           {/* Desktop Nav - Only anchor links during prelaunch */}

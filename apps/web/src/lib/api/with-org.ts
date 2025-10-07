@@ -33,13 +33,10 @@ export async function withOrg(orgId: OrgId): Promise<AuthenticatedContext> {
     .single();
 
   if (membershipError || !membership) {
-    throw new Response(
-      JSON.stringify({ error: "Access denied to organization" }),
-      {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+    throw new Response(JSON.stringify({ error: "Access denied to organization" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   return {
@@ -92,13 +89,10 @@ export async function withOrgFromRequest(request: NextRequest): Promise<Authenti
   }
 
   if (!orgId) {
-    throw new Response(
-      JSON.stringify({ error: "Organization ID is required" }),
-      {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+    throw new Response(JSON.stringify({ error: "Organization ID is required" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   // Verify membership in the resolved organization
@@ -110,13 +104,10 @@ export async function withOrgFromRequest(request: NextRequest): Promise<Authenti
     .single();
 
   if (membershipError || !membership) {
-    throw new Response(
-      JSON.stringify({ error: "Access denied to organization" }),
-      {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+    throw new Response(JSON.stringify({ error: "Access denied to organization" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   return {
@@ -135,6 +126,6 @@ export function createValidationErrorResponse(error: unknown) {
       error: "Validation failed",
       details: error,
     },
-    { status: 400 },
+    { status: 400 }
   );
 }

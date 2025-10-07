@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,17 +15,21 @@ interface ThresholdSettings {
 }
 
 export default function ThresholdsPage() {
-  const [lowBalanceAmount, setLowBalanceAmount] = useState<string>('');
+  const [lowBalanceAmount, setLowBalanceAmount] = useState<string>("");
   const [isEditing, setIsEditing] = useState(false);
   const queryClient = useQueryClient();
 
   // Fetch current thresholds
-  const { data: settings, isLoading, error } = useQuery({
-    queryKey: ['settings', 'thresholds'],
+  const {
+    data: settings,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["settings", "thresholds"],
     queryFn: async (): Promise<ThresholdSettings> => {
-      const response = await fetch('/api/settings/thresholds');
+      const response = await fetch("/api/settings/thresholds");
       if (!response.ok) {
-        throw new Error('Failed to fetch threshold settings');
+        throw new Error("Failed to fetch threshold settings");
       }
       return response.json();
     },
@@ -34,28 +38,28 @@ export default function ThresholdsPage() {
   // Update thresholds mutation
   const updateThresholdsMutation = useMutation({
     mutationFn: async (data: ThresholdSettings) => {
-      const response = await fetch('/api/settings/thresholds', {
-        method: 'PUT',
+      const response = await fetch("/api/settings/thresholds", {
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to update thresholds');
+        throw new Error(error.error || "Failed to update thresholds");
       }
 
       return response.json();
     },
     onSuccess: () => {
       // Invalidate thresholds query
-      queryClient.invalidateQueries({ queryKey: ['settings', 'thresholds'] });
-      
+      queryClient.invalidateQueries({ queryKey: ["settings", "thresholds"] });
+
       // Invalidate dashboard query to update alerts
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+
       setIsEditing(false);
     },
   });
@@ -79,7 +83,7 @@ export default function ThresholdsPage() {
         lowBalanceThresholdCents: cents,
       });
     } catch (error) {
-      console.error('Invalid amount:', error);
+      console.error("Invalid amount:", error);
     }
   };
 
@@ -100,7 +104,7 @@ export default function ThresholdsPage() {
             Configure when to receive alerts about your financial data.
           </p>
         </div>
-        
+
         <div className="flex items-center space-x-2">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>Loading settings...</span>
@@ -118,20 +122,18 @@ export default function ThresholdsPage() {
             Configure when to receive alerts about your financial data.
           </p>
         </div>
-        
+
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            Failed to load threshold settings. Please try again.
-          </AlertDescription>
+          <AlertDescription>Failed to load threshold settings. Please try again.</AlertDescription>
         </Alert>
       </div>
     );
   }
 
-  const currentThresholdDisplay = settings?.lowBalanceThresholdCents 
+  const currentThresholdDisplay = settings?.lowBalanceThresholdCents
     ? toUSD(settings.lowBalanceThresholdCents)
-    : '$1,000.00';
+    : "$1,000.00";
 
   return (
     <div className="space-y-6">
@@ -154,9 +156,7 @@ export default function ThresholdsPage() {
       {updateThresholdsMutation.error && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            {updateThresholdsMutation.error.message}
-          </AlertDescription>
+          <AlertDescription>{updateThresholdsMutation.error.message}</AlertDescription>
         </Alert>
       )}
 
@@ -177,9 +177,7 @@ export default function ThresholdsPage() {
                 <p className="text-sm text-muted-foreground">Current threshold</p>
                 <p className="text-2xl font-bold">{currentThresholdDisplay}</p>
               </div>
-              <Button onClick={() => setIsEditing(true)}>
-                Edit Threshold
-              </Button>
+              <Button onClick={() => setIsEditing(true)}>Edit Threshold</Button>
             </div>
           ) : (
             <div className="space-y-4">
@@ -204,7 +202,7 @@ export default function ThresholdsPage() {
               </div>
 
               <div className="flex space-x-2">
-                <Button 
+                <Button
                   onClick={handleSave}
                   disabled={updateThresholdsMutation.isPending || !lowBalanceAmount}
                 >
@@ -213,8 +211,8 @@ export default function ThresholdsPage() {
                   )}
                   Save Changes
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={handleCancel}
                   disabled={updateThresholdsMutation.isPending}
                 >
@@ -242,9 +240,7 @@ export default function ThresholdsPage() {
                 Alerts when weekly spending is more than 2 standard deviations above normal.
               </p>
             </div>
-            <div className="text-sm text-muted-foreground">
-              Automatic
-            </div>
+            <div className="text-sm text-muted-foreground">Automatic</div>
           </div>
         </CardContent>
       </Card>

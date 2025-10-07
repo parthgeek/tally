@@ -1,15 +1,15 @@
-import React, { useRef, useMemo } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { InfiniteData } from '@tanstack/react-query';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { CategoryCell } from './category-cell';
-import { WhyPopover } from './why-popover';
-import { Check, FileText, Calendar, DollarSign } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { toUSD } from '@nexus/shared';
-import type { ReviewTransactionItem, ReviewListResponse } from '@nexus/types';
+import React, { useRef, useMemo } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { InfiniteData } from "@tanstack/react-query";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { CategoryCell } from "./category-cell";
+import { WhyPopover } from "./why-popover";
+import { Check, FileText, Calendar, DollarSign } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { toUSD } from "@nexus/shared";
+import type { ReviewTransactionItem, ReviewListResponse } from "@nexus/types";
 
 interface ReviewTableProps {
   data?: InfiniteData<ReviewListResponse, unknown> | undefined;
@@ -34,13 +34,13 @@ interface ReviewTableRowProps {
   style: React.CSSProperties;
 }
 
-function ReviewTableRow({ 
-  transaction, 
-  index, 
-  isSelected, 
-  isRowSelected, 
+function ReviewTableRow({
+  transaction,
+  index,
+  isSelected,
+  isRowSelected,
   isEditing,
-  onSelect, 
+  onSelect,
   onEdit,
   style,
 }: ReviewTableRowProps) {
@@ -52,25 +52,21 @@ function ReviewTableRow({
     <div
       style={style}
       className={cn(
-        'flex items-center gap-3 px-4 py-2 border-b hover:bg-gray-50 transition-colors',
-        isSelected && 'bg-blue-50 ring-2 ring-blue-200',
-        isRowSelected && 'bg-blue-100'
+        "flex items-center gap-3 px-4 py-2 border-b hover:bg-gray-50 transition-colors",
+        isSelected && "bg-blue-50 ring-2 ring-blue-200",
+        isRowSelected && "bg-blue-100"
       )}
     >
       {/* Selection checkbox */}
       <div className="flex items-center">
-        <Checkbox
-          checked={isRowSelected}
-          onCheckedChange={onSelect}
-          className="h-4 w-4"
-        />
+        <Checkbox checked={isRowSelected} onCheckedChange={onSelect} className="h-4 w-4" />
       </div>
 
       {/* Date */}
       <div className="w-24 text-sm text-muted-foreground">
         {new Date(transaction.date).toLocaleDateString(undefined, {
-          month: 'short',
-          day: 'numeric',
+          month: "short",
+          day: "numeric",
         })}
       </div>
 
@@ -80,20 +76,14 @@ function ReviewTableRow({
           {transaction.merchant_name || transaction.description}
         </div>
         {transaction.merchant_name && transaction.merchant_name !== transaction.description && (
-          <div className="text-sm text-muted-foreground truncate">
-            {transaction.description}
-          </div>
+          <div className="text-sm text-muted-foreground truncate">{transaction.description}</div>
         )}
       </div>
 
       {/* Amount */}
       <div className="w-24 text-right">
         <div
-          className={cn(
-            'font-medium',
-            isExpense && 'text-red-600',
-            isIncome && 'text-green-600'
-          )}
+          className={cn("font-medium", isExpense && "text-red-600", isIncome && "text-green-600")}
         >
           {toUSD(transaction.amount_cents)}
         </div>
@@ -121,7 +111,7 @@ function ReviewTableRow({
             Review
           </Badge>
         )}
-        
+
         <Button
           variant="ghost"
           size="sm"
@@ -130,13 +120,8 @@ function ReviewTableRow({
         >
           <Check className="h-3 w-3" />
         </Button>
-        
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 w-6 p-0"
-          title="Attach receipt (Ctrl+R)"
-        >
+
+        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" title="Attach receipt (Ctrl+R)">
           <FileText className="h-3 w-3" />
         </Button>
       </div>
@@ -160,7 +145,7 @@ export function ReviewTable({
   // Flatten all items from pages
   const allItems = useMemo(() => {
     if (!data?.pages) return [];
-    return data.pages.flatMap(page => page.items);
+    return data.pages.flatMap((page) => page.items);
   }, [data?.pages]);
 
   const hasNextPage = data?.pages?.[data.pages.length - 1]?.hasMore ?? false;
@@ -187,7 +172,7 @@ export function ReviewTable({
   // Handle select all
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      const allIds = new Set(allItems.map(item => item.id));
+      const allIds = new Set(allItems.map((item) => item.id));
       onSelectRows(allIds);
     } else {
       onSelectRows(new Set());
@@ -217,7 +202,7 @@ export function ReviewTable({
   }
 
   return (
-    <div className={cn('h-full flex flex-col border rounded-lg bg-white', className)}>
+    <div className={cn("h-full flex flex-col border rounded-lg bg-white", className)}>
       {/* Table Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b bg-gray-50 text-sm font-medium">
         <div className="flex items-center">
@@ -226,7 +211,7 @@ export function ReviewTable({
             ref={(el) => {
               if (el) {
                 // Access the underlying input element for indeterminate state
-                const input = el.querySelector('input');
+                const input = el.querySelector("input");
                 if (input) input.indeterminate = isPartiallySelected;
               }
             }}
@@ -234,32 +219,24 @@ export function ReviewTable({
             className="h-4 w-4"
           />
         </div>
-        
+
         <div className="w-24 flex items-center gap-1">
           <Calendar className="h-3 w-3" />
           Date
         </div>
-        
-        <div className="flex-1">
-          Merchant / Description
-        </div>
-        
+
+        <div className="flex-1">Merchant / Description</div>
+
         <div className="w-24 text-right flex items-center justify-end gap-1">
           <DollarSign className="h-3 w-3" />
           Amount
         </div>
-        
-        <div className="w-48">
-          Category
-        </div>
-        
-        <div className="w-16 text-center">
-          Why?
-        </div>
-        
-        <div className="w-24 text-center">
-          Actions
-        </div>
+
+        <div className="w-48">Category</div>
+
+        <div className="w-16 text-center">Why?</div>
+
+        <div className="w-24 text-center">Actions</div>
       </div>
 
       {/* Virtualized Table Body */}
@@ -268,13 +245,13 @@ export function ReviewTable({
         className="flex-1 overflow-auto"
         onKeyDown={onKeyDown}
         tabIndex={0}
-        style={{ height: '600px' }} // Fixed height for virtualization
+        style={{ height: "600px" }} // Fixed height for virtualization
       >
         <div
           style={{
             height: `${virtualizer.getTotalSize()}px`,
-            width: '100%',
-            position: 'relative',
+            width: "100%",
+            position: "relative",
           }}
         >
           {virtualItems.map((virtualItem) => {
@@ -292,10 +269,10 @@ export function ReviewTable({
                 onSelect={(checked) => handleRowSelect(transaction.id, checked)}
                 onEdit={() => onEdit?.(virtualItem.index)}
                 style={{
-                  position: 'absolute',
+                  position: "absolute",
                   top: 0,
                   left: 0,
-                  width: '100%',
+                  width: "100%",
                   height: `${virtualItem.size}px`,
                   transform: `translateY(${virtualItem.start}px)`,
                 }}

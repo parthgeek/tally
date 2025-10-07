@@ -3,7 +3,7 @@
  * Enhanced security validation with sanitization and attack prevention
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 // Base validation utilities
 const createStringSchema = (options: {
@@ -27,7 +27,7 @@ const createStringSchema = (options: {
   }
 
   if (options.sanitize) {
-    return schema.transform(val => val.trim().replace(/[<>"`]/g, ''));
+    return schema.transform((val) => val.trim().replace(/[<>"`]/g, ""));
   }
 
   return schema;
@@ -36,22 +36,24 @@ const createStringSchema = (options: {
 // Common field validators
 export const validators = {
   // UUID validation
-  uuid: z.string().uuid('Invalid UUID format'),
+  uuid: z.string().uuid("Invalid UUID format"),
 
   // Email validation with normalization
-  email: z.string()
-    .email('Invalid email format')
+  email: z
+    .string()
+    .email("Invalid email format")
     .max(254)
-    .transform(val => val.trim().toLowerCase()),
+    .transform((val) => val.trim().toLowerCase()),
 
   // Secure password validation
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .max(128, 'Password too long')
-    .regex(/[A-Z]/, 'Password must contain uppercase letter')
-    .regex(/[a-z]/, 'Password must contain lowercase letter')
-    .regex(/\d/, 'Password must contain number')
-    .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Password must contain special character'),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password too long")
+    .regex(/[A-Z]/, "Password must contain uppercase letter")
+    .regex(/[a-z]/, "Password must contain lowercase letter")
+    .regex(/\d/, "Password must contain number")
+    .regex(/[!@#$%^&*(),.?":{}|<>]/, "Password must contain special character"),
 
   // Organization name with sanitization
   organizationName: createStringSchema({
@@ -61,44 +63,52 @@ export const validators = {
   }),
 
   // Safe text input (prevents XSS)
-  safeText: z.string()
+  safeText: z
+    .string()
     .max(1000)
-    .transform(val => val.trim().replace(/[<>`]/g, '')),
+    .transform((val) => val.trim().replace(/[<>`]/g, "")),
 
   // URL validation
-  url: z.string().url('Invalid URL format').max(2000),
+  url: z.string().url("Invalid URL format").max(2000),
 
   // Pagination parameters
   page: z.coerce.number().int().min(1).max(1000).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 
   // Date range validation
-  dateRange: z.object({
-    from: z.string().datetime().optional(),
-    to: z.string().datetime().optional(),
-  }).refine(data => {
-    if (data.from && data.to) {
-      return new Date(data.from) <= new Date(data.to);
-    }
-    return true;
-  }, 'Start date must be before end date'),
+  dateRange: z
+    .object({
+      from: z.string().datetime().optional(),
+      to: z.string().datetime().optional(),
+    })
+    .refine((data) => {
+      if (data.from && data.to) {
+        return new Date(data.from) <= new Date(data.to);
+      }
+      return true;
+    }, "Start date must be before end date"),
 
   // Financial amount validation (in cents)
-  amount: z.coerce.number()
-    .int('Amount must be an integer')
-    .min(-999999999, 'Amount too small')
-    .max(999999999, 'Amount too large'),
+  amount: z.coerce
+    .number()
+    .int("Amount must be an integer")
+    .min(-999999999, "Amount too small")
+    .max(999999999, "Amount too large"),
 
   // Category validation
-  categoryId: z.string().uuid('Invalid category ID'),
+  categoryId: z.string().uuid("Invalid category ID"),
 
   // File upload validation
   fileUpload: z.object({
-    name: z.string().min(1).max(255).regex(/^[a-zA-Z0-9._-]+$/, 'Invalid filename'),
-    type: z.enum(['image/jpeg', 'image/png', 'application/pdf'], {
-      message: 'Only JPEG, PNG, and PDF files allowed',
+    name: z
+      .string()
+      .min(1)
+      .max(255)
+      .regex(/^[a-zA-Z0-9._-]+$/, "Invalid filename"),
+    type: z.enum(["image/jpeg", "image/png", "application/pdf"], {
+      message: "Only JPEG, PNG, and PDF files allowed",
     }),
-    size: z.number().max(10 * 1024 * 1024, 'File too large (max 10MB)'),
+    size: z.number().max(10 * 1024 * 1024, "File too large (max 10MB)"),
   }),
 };
 
@@ -106,30 +116,34 @@ export const validators = {
 export const authSchemas = {
   signIn: z.object({
     email: validators.email,
-    password: z.string().min(1, 'Password required'),
+    password: z.string().min(1, "Password required"),
   }),
 
-  signUp: z.object({
-    email: validators.email,
-    password: validators.password,
-    confirmPassword: z.string(),
-  }).refine(data => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
-  }),
+  signUp: z
+    .object({
+      email: validators.email,
+      password: validators.password,
+      confirmPassword: z.string(),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: "Passwords do not match",
+      path: ["confirmPassword"],
+    }),
 
   resetPassword: z.object({
     email: validators.email,
   }),
 
-  updatePassword: z.object({
-    currentPassword: z.string().min(1, 'Current password required'),
-    newPassword: validators.password,
-    confirmPassword: z.string(),
-  }).refine(data => data.newPassword === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
-  }),
+  updatePassword: z
+    .object({
+      currentPassword: z.string().min(1, "Current password required"),
+      newPassword: validators.password,
+      confirmPassword: z.string(),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+      message: "Passwords do not match",
+      path: ["confirmPassword"],
+    }),
 };
 
 // Organization schemas
@@ -137,48 +151,47 @@ export const organizationSchemas = {
   create: z.object({
     name: validators.organizationName,
     industry: z.enum([
-      'ecommerce',
-      'Restaurant',
-      'Retail',
-      'Healthcare',
-      'Professional Services',
-      'Other',
+      "ecommerce",
+      "Restaurant",
+      "Retail",
+      "Healthcare",
+      "Professional Services",
+      "Other",
     ]),
     description: validators.safeText.optional(),
   }),
 
   update: z.object({
     name: validators.organizationName.optional(),
-    industry: z.enum([
-      'ecommerce',
-      'Restaurant',
-      'Retail',
-      'Healthcare',
-      'Professional Services',
-      'Other',
-    ]).optional(),
+    industry: z
+      .enum(["ecommerce", "Restaurant", "Retail", "Healthcare", "Professional Services", "Other"])
+      .optional(),
     description: validators.safeText.optional(),
   }),
 
   memberInvite: z.object({
     email: validators.email,
-    role: z.enum(['admin', 'member', 'viewer']),
+    role: z.enum(["admin", "member", "viewer"]),
   }),
 };
 
 // Plaid integration schemas
 export const plaidSchemas = {
   exchange: z.object({
-    public_token: z.string()
-      .min(10, 'Invalid public token')
-      .max(500, 'Public token too long')
-      .regex(/^public-[a-zA-Z0-9-_]+$/, 'Invalid public token format'),
+    public_token: z
+      .string()
+      .min(10, "Invalid public token")
+      .max(500, "Public token too long")
+      .regex(/^public-[a-zA-Z0-9-_]+$/, "Invalid public token format"),
 
-    metadata: z.object({
-      institution_id: z.string().optional(),
-      account_id: z.string().optional(),
-      link_session_id: z.string().optional(),
-    }).passthrough().optional(),
+    metadata: z
+      .object({
+        institution_id: z.string().optional(),
+        account_id: z.string().optional(),
+        link_session_id: z.string().optional(),
+      })
+      .passthrough()
+      .optional(),
   }),
 
   linkToken: z.object({
@@ -187,15 +200,17 @@ export const plaidSchemas = {
   }),
 
   webhookVerification: z.object({
-    webhook_type: z.enum(['TRANSACTIONS', 'ITEM', 'INCOME', 'ASSETS']),
+    webhook_type: z.enum(["TRANSACTIONS", "ITEM", "INCOME", "ASSETS"]),
     webhook_code: z.string().min(1).max(50),
     item_id: z.string().min(1).max(100),
     request_id: z.string().optional(),
-    error: z.object({
-      error_type: z.string(),
-      error_code: z.string(),
-      error_message: z.string(),
-    }).optional(),
+    error: z
+      .object({
+        error_type: z.string(),
+        error_code: z.string(),
+        error_message: z.string(),
+      })
+      .optional(),
   }),
 };
 
@@ -237,7 +252,7 @@ export const transactionSchemas = {
 export const exportSchemas = {
   create: z.object({
     orgId: validators.uuid,
-    type: z.enum(['csv', 'quickbooks', 'xero']),
+    type: z.enum(["csv", "quickbooks", "xero"]),
     ...validators.dateRange.shape,
     categoryIds: z.array(validators.categoryId).optional(),
     includeReceipts: z.boolean().default(false),
@@ -267,7 +282,7 @@ export const dashboardSchemas = {
   metrics: z.object({
     orgId: validators.uuid,
     ...validators.dateRange.shape,
-    granularity: z.enum(['day', 'week', 'month']).default('day'),
+    granularity: z.enum(["day", "week", "month"]).default("day"),
   }),
 
   cashFlow: z.object({
@@ -303,7 +318,7 @@ export const settingsSchemas = {
 export const reviewSchemas = {
   list: z.object({
     orgId: validators.uuid,
-    status: z.enum(['pending', 'reviewed', 'all']).default('pending'),
+    status: z.enum(["pending", "reviewed", "all"]).default("pending"),
     ...validators.dateRange.shape,
     page: validators.page,
     limit: validators.limit,
@@ -321,7 +336,7 @@ export const reviewSchemas = {
 export const apiKeySchemas = {
   create: z.object({
     name: validators.safeText,
-    permissions: z.array(z.enum(['read', 'write', 'admin'])),
+    permissions: z.array(z.enum(["read", "write", "admin"])),
     expiresAt: z.string().datetime().optional(),
   }),
 
@@ -354,20 +369,20 @@ export async function validateRequestBody<T>(
     const { maxSize = 1024 * 1024, logErrors = true, sanitize = true } = options;
 
     // Check content type
-    const contentType = request.headers.get('content-type');
-    if (!contentType?.includes('application/json')) {
+    const contentType = request.headers.get("content-type");
+    if (!contentType?.includes("application/json")) {
       return {
         success: false,
-        error: 'Content-Type must be application/json',
+        error: "Content-Type must be application/json",
       };
     }
 
     // Check content length
-    const contentLength = request.headers.get('content-length');
+    const contentLength = request.headers.get("content-length");
     if (contentLength && parseInt(contentLength) > maxSize) {
       return {
         success: false,
-        error: 'Request body too large',
+        error: "Request body too large",
       };
     }
 
@@ -378,12 +393,12 @@ export async function validateRequestBody<T>(
     } catch (error) {
       return {
         success: false,
-        error: 'Invalid JSON format',
+        error: "Invalid JSON format",
       };
     }
 
     // Basic sanitization if enabled
-    if (sanitize && typeof body === 'object' && body !== null) {
+    if (sanitize && typeof body === "object" && body !== null) {
       body = sanitizeObject(body);
     }
 
@@ -392,7 +407,7 @@ export async function validateRequestBody<T>(
 
     if (!result.success) {
       if (logErrors) {
-        console.warn('Request validation failed:', {
+        console.warn("Request validation failed:", {
           errors: result.error.issues,
           path: request.url,
         });
@@ -400,7 +415,7 @@ export async function validateRequestBody<T>(
 
       return {
         success: false,
-        error: 'Validation failed',
+        error: "Validation failed",
         details: result.error.issues,
       };
     }
@@ -409,12 +424,11 @@ export async function validateRequestBody<T>(
       success: true,
       data: result.data,
     };
-
   } catch (error) {
-    console.error('Request validation error:', error);
+    console.error("Request validation error:", error);
     return {
       success: false,
-      error: 'Internal validation error',
+      error: "Internal validation error",
     };
   }
 }
@@ -423,18 +437,18 @@ export async function validateRequestBody<T>(
  * Sanitize object to prevent XSS and injection attacks
  */
 function sanitizeObject(obj: any): any {
-  if (typeof obj === 'string') {
-    return obj.trim().replace(/[<>`]/g, '');
+  if (typeof obj === "string") {
+    return obj.trim().replace(/[<>`]/g, "");
   }
 
   if (Array.isArray(obj)) {
     return obj.map(sanitizeObject);
   }
 
-  if (typeof obj === 'object' && obj !== null) {
+  if (typeof obj === "object" && obj !== null) {
     const sanitized: any = {};
     for (const [key, value] of Object.entries(obj)) {
-      const sanitizedKey = key.replace(/[<>`]/g, '');
+      const sanitizedKey = key.replace(/[<>`]/g, "");
       sanitized[sanitizedKey] = sanitizeObject(value);
     }
     return sanitized;
@@ -446,10 +460,7 @@ function sanitizeObject(obj: any): any {
 /**
  * Validate query parameters with schema
  */
-export function validateQueryParams<T>(
-  url: URL,
-  schema: z.ZodSchema<T>
-): ValidationResult<T> {
+export function validateQueryParams<T>(url: URL, schema: z.ZodSchema<T>): ValidationResult<T> {
   try {
     const params: any = {};
 
@@ -471,7 +482,7 @@ export function validateQueryParams<T>(
     if (!result.success) {
       return {
         success: false,
-        error: 'Query parameter validation failed',
+        error: "Query parameter validation failed",
         details: result.error.issues,
       };
     }
@@ -480,11 +491,10 @@ export function validateQueryParams<T>(
       success: true,
       data: result.data,
     };
-
   } catch (error) {
     return {
       success: false,
-      error: 'Query parameter parsing error',
+      error: "Query parameter parsing error",
     };
   }
 }
@@ -495,15 +505,15 @@ export function validateQueryParams<T>(
 export function createValidationErrorResponse(error: any): Response {
   return new Response(
     JSON.stringify({
-      error: 'Validation failed',
+      error: "Validation failed",
       details: error,
-      message: 'The request contains invalid or missing data',
+      message: "The request contains invalid or missing data",
     }),
     {
       status: 400,
       headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store',
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store",
       },
     }
   );

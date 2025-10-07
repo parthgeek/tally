@@ -14,22 +14,18 @@ export default function DashboardPage() {
   const [hasConnections, setHasConnections] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [orgName, setOrgName] = useState<string>("Your Organization");
-  const [timeRange, setTimeRange] = useState<'30d' | '90d'>('30d');
+  const [timeRange, setTimeRange] = useState<"30d" | "90d">("30d");
 
   const supabase = createClient();
-  
+
   // Custom hooks for data and analytics
   const { data: dashboard, isLoading: isDashboardLoading } = useDashboardData();
   const chartData = useDashboardCharts(dashboard, timeRange);
-  const {
-    trackDashboardViewed,
-    trackRangeToggle,
-    trackAlertClicked,
-    trackChartHover,
-  } = useDashboardAnalytics();
+  const { trackDashboardViewed, trackRangeToggle, trackAlertClicked, trackChartHover } =
+    useDashboardAnalytics();
 
   // Handle time range changes with analytics
-  const handleTimeRangeChange = (range: '30d' | '90d') => {
+  const handleTimeRangeChange = (range: "30d" | "90d") => {
     setTimeRange(range);
     trackRangeToggle(range);
   };
@@ -37,13 +33,15 @@ export default function DashboardPage() {
   useEffect(() => {
     const checkConnections = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) return;
 
         // Get current org from cookie
-        const cookies = document.cookie.split(';');
-        const orgCookie = cookies.find(cookie => cookie.trim().startsWith('orgId='));
-        const currentOrgId = orgCookie ? orgCookie.split('=')[1] : null;
+        const cookies = document.cookie.split(";");
+        const orgCookie = cookies.find((cookie) => cookie.trim().startsWith("orgId="));
+        const currentOrgId = orgCookie ? orgCookie.split("=")[1] : null;
 
         if (!currentOrgId) return;
 
@@ -106,22 +104,17 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Overview of your financial data and key metrics.
-        </p>
+        <p className="text-muted-foreground">Overview of your financial data and key metrics.</p>
       </div>
 
       {/* Header cards */}
       <MetricsCards dashboard={dashboard} />
 
       {/* Alerts row */}
-      <AlertsRow 
-        alerts={dashboard.alerts} 
-        onAlertClick={trackAlertClicked}
-      />
+      <AlertsRow alerts={dashboard.alerts} onAlertClick={trackAlertClicked} />
 
       {/* Charts section */}
-      <ChartsSection 
+      <ChartsSection
         data={chartData}
         timeRange={timeRange}
         trendDeltaPct={dashboard.trend.outflowDeltaPct}

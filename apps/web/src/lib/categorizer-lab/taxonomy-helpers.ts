@@ -3,8 +3,8 @@ import {
   getCategoryById,
   isFeatureEnabled,
   CategorizerFeatureFlag,
-  type FeatureFlagConfig
-} from '@nexus/categorizer';
+  type FeatureFlagConfig,
+} from "@nexus/categorizer";
 
 // Define CategoryNode type locally since it may not be exported
 interface CategoryNode {
@@ -12,7 +12,7 @@ interface CategoryNode {
   slug: string;
   name: string;
   parentId: string | null;
-  type: 'revenue' | 'cogs' | 'opex' | 'liability' | 'clearing';
+  type: "revenue" | "cogs" | "opex" | "liability" | "clearing";
   isPnL: boolean;
   includeInPrompt: boolean;
 }
@@ -27,7 +27,7 @@ export interface CategoryHierarchy {
   parentName: string | null;
   parentSlug: string | null;
   parentId: string | null;
-  type: CategoryNode['type'];
+  type: CategoryNode["type"];
   tier: 1 | 2;
   isPnL: boolean;
 }
@@ -38,21 +38,27 @@ export interface CategoryHierarchy {
 export interface CategoryDisplayOptions {
   showParent?: boolean;
   showArrow?: boolean;
-  format?: 'full' | 'compact' | 'child-only' | 'parent-only';
+  format?: "full" | "compact" | "child-only" | "parent-only";
   includeType?: boolean;
 }
 
 /**
  * Get the current feature flag configuration for taxonomy
  */
-function getTaxonomyConfig(): { config: FeatureFlagConfig; environment: 'development' | 'staging' | 'production' } {
+function getTaxonomyConfig(): {
+  config: FeatureFlagConfig;
+  environment: "development" | "staging" | "production";
+} {
   // In the lab environment, we'll default to development settings
   // In a real implementation, this would come from the user's environment or app config
-  const environment = (process.env.NODE_ENV === 'production' ? 'production' : 'development') as 'development' | 'staging' | 'production';
+  const environment = (process.env.NODE_ENV === "production" ? "production" : "development") as
+    | "development"
+    | "staging"
+    | "production";
 
   return {
     config: {}, // Use default flags from the service
-    environment
+    environment,
   };
 }
 
@@ -105,42 +111,37 @@ export function formatCategoryForDisplay(
   categoryId: string,
   options: CategoryDisplayOptions = {}
 ): string {
-  const {
-    showParent = true,
-    showArrow = true,
-    format = 'full',
-    includeType = false,
-  } = options;
+  const { showParent = true, showArrow = true, format = "full", includeType = false } = options;
 
   const hierarchy = getCategoryHierarchy(categoryId);
   if (!hierarchy) {
     return categoryId; // Fallback to ID if category not found
   }
 
-  let displayText = '';
+  let displayText = "";
 
   switch (format) {
-    case 'parent-only':
+    case "parent-only":
       displayText = hierarchy.parentName || hierarchy.name;
       break;
 
-    case 'child-only':
+    case "child-only":
       displayText = hierarchy.name;
       break;
 
-    case 'compact':
+    case "compact":
       if (hierarchy.tier === 2 && hierarchy.parentName && showParent) {
-        const arrow = showArrow ? ' → ' : ' / ';
+        const arrow = showArrow ? " → " : " / ";
         displayText = `${hierarchy.parentName}${arrow}${hierarchy.name}`;
       } else {
         displayText = hierarchy.name;
       }
       break;
 
-    case 'full':
+    case "full":
     default:
       if (hierarchy.tier === 2 && hierarchy.parentName && showParent) {
-        const arrow = showArrow ? ' → ' : ' / ';
+        const arrow = showArrow ? " → " : " / ";
         displayText = `${hierarchy.parentName}${arrow}${hierarchy.name}`;
       } else {
         displayText = hierarchy.name;
@@ -150,11 +151,11 @@ export function formatCategoryForDisplay(
 
   if (includeType && hierarchy.type) {
     const typeMap = {
-      revenue: 'Rev',
-      cogs: 'COGS',
-      opex: 'OpEx',
-      liability: 'Liab',
-      clearing: 'Clear',
+      revenue: "Rev",
+      cogs: "COGS",
+      opex: "OpEx",
+      liability: "Liab",
+      clearing: "Clear",
     };
     const typeLabel = typeMap[hierarchy.type] || hierarchy.type;
     displayText = `[${typeLabel}] ${displayText}`;
@@ -167,7 +168,7 @@ export function formatCategoryForDisplay(
  * Get just the category display name (without parent)
  */
 export function getCategoryDisplayName(categoryId: string): string {
-  return formatCategoryForDisplay(categoryId, { format: 'child-only' });
+  return formatCategoryForDisplay(categoryId, { format: "child-only" });
 }
 
 /**
@@ -183,35 +184,40 @@ export function getParentCategoryName(categoryId: string): string | null {
  */
 export function getCategoryTypeColor(categoryId: string): string {
   const hierarchy = getCategoryHierarchy(categoryId);
-  if (!hierarchy) return 'gray';
+  if (!hierarchy) return "gray";
 
-  const colorMap: Record<CategoryNode['type'], string> = {
-    revenue: 'green',
-    cogs: 'blue',
-    opex: 'orange',
-    liability: 'purple',
-    clearing: 'gray',
+  const colorMap: Record<CategoryNode["type"], string> = {
+    revenue: "green",
+    cogs: "blue",
+    opex: "orange",
+    liability: "purple",
+    clearing: "gray",
   };
 
-  return colorMap[hierarchy.type] || 'gray';
+  return colorMap[hierarchy.type] || "gray";
 }
 
 /**
  * Get category type badge variant for UI components
  */
-export function getCategoryTypeBadgeVariant(categoryId: string): 'default' | 'secondary' | 'outline' | 'destructive' {
+export function getCategoryTypeBadgeVariant(
+  categoryId: string
+): "default" | "secondary" | "outline" | "destructive" {
   const hierarchy = getCategoryHierarchy(categoryId);
-  if (!hierarchy) return 'outline';
+  if (!hierarchy) return "outline";
 
-  const variantMap: Record<CategoryNode['type'], 'default' | 'secondary' | 'outline' | 'destructive'> = {
-    revenue: 'default',
-    cogs: 'secondary',
-    opex: 'outline',
-    liability: 'destructive',
-    clearing: 'secondary',
+  const variantMap: Record<
+    CategoryNode["type"],
+    "default" | "secondary" | "outline" | "destructive"
+  > = {
+    revenue: "default",
+    cogs: "secondary",
+    opex: "outline",
+    liability: "destructive",
+    clearing: "secondary",
   };
 
-  return variantMap[hierarchy.type] || 'outline';
+  return variantMap[hierarchy.type] || "outline";
 }
 
 /**
@@ -238,7 +244,7 @@ export function getCategoriesGroupedByParent(): Record<string, CategoryNode[]> {
   const grouped: Record<string, CategoryNode[]> = {};
 
   // First, collect all parent categories
-  const parents = categories.filter(cat => cat.parentId === null);
+  const parents = categories.filter((cat) => cat.parentId === null);
 
   // Initialize groups
   for (const parent of parents) {
@@ -248,7 +254,7 @@ export function getCategoriesGroupedByParent(): Record<string, CategoryNode[]> {
   // Group child categories under parents
   for (const category of categories) {
     if (category.parentId) {
-      const parent = categories.find(p => p.id === category.parentId);
+      const parent = categories.find((p) => p.id === category.parentId);
       if (parent && grouped[parent.name]) {
         grouped[parent.name]!.push(category);
       }
@@ -269,7 +275,7 @@ export function isTwoTierTaxonomyEnabled(): boolean {
 /**
  * Get category breadcrumb for display (e.g., "Revenue > Shipping Income")
  */
-export function getCategoryBreadcrumb(categoryId: string, separator: string = ' > '): string {
+export function getCategoryBreadcrumb(categoryId: string, separator: string = " > "): string {
   const hierarchy = getCategoryHierarchy(categoryId);
   if (!hierarchy) return categoryId;
 
@@ -299,7 +305,7 @@ export function getCategoryTier(categoryId: string): 1 | 2 | null {
 /**
  * Filter categories by type
  */
-export function getCategoriesByType(type: CategoryNode['type']): CategoryNode[] {
+export function getCategoriesByType(type: CategoryNode["type"]): CategoryNode[] {
   const categories = getAvailableCategories();
-  return categories.filter(cat => cat.type === type);
+  return categories.filter((cat) => cat.type === type);
 }

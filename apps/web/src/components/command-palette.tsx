@@ -2,15 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { 
-  Home, 
-  Receipt, 
-  Eye, 
-  Settings, 
-  DollarSign,
-  Search,
-  ArrowRight
-} from "lucide-react";
+import { Home, Receipt, Eye, Settings, DollarSign, Search, ArrowRight } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -98,14 +90,14 @@ export function CommandPalette() {
       <CommandInput placeholder="Type a command or search..." />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
-        
+
         <CommandGroup heading="Navigation">
           {commands.map((command) => {
             const Icon = command.icon;
             return (
               <CommandItem
                 key={command.id}
-                value={`${command.label} ${command.keywords?.join(' ') || ''}`}
+                value={`${command.label} ${command.keywords?.join(" ") || ""}`}
                 onSelect={command.onSelect}
                 className="cursor-pointer"
               >
