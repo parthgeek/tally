@@ -46,7 +46,7 @@ export function WaitlistForm({ inline = false, className }: WaitlistFormProps) {
       >
         <Check className="w-6 h-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
         <p className="text-green-700 dark:text-green-300 font-medium">
-          You&apos;re on the list! Check your email for confirmation.
+          You&apos;re on the list! Be on the lookout for an email for early access!
         </p>
       </div>
     );
