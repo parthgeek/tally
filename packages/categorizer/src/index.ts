@@ -1,31 +1,31 @@
 // Public API exports for the categorizer package
 
 // Legacy exports (deprecated - use engine/pass1 instead)
-export { pass1Categorize, normalizeVendor } from './pass1.js';
-export { scoreWithLLM } from './pass2_llm.js';
-export { GeminiClient } from './gemini-client.js';
+export { pass1Categorize, normalizeVendor } from "./pass1.js";
+export { scoreWithLLM } from "./pass2_llm.js";
+export { GeminiClient } from "./gemini-client.js";
 
 // New enhanced engine exports
-export { 
+export {
   pass1Categorize as enhancedPass1Categorize,
   validatePass1Context,
-  createDefaultPass1Context
-} from './engine/pass1.js';
-export type { Pass1Context, EnhancedCategorizationResult } from './engine/pass1.js';
+  createDefaultPass1Context,
+} from "./engine/pass1.js";
+export type { Pass1Context, EnhancedCategorizationResult } from "./engine/pass1.js";
 
 // Scoring system exports
 export {
   createSignal,
   scoreSignals,
   calibrateConfidence,
-  getConfidenceDistribution
-} from './engine/scorer.js';
+  getConfidenceDistribution,
+} from "./engine/scorer.js";
 export type {
   CategorizationSignal,
   CategoryScore,
   ScoringResult,
-  SignalStrength
-} from './engine/scorer.js';
+  SignalStrength,
+} from "./engine/scorer.js";
 
 // Guardrails exports (engine)
 export {
@@ -34,47 +34,47 @@ export {
   validateGuardrailConfig,
   getGuardrailTypes,
   getGuardrailStats,
-  DEFAULT_GUARDRAIL_CONFIG
-} from './engine/guardrails.js';
+  DEFAULT_GUARDRAIL_CONFIG,
+} from "./engine/guardrails.js";
 export type {
   GuardrailViolation,
   GuardrailConfig,
-  GuardrailViolationType
-} from './engine/guardrails.js';
-export type { GuardrailResult as EngineGuardrailResult } from './engine/guardrails.js';
+  GuardrailViolationType,
+} from "./engine/guardrails.js";
+export type { GuardrailResult as EngineGuardrailResult } from "./engine/guardrails.js";
 
 // Rules exports
 export {
   getMCCMapping,
   hasMCCMapping,
   getMCCsForCategory,
-  isMCCCompatibleWithCategory
-} from './rules/mcc.js';
-export type { MCCMapping, MCCStrength } from './rules/mcc.js';
+  isMCCCompatibleWithCategory,
+} from "./rules/mcc.js";
+export type { MCCMapping, MCCStrength } from "./rules/mcc.js";
 
 export {
   matchVendorPattern,
   normalizeVendorName,
   getPatternsForCategory,
-  getConflictingPatterns
-} from './rules/vendors.js';
-export type { VendorPattern, VendorMatchStrength } from './rules/vendors.js';
+  getConflictingPatterns,
+} from "./rules/vendors.js";
+export type { VendorPattern, VendorMatchStrength } from "./rules/vendors.js";
 
 export {
   matchKeywordRules,
   calculateKeywordConfidence,
   getBestKeywordMatch,
   getKeywordRulesForDomain,
-  getAvailableDomains
-} from './rules/keywords.js';
-export type { KeywordRule, KeywordPenalty } from './rules/keywords.js';
+  getAvailableDomains,
+} from "./rules/keywords.js";
+export type { KeywordRule, KeywordPenalty } from "./rules/keywords.js";
 
 // E-commerce categorization exports
 export {
   buildCategorizationPrompt,
   getAvailableCategorySlugs,
-  isValidCategorySlug
-} from './prompt.js';
+  isValidCategorySlug,
+} from "./prompt.js";
 
 export {
   getActiveTaxonomy,
@@ -86,14 +86,11 @@ export {
   getChildCategories,
   mapCategorySlugToId,
   createSlugToIdMapping,
-  ECOMMERCE_TAXONOMY
-} from './taxonomy.js';
+  ECOMMERCE_TAXONOMY,
+} from "./taxonomy.js";
 
-export {
-  getIndustryForOrg,
-  getCategorizationConfig
-} from './config.js';
-export type { Industry, CategorizationConfig } from './config.js';
+export { getIndustryForOrg, getCategorizationConfig } from "./config.js";
+export type { Industry, CategorizationConfig } from "./config.js";
 
 export {
   checkRevenueGuardrails,
@@ -101,9 +98,9 @@ export {
   checkPayoutGuardrails,
   checkShippingDirectionGuardrails,
   applyEcommerceGuardrails,
-  getCategoryIdWithGuardrails
-} from './guardrails.js';
-export type { GuardrailResult } from './guardrails.js';
+  getCategoryIdWithGuardrails,
+} from "./guardrails.js";
+export type { GuardrailResult } from "./guardrails.js";
 
 // Feature flags exports
 export {
@@ -112,14 +109,54 @@ export {
   getFeatureFlag,
   isFeatureEnabled,
   getRolloutPercentage,
-  shouldUseHybridEngine
-} from './feature-flags.js';
-export type { FeatureFlagConfig } from './feature-flags.js';
+  shouldUseHybridEngine,
+} from "./feature-flags.js";
+export type { FeatureFlagConfig } from "./feature-flags.js";
+
+// Embeddings exports
+export {
+  generateVendorEmbedding,
+  findNearestVendorEmbeddings,
+  trackEmbeddingMatch,
+  createStabilitySnapshot,
+  getVendorStabilityMetrics,
+  upsertVendorEmbedding,
+  batchGenerateEmbeddings,
+  cosineSimilarity,
+} from "./engine/embeddings.js";
+export type {
+  VendorEmbedding,
+  EmbeddingMatch,
+  EmbeddingSearchOptions,
+  EmbeddingStabilityMetrics,
+} from "./engine/embeddings.js";
+
+// Learning loop exports
+export {
+  createRuleVersion,
+  runCanaryTest,
+  promoteRuleVersion,
+  rollbackRuleVersion,
+  getUnresolvedOscillations,
+  resolveOscillation,
+  getRuleEffectiveness,
+  getActiveRuleVersions,
+  detectRuleOscillations,
+} from "./engine/learning-loop.js";
+export type {
+  RuleType,
+  RuleSource,
+  RuleVersion,
+  RuleEffectiveness,
+  CategoryOscillation,
+  CanaryTestResult,
+  CanaryTestConfig,
+} from "./engine/learning-loop.js";
 
 // Re-export types from shared package
 export type {
   NormalizedTransaction,
   CategorizationResult,
   CategorizationContext,
-  CategoryId
-} from '@nexus/types';
+  CategoryId,
+} from "@nexus/types";

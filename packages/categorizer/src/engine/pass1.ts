@@ -1,19 +1,37 @@
-import type { NormalizedTransaction, CategorizationResult, CategorizationContext, CategoryId } from '@nexus/types';
-import { getMCCMapping } from '../rules/mcc.js';
-import { matchVendorPattern, normalizeVendorName } from '../rules/vendors.js';
-import { getBestKeywordMatch } from '../rules/keywords.js';
-import { createSignal, scoreSignals, calibrateConfidence, applyAmountHeuristics, type CategorizationSignal } from './scorer.js';
-import { applyGuardrails, createUncertainResult, DEFAULT_GUARDRAIL_CONFIG, type GuardrailConfig } from './guardrails.js';
+import type {
+  NormalizedTransaction,
+  CategorizationResult,
+  CategorizationContext,
+  CategoryId,
+} from "@nexus/types";
+import { getMCCMapping } from "../rules/mcc.js";
+import { matchVendorPattern, normalizeVendorName } from "../rules/vendors.js";
+import { getBestKeywordMatch } from "../rules/keywords.js";
+import {
+  createSignal,
+  scoreSignals,
+  calibrateConfidence,
+  applyAmountHeuristics,
+  type CategorizationSignal,
+} from "./scorer.js";
+import {
+  applyGuardrails,
+  createUncertainResult,
+  DEFAULT_GUARDRAIL_CONFIG,
+  type GuardrailConfig,
+} from "./guardrails.js";
 
 /**
  * Enhanced Pass-1 categorization context with caching and configuration
  */
 export interface Pass1Context extends CategorizationContext {
   db: any; // Supabase client
-  analytics?: {
-    captureEvent?: (event: string, properties: any) => void;
-    captureException?: (error: Error) => void;
-  } | undefined;
+  analytics?:
+    | {
+        captureEvent?: (event: string, properties: any) => void;
+        captureException?: (error: Error) => void;
+      }
+    | undefined;
   logger?: {
     info: (message: string, meta?: any) => void;
     error: (message: string, error?: any) => void;
@@ -45,7 +63,7 @@ export interface EnhancedCategorizationResult extends CategorizationResult {
 
 /**
  * Enhanced Pass-1 deterministic categorization using new scoring system
- * 
+ *
  * Processing pipeline:
  * 1. Extract signals from MCC, vendor patterns, keywords
  * 2. Score and aggregate signals by category
@@ -62,11 +80,11 @@ export async function pass1Categorize(
   const guardrailConfig = config.guardrails || DEFAULT_GUARDRAIL_CONFIG;
 
   try {
-    context.logger?.debug('Starting Pass-1 categorization', {
+    context.logger?.debug("Starting Pass-1 categorization", {
       txId: transaction.id,
       merchantName: transaction.merchantName,
       mcc: transaction.mcc,
-      amount: transaction.amountCents
+      amount: transaction.amountCents,
     });
 
     // === 1. MCC Signal Extraction ===
@@ -74,20 +92,20 @@ export async function pass1Categorize(
       const mccMapping = getMCCMapping(transaction.mcc);
       if (mccMapping) {
         const signal = createSignal(
-          'mcc',
+          "mcc",
           mccMapping.categoryId,
           mccMapping.categoryName,
-          mccMapping.strength === 'exact' ? 'exact' : 'strong',
+          mccMapping.strength === "exact" ? "exact" : "strong",
           mccMapping.baseConfidence,
           `MCC:${transaction.mcc}`,
           `${transaction.mcc} maps to ${mccMapping.categoryName} (${mccMapping.strength})`
         );
         signals.push(signal);
-        
-        context.logger?.debug('MCC signal found', {
+
+        context.logger?.debug("MCC signal found", {
           mcc: transaction.mcc,
           category: mccMapping.categoryName,
-          confidence: signal.confidence
+          confidence: signal.confidence,
         });
       }
     }
@@ -97,21 +115,21 @@ export async function pass1Categorize(
       const vendorMatch = matchVendorPattern(transaction.merchantName);
       if (vendorMatch) {
         const signal = createSignal(
-          'vendor',
+          "vendor",
           vendorMatch.categoryId,
           vendorMatch.categoryName,
-          vendorMatch.matchType === 'exact' ? 'exact' : 'strong',
+          vendorMatch.matchType === "exact" ? "exact" : "strong",
           vendorMatch.confidence,
           `vendor:${vendorMatch.pattern}`,
           `'${transaction.merchantName}' matched vendor pattern '${vendorMatch.pattern}' (${vendorMatch.matchType})`
         );
         signals.push(signal);
 
-        context.logger?.debug('Vendor signal found', {
+        context.logger?.debug("Vendor signal found", {
           merchant: transaction.merchantName,
           pattern: vendorMatch.pattern,
           category: vendorMatch.categoryName,
-          confidence: signal.confidence
+          confidence: signal.confidence,
         });
       }
     }
@@ -120,79 +138,133 @@ export async function pass1Categorize(
     const keywordMatch = getBestKeywordMatch(transaction.description);
     if (keywordMatch) {
       // Determine category name from the rationale (not ideal, but matches current structure)
-      const categoryName = keywordMatch.rationale[0]?.split(' → ')[1] || 'Unknown';
-      
+      const categoryName = keywordMatch.rationale[0]?.split(" → ")[1] || "Unknown";
+
       const signal = createSignal(
-        'keyword',
+        "keyword",
         keywordMatch.categoryId,
         categoryName,
-        'medium', // Keywords are generally medium strength
+        "medium", // Keywords are generally medium strength
         keywordMatch.confidence,
-        'keywords',
-        keywordMatch.rationale.join('; '),
-        keywordMatch.rationale[0]?.split(' → ')[0]?.replace('keywords: [', '').replace(']', '').split(', ')
+        "keywords",
+        keywordMatch.rationale.join("; "),
+        keywordMatch.rationale[0]
+          ?.split(" → ")[0]
+          ?.replace("keywords: [", "")
+          .replace("]", "")
+          .split(", ")
       );
       signals.push(signal);
 
-      context.logger?.debug('Keyword signal found', {
+      context.logger?.debug("Keyword signal found", {
         description: transaction.description,
         category: categoryName,
-        confidence: signal.confidence
+        confidence: signal.confidence,
       });
     }
 
     // === 4. Embeddings Boost (if enabled) ===
-    if (config.enableEmbeddings && transaction.merchantName && signals.length > 0) {
-      // This is a simplified version - in production, you'd calculate actual embeddings similarity
+    if (config.enableEmbeddings && transaction.merchantName) {
       const normalizedVendor = normalizeVendorName(transaction.merchantName);
-      
-      try {
-        const { data: embeddings, error } = await context.db
-          .from('vendor_embeddings')
-          .select('vendor, category_id, similarity_score')
-          .eq('org_id', context.orgId)
-          .ilike('vendor', `%${normalizedVendor}%`)
-          .limit(3);
 
-        if (!error && embeddings && embeddings.length > 0) {
+      try {
+        // Check cache first
+        const cacheKey = `${context.orgId}:${normalizedVendor}`;
+        let embeddingMatches = context.caches?.vendorEmbeddings?.get(cacheKey);
+
+        if (!embeddingMatches) {
+          // Import embeddings module dynamically to avoid circular dependencies
+          const { generateVendorEmbedding, findNearestVendorEmbeddings, trackEmbeddingMatch } =
+            await import("./embeddings.js");
+
+          // Generate embedding for the vendor
+          const openaiApiKey = process.env.OPENAI_API_KEY;
+          if (!openaiApiKey) {
+            context.logger?.debug("OpenAI API key not found, skipping embeddings");
+          } else {
+            const queryEmbedding = await generateVendorEmbedding(normalizedVendor, openaiApiKey);
+
+            // Find nearest neighbors
+            embeddingMatches = await findNearestVendorEmbeddings(
+              context.db,
+              context.orgId,
+              queryEmbedding,
+              {
+                similarityThreshold: 0.7,
+                maxResults: 5,
+              }
+            );
+
+            // Cache the results
+            context.caches?.vendorEmbeddings?.set(cacheKey, embeddingMatches);
+
+            context.logger?.debug("Embedding search completed", {
+              vendor: normalizedVendor,
+              matchCount: embeddingMatches.length,
+            });
+          }
+        }
+
+        if (embeddingMatches && embeddingMatches.length > 0) {
+          // Import trackEmbeddingMatch for recording matches
+          const { trackEmbeddingMatch } = await import("./embeddings.js");
+
           // Create embedding signals for similar vendors
-          for (const embedding of embeddings) {
-            if (embedding.similarity_score > 0.7) { // Threshold for meaningful similarity
+          for (const match of embeddingMatches) {
+            if (match.similarityScore >= 0.7) {
               const boostSignal = createSignal(
-                'embedding',
-                embedding.category_id as CategoryId,
-                'Similar Vendor',
-                'weak',
-                embedding.similarity_score * 0.3, // Lower confidence boost
-                `embedding:${embedding.vendor}`,
-                `Similar to vendor '${embedding.vendor}' (similarity: ${embedding.similarity_score.toFixed(3)})`
+                "embedding",
+                match.categoryId,
+                match.categoryName,
+                "weak",
+                match.similarityScore * match.confidence * 0.4, // Confidence boost weighted by match confidence
+                `embedding:${match.vendor}`,
+                `Similar to vendor '${match.vendor}' (similarity: ${match.similarityScore.toFixed(3)}, confidence: ${match.confidence.toFixed(3)})`
               );
               signals.push(boostSignal);
+
+              // Track the match for stability monitoring (async, don't await)
+              trackEmbeddingMatch(
+                context.db,
+                context.orgId,
+                transaction.id,
+                match,
+                false // Will be updated later if this contributes to final decision
+              ).catch((err) => {
+                context.logger?.debug("Failed to track embedding match", { error: err });
+              });
             }
           }
         }
       } catch (error) {
-        context.logger?.debug('Embeddings lookup failed', { error });
+        context.logger?.debug("Embeddings lookup failed", { error });
+        context.analytics?.captureException?.(
+          error instanceof Error ? error : new Error("Embeddings lookup failed")
+        );
         // Don't fail the whole categorization for embeddings issues
       }
     }
 
     // === 5. Score Aggregation ===
     const scoringResult = scoreSignals(signals);
-    
-    context.logger?.debug('Scoring completed', {
+
+    context.logger?.debug("Scoring completed", {
       signalCount: signals.length,
       candidateCount: scoringResult.allCandidates.length,
       bestCategory: scoringResult.bestCategory?.categoryName,
-      bestScore: scoringResult.bestCategory?.totalScore
+      bestScore: scoringResult.bestCategory?.totalScore,
     });
 
     // === 6. Guardrails Application ===
     let finalResult: EnhancedCategorizationResult;
-    
+
     if (scoringResult.bestCategory) {
-      const guardrailResult = applyGuardrails(transaction, scoringResult.bestCategory, guardrailConfig);
-      
+      const guardrailResult = applyGuardrails(
+        transaction,
+        scoringResult.bestCategory,
+        guardrailConfig
+      );
+
       if (guardrailResult.allowed && guardrailResult.finalCategory) {
         // Calibrate confidence to avoid uniform distributions
         let calibratedConfidence = calibrateConfidence(
@@ -206,10 +278,13 @@ export async function pass1Categorize(
           guardrailResult.finalCategory,
           transaction.merchantName
         );
-        
+
         // Apply the heuristic modifier (capped at reasonable range)
         if (amountHeuristic.modifier !== 0) {
-          calibratedConfidence = Math.min(0.98, Math.max(0.05, calibratedConfidence + amountHeuristic.modifier));
+          calibratedConfidence = Math.min(
+            0.98,
+            Math.max(0.05, calibratedConfidence + amountHeuristic.modifier)
+          );
           scoringResult.rationale.push(`amount_heuristic: ${amountHeuristic.reason}`);
         }
 
@@ -218,22 +293,22 @@ export async function pass1Categorize(
           confidence: calibratedConfidence,
           rationale: [
             ...scoringResult.rationale,
-            ...(guardrailResult.guardrailsApplied.length > 0 ? 
-              [`guardrails: ${guardrailResult.guardrailsApplied.join(', ')}`] : [])
+            ...(guardrailResult.guardrailsApplied.length > 0
+              ? [`guardrails: ${guardrailResult.guardrailsApplied.join(", ")}`]
+              : []),
           ],
           signals,
-          guardrailsApplied: guardrailResult.guardrailsApplied
+          guardrailsApplied: guardrailResult.guardrailsApplied,
         };
 
-        context.analytics?.captureEvent?.('pass1_categorization_success', {
+        context.analytics?.captureEvent?.("pass1_categorization_success", {
           org_id: context.orgId,
           transaction_id: transaction.id,
           category_id: finalResult.categoryId,
           confidence: finalResult.confidence,
           signal_count: signals.length,
-          guardrails_applied: guardrailResult.guardrailsApplied.length
+          guardrails_applied: guardrailResult.guardrailsApplied.length,
         });
-
       } else {
         // Guardrails rejected the categorization
         createUncertainResult(transaction, guardrailResult.violations);
@@ -243,17 +318,17 @@ export async function pass1Categorize(
           confidence: undefined,
           rationale: [
             ...scoringResult.rationale,
-            `guardrails_rejected: ${guardrailResult.violations.map(v => v.type).join(', ')}`
+            `guardrails_rejected: ${guardrailResult.violations.map((v) => v.type).join(", ")}`,
           ],
           signals,
-          guardrailsApplied: guardrailResult.guardrailsApplied
+          guardrailsApplied: guardrailResult.guardrailsApplied,
         };
 
-        context.analytics?.captureEvent?.('pass1_categorization_rejected', {
+        context.analytics?.captureEvent?.("pass1_categorization_rejected", {
           org_id: context.orgId,
           transaction_id: transaction.id,
-          violations: guardrailResult.violations.map(v => v.type),
-          signal_count: signals.length
+          violations: guardrailResult.violations.map((v) => v.type),
+          signal_count: signals.length,
         });
       }
     } else {
@@ -261,15 +336,15 @@ export async function pass1Categorize(
       finalResult = {
         categoryId: undefined,
         confidence: undefined,
-        rationale: ['No categorization signals found or signals below threshold'],
+        rationale: ["No categorization signals found or signals below threshold"],
         signals,
-        guardrailsApplied: []
+        guardrailsApplied: [],
       };
 
-      context.analytics?.captureEvent?.('pass1_categorization_no_signals', {
+      context.analytics?.captureEvent?.("pass1_categorization_no_signals", {
         org_id: context.orgId,
         transaction_id: transaction.id,
-        attempted_signals: signals.length
+        attempted_signals: signals.length,
       });
     }
 
@@ -277,32 +352,36 @@ export async function pass1Categorize(
     if (config.debugMode) {
       finalResult.debugInfo = {
         allCandidates: scoringResult.allCandidates,
-        violations: scoringResult.bestCategory ? 
-          applyGuardrails(transaction, scoringResult.bestCategory, guardrailConfig).violations : [],
-        processingTime: Date.now() - startTime
+        violations: scoringResult.bestCategory
+          ? applyGuardrails(transaction, scoringResult.bestCategory, guardrailConfig).violations
+          : [],
+        processingTime: Date.now() - startTime,
       };
     }
 
-    context.logger?.info('Pass-1 categorization completed', {
+    context.logger?.info("Pass-1 categorization completed", {
       txId: transaction.id,
       categoryId: finalResult.categoryId,
       confidence: finalResult.confidence,
       signalCount: signals.length,
-      processingTime: Date.now() - startTime
+      processingTime: Date.now() - startTime,
     });
 
     return finalResult;
-
   } catch (error) {
-    context.logger?.error('Pass-1 categorization error', error);
-    context.analytics?.captureException?.(error instanceof Error ? error : new Error('Unknown Pass-1 error'));
-    
+    context.logger?.error("Pass-1 categorization error", error);
+    context.analytics?.captureException?.(
+      error instanceof Error ? error : new Error("Unknown Pass-1 error")
+    );
+
     return {
       categoryId: undefined,
       confidence: undefined,
-      rationale: [`Error during Pass-1 categorization: ${error instanceof Error ? error.message : 'Unknown error'}`],
+      rationale: [
+        `Error during Pass-1 categorization: ${error instanceof Error ? error.message : "Unknown error"}`,
+      ],
       signals,
-      guardrailsApplied: []
+      guardrailsApplied: [],
     };
   }
 }
@@ -314,16 +393,16 @@ export function validatePass1Context(context: Pass1Context): { valid: boolean; e
   const errors: string[] = [];
 
   if (!context.orgId) {
-    errors.push('orgId is required');
+    errors.push("orgId is required");
   }
 
   if (!context.db) {
-    errors.push('db client is required');
+    errors.push("db client is required");
   }
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -342,17 +421,17 @@ export function createDefaultPass1Context(
     logger: options.logger || {
       info: () => {},
       error: () => {},
-      debug: () => {}
+      debug: () => {},
     },
     caches: options.caches || {
       vendorRules: new Map(),
-      vendorEmbeddings: new Map()
+      vendorEmbeddings: new Map(),
     },
     config: {
       guardrails: DEFAULT_GUARDRAIL_CONFIG,
       enableEmbeddings: false,
       debugMode: false,
-      ...options.config
-    }
+      ...options.config,
+    },
   };
 }
