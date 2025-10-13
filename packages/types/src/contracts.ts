@@ -157,7 +157,7 @@ const normalizedTransactionSchema = z.object({
   confidence: z.number().min(0).max(1).optional(),
   reviewed: z.boolean().default(false),
   needsReview: z.boolean().default(false),
-  source: z.enum(["plaid", "square", "manual"]),
+  source: z.enum(["plaid", "square", "manual", "bench"]),
   raw: z.unknown(),
 });
 

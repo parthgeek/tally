@@ -356,7 +356,7 @@ export async function calculateDriftMetrics(
 
   for (const current of currentSnapshots) {
     const previous = categoryMap.get(current.category_id);
-    if (previous !== undefined) {
+    if (previous !== undefined && previous !== null && current.distribution_percentage !== null && typeof previous === 'number') {
       totalDrift += Math.abs(current.distribution_percentage - previous);
       categoryCount++;
     }

@@ -7,6 +7,7 @@
 
 import { describe, expect, test, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@nexus/db/database.types";
 import type { OrgId, CategoryId, NormalizedTransaction } from "@nexus/types";
 import { pass1Categorize, type Pass1Context } from "../../engine/pass1.js";
 import {
@@ -23,7 +24,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 
 describe("Embeddings + Pass1 Integration", () => {
-  let db: ReturnType<typeof createClient>;
+  let db: ReturnType<typeof createClient<Database>>;
   let testOrgId: OrgId;
   let testCategoryId: CategoryId;
 
@@ -34,7 +35,7 @@ describe("Embeddings + Pass1 Integration", () => {
     }
 
     // Use service role key for test setup (bypasses RLS)
-    db = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    db = createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
     // Create test organization
     const { data: orgData, error: orgError } = await db
@@ -279,7 +280,7 @@ describe("Embeddings + Pass1 Integration", () => {
       expect(result.signals).toBeDefined();
 
       // Check if embeddings signal was created
-      const embeddingSignals = result.signals?.filter((s) => s.source === "embedding");
+      const embeddingSignals = result.signals?.filter((s) => s.type === "embedding");
       expect(embeddingSignals?.length).toBeGreaterThan(0);
     });
 
@@ -316,7 +317,7 @@ describe("Embeddings + Pass1 Integration", () => {
       expect(result.rationale).toBeDefined();
 
       // Should not have embedding signals
-      const embeddingSignals = result.signals?.filter((s) => s.source === "embedding");
+      const embeddingSignals = result.signals?.filter((s) => s.type === "embedding");
       expect(embeddingSignals?.length || 0).toBe(0);
     });
   });

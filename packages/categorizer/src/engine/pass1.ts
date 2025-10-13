@@ -5,8 +5,9 @@ import type {
   CategoryId,
 } from "@nexus/types";
 import { getMCCMapping } from "../rules/mcc.js";
-import { matchVendorPattern, normalizeVendorName } from "../rules/vendors.js";
+import { findBestVendorMatch } from "../rules/vendors.js";
 import { getBestKeywordMatch } from "../rules/keywords.js";
+import { mapCategorySlugToId } from "../taxonomy.js";
 import {
   createSignal,
   scoreSignals,
@@ -112,11 +113,14 @@ export async function pass1Categorize(
 
     // === 2. Vendor Pattern Signal Extraction ===
     if (transaction.merchantName) {
-      const vendorMatch = matchVendorPattern(transaction.merchantName);
+      const vendorMatch = findBestVendorMatch(transaction.merchantName, transaction.description);
       if (vendorMatch) {
+        // Map category slug to ID
+        const categoryId = mapCategorySlugToId(vendorMatch.categorySlug) as CategoryId;
+        
         const signal = createSignal(
           "vendor",
-          vendorMatch.categoryId,
+          categoryId,
           vendorMatch.categoryName,
           vendorMatch.matchType === "exact" ? "exact" : "strong",
           vendorMatch.confidence,
@@ -165,7 +169,7 @@ export async function pass1Categorize(
 
     // === 4. Embeddings Boost (if enabled) ===
     if (config.enableEmbeddings && transaction.merchantName) {
-      const normalizedVendor = normalizeVendorName(transaction.merchantName);
+      const normalizedVendor = transaction.merchantName.toLowerCase().trim();
 
       try {
         // Check cache first
@@ -174,7 +178,7 @@ export async function pass1Categorize(
 
         if (!embeddingMatches) {
           // Import embeddings module dynamically to avoid circular dependencies
-          const { generateVendorEmbedding, findNearestVendorEmbeddings, trackEmbeddingMatch } =
+          const { generateVendorEmbedding, findNearestVendorEmbeddings } =
             await import("./embeddings.js");
 
           // Generate embedding for the vendor

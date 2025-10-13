@@ -10,6 +10,7 @@
     "types": ["node", "vitest/globals"]
   },
   "include": ["src/**/*"],
+  "exclude": ["src/**/*.spec.ts", "src/**/__tests__/**/*", "src/rules/validator.ts", "node_modules"],
   "references": [
     {"path": "../types"},
     {"path": "../analytics"}

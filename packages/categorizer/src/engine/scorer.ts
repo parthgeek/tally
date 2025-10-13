@@ -422,7 +422,7 @@ interface AmountHeuristic {
 export function applyAmountHeuristics(
   amountCents: string,
   categoryId: CategoryId,
-  merchantName?: string
+  _merchantName?: string
 ): AmountHeuristic {
   const amount = Math.abs(parseInt(amountCents, 10)) / 100; // Convert to dollars
 

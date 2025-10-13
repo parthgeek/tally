@@ -1,4 +1,5 @@
-export type Industry = 'ecommerce';
+import type { Industry } from './taxonomy.js';
+export type { Industry };
 
 export interface CategorizationConfig {
   industry: Industry;
@@ -20,6 +21,17 @@ export interface CategoryConfig {
  */
 export const DEFAULT_ECOMMERCE_CONFIG: CategorizationConfig = {
   industry: 'ecommerce',
+  useLLM: true,
+  autoApplyThreshold: 0.95,
+  hybridThreshold: 0.95,
+  useGuardrails: true,
+};
+
+/**
+ * Default configuration for all industries
+ */
+export const DEFAULT_CONFIG: CategorizationConfig = {
+  industry: 'all',
   useLLM: true,
   autoApplyThreshold: 0.95,
   hybridThreshold: 0.95,
@@ -53,6 +65,17 @@ export async function getIndustryForOrg(
       case 'retail':
       case 'online retail':
         return 'ecommerce';
+      case 'saas':
+      case 'software':
+        return 'saas';
+      case 'restaurant':
+      case 'food service':
+      case 'hospitality':
+        return 'restaurant';
+      case 'professional services':
+      case 'professional_services':
+      case 'consulting':
+        return 'professional_services';
       default:
         // Default to ecommerce for unknown industries
         console.warn(`Unknown industry '${org.industry}' for org ${orgId}, defaulting to ecommerce`);

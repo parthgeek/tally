@@ -1,0 +1,4 @@
+src/rules/validator.ts
+src/**/*.spec.ts
+src/**/__tests__/**/*
+

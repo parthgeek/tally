@@ -22,7 +22,7 @@ export function checkRevenueGuardrails(
   config: FeatureFlagConfig = {},
   environment: 'development' | 'staging' | 'production' = 'development'
 ): GuardrailResult {
-  const category = getCategoryBySlug(proposedCategorySlug, config, environment);
+  const category = getCategoryBySlug(proposedCategorySlug);
 
   // Check if two-tier taxonomy is enabled for different refund category handling
   const isTwoTierEnabled = isFeatureEnabled(
@@ -166,8 +166,8 @@ export function checkShippingDirectionGuardrails(
 export function checkSalesTaxGuardrails(
   tx: NormalizedTransaction,
   proposedCategorySlug: string,
-  config: FeatureFlagConfig = {},
-  environment: 'development' | 'staging' | 'production' = 'development'
+  _config: FeatureFlagConfig = {},
+  _environment: 'development' | 'staging' | 'production' = 'development'
 ): GuardrailResult {
   const description = tx.description.toLowerCase();
   const merchantName = (tx.merchantName || '').toLowerCase();
@@ -352,7 +352,7 @@ export function getCategoryIdWithGuardrails(
   const result = applyEcommerceGuardrails(tx, proposedCategorySlug, confidence, config, environment);
 
   return {
-    categoryId: mapCategorySlugToId(result.categorySlug, config, environment),
+    categoryId: mapCategorySlugToId(result.categorySlug),
     confidence: result.confidence,
     guardrailsApplied: result.guardrailsApplied,
     violations: result.violations

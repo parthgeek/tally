@@ -647,6 +647,6 @@ export function findBestVendorMatch(
 
   // Sort by priority (descending) and return highest
   matches.sort((a, b) => b.priority - a.priority);
-  return matches[0];
+  return matches[0] || null;
 }
 

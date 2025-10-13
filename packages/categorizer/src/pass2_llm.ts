@@ -247,7 +247,7 @@ function validateAndCleanAttributes(
  * Helper: Get industry for organization
  * (Default to 'ecommerce' for now, can be enhanced later)
  */
-export function getOrganizationIndustry(orgId: string): Industry {
+export function getOrganizationIndustry(_orgId: string): Industry {
   // TODO: Query from database when industry is stored per org
   // For now, default to ecommerce
   return 'ecommerce';

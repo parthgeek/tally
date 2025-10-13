@@ -2,7 +2,6 @@
 
 // Legacy exports (deprecated - use engine/pass1 instead)
 export { pass1Categorize, normalizeVendor } from "./pass1.js";
-export { scoreWithLLM } from "./pass2_llm.js";
 export { GeminiClient } from "./gemini-client.js";
 
 // Universal taxonomy exports
@@ -64,11 +63,10 @@ export type { MCCMapping, MCCStrength } from "./rules/mcc.js";
 
 export {
   matchVendorPattern,
-  normalizeVendorName,
-  getPatternsForCategory,
-  getConflictingPatterns,
+  findBestVendorMatch,
+  UNIVERSAL_VENDOR_PATTERNS,
 } from "./rules/vendors.js";
-export type { VendorPattern, VendorMatchStrength } from "./rules/vendors.js";
+export type { VendorPatternUniversal } from "./rules/vendors.js";
 
 export {
   matchKeywordRules,
@@ -79,28 +77,34 @@ export {
 } from "./rules/keywords.js";
 export type { KeywordRule, KeywordPenalty } from "./rules/keywords.js";
 
-// E-commerce categorization exports
+// Universal prompt exports
 export {
-  buildCategorizationPrompt,
+  buildUniversalPrompt,
+  parseLLMResponse,
   getAvailableCategorySlugs,
   isValidCategorySlug,
 } from "./prompt.js";
+export type { PromptContext, LLMResponse } from "./prompt.js";
 
+// Universal taxonomy exports
 export {
-  getActiveTaxonomy,
   getCategoryBySlug,
   getCategoryById,
-  isPnLCategory,
-  getPromptCategories,
-  getCategoriesByType,
-  getChildCategories,
+  getCategoriesForIndustry,
+  getPromptCategoriesForIndustry,
   mapCategorySlugToId,
-  createSlugToIdMapping,
-  ECOMMERCE_TAXONOMY,
+  validateAttributes,
+  UNIVERSAL_TAXONOMY,
+  UNIVERSAL_CATEGORY_IDS,
+} from "./taxonomy.js";
+export type { 
+  Industry,
+  UniversalCategory,
+  AttributeSchema,
 } from "./taxonomy.js";
 
-export { getIndustryForOrg, getCategorizationConfig } from "./config.js";
-export type { Industry, CategorizationConfig } from "./config.js";
+export { getIndustryForOrg, getCategorizationConfig, DEFAULT_ECOMMERCE_CONFIG, DEFAULT_CONFIG } from "./config.js";
+export type { CategorizationConfig } from "./config.js";
 
 export {
   checkRevenueGuardrails,

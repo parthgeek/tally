@@ -9,9 +9,9 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { NormalizedTransaction, CategorizationResult } from "@nexus/types";
+import type { NormalizedTransaction } from "@nexus/types";
 import { pass1Categorize } from "./pass1.js";
-import { scoreWithLLM } from "./pass2_llm.js";
+import { categorizeWithUniversalLLM } from "./pass2_llm.js";
 
 export interface CategorizeInput {
   orgId: string;
@@ -54,8 +54,8 @@ export async function categorize(
     amountCents: input.amountCents.toString(),
     currency: input.currency,
     description: input.description,
-    merchantName: input.merchantName,
-    mcc: input.mcc,
+    merchantName: input.merchantName ?? undefined,
+    mcc: input.mcc ?? undefined,
     categoryId: undefined,
     confidence: undefined,
     reviewed: false,
@@ -90,20 +90,32 @@ export async function categorize(
     };
   }
 
-  // Run Pass 2 (LLM)
-  const pass2Result = await scoreWithLLM(tx, {
+  // Run Pass 2 (LLM with Universal Taxonomy)
+  const context: any = {
+    industry: 'ecommerce', // Default to ecommerce for now
     orgId: input.orgId as any,
-    db: supabase,
-    pass1Signals: pass1Result.rationale,
-    config: {
-      temperature: options?.temperature,
-    },
-  } as any);
+  };
+
+  if (pass1Result.categoryId) {
+    context.pass1Context = {
+      categoryId: pass1Result.categoryId,
+      confidence: pass1Result.confidence ?? 0,
+      signals: pass1Result.rationale,
+    };
+  }
+
+  if (options?.temperature !== undefined) {
+    context.config = {
+      temperature: options.temperature,
+    };
+  }
+
+  const pass2Result = await categorizeWithUniversalLLM(tx, context);
 
   return {
     categoryId: pass2Result.categoryId,
     confidence: pass2Result.confidence,
     engine: pass1Result.categoryId ? "hybrid" : "llm",
-    rationale: [...(pass1Result.rationale || []), ...(pass2Result.rationale || [])],
+    rationale: [...(pass1Result.rationale || []), ...pass2Result.rationale],
   };
 }

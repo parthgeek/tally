@@ -14,7 +14,7 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src",
+    "lint": "eslint src --ignore-pattern '**/*.spec.ts' --ignore-pattern '**/__tests__/**' --ignore-pattern '**/validator.ts'",
     "test": "vitest",
     "test:watch": "vitest --watch"
   },

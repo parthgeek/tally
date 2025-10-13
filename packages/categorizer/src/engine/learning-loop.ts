@@ -145,7 +145,7 @@ export async function runCanaryTest(
 ): Promise<CanaryTestResult> {
   const { testSetSize = 100, accuracyThreshold = 0.8 } = config;
 
-  const { data, error } = await db.rpc("run_canary_test", {
+  const { error } = await db.rpc("run_canary_test", {
     p_org_id: orgId,
     p_rule_version_id: ruleVersionId,
     p_test_set_size: testSetSize,

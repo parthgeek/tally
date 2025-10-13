@@ -11,7 +11,10 @@
 
 import type { CategoryId } from "@nexus/types";
 import { MCC_MAPPINGS } from "./mcc.js";
-import { VENDOR_PATTERNS } from "./vendors.js";
+import { UNIVERSAL_VENDOR_PATTERNS } from "./vendors.js";
+
+// Alias for consistency within this module
+const VENDOR_PATTERNS = UNIVERSAL_VENDOR_PATTERNS;
 import { KEYWORD_RULES } from "./keywords.js";
 import safeRegex from "safe-regex";
 
@@ -26,14 +29,14 @@ export interface RuleConflict {
   rule1: {
     id: string;
     pattern: string;
-    categoryId: CategoryId;
+    categorySlug: CategoryId;
     categoryName: string;
     priority?: number;
   };
   rule2?: {
     id: string;
     pattern: string;
-    categoryId: CategoryId;
+    categorySlug: CategoryId;
     categoryName: string;
     priority?: number;
   };
@@ -87,7 +90,7 @@ function validateMCCRules(): RuleConflict[] {
       const [mcc2, mapping2] = mccEntries[j]!;
 
       // Check for same MCC different categories (should not happen, but validate)
-      if (mcc1 === mcc2 && mapping1.categoryId !== mapping2.categoryId) {
+      if (mcc1 === mcc2 && mapping1.categorySlug !== mapping2.categorySlug) {
         conflicts.push({
           conflictType: "overlap",
           severity: "critical",
@@ -95,7 +98,7 @@ function validateMCCRules(): RuleConflict[] {
           rule1: {
             id: `mcc:${mcc1}`,
             pattern: mcc1,
-            categoryId: mapping1.categoryId,
+            categorySlug: mapping1.categorySlug,
             categoryName: mapping1.categoryName,
             priority:
               mapping1.strength === "exact" ? 100 : mapping1.strength === "family" ? 80 : 50,
@@ -103,7 +106,7 @@ function validateMCCRules(): RuleConflict[] {
           rule2: {
             id: `mcc:${mcc2}`,
             pattern: mcc2,
-            categoryId: mapping2.categoryId,
+            categorySlug: mapping2.categorySlug,
             categoryName: mapping2.categoryName,
             priority:
               mapping2.strength === "exact" ? 100 : mapping2.strength === "family" ? 80 : 50,
@@ -123,7 +126,7 @@ function validateMCCRules(): RuleConflict[] {
           rule1: {
             id: `mcc:${mcc1}`,
             pattern: mcc1,
-            categoryId: mapping1.categoryId,
+            categorySlug: mapping1.categorySlug,
             categoryName: mapping1.categoryName,
             priority: 100,
           },
@@ -172,7 +175,7 @@ function validateVendorPatterns(): { conflicts: RuleConflict[]; regexIssues: Reg
       // Exact patterns should not overlap
       if (pattern1.matchType === "exact" && pattern2.matchType === "exact") {
         if (pattern1.pattern.toLowerCase() === pattern2.pattern.toLowerCase()) {
-          if (pattern1.categoryId !== pattern2.categoryId) {
+          if (pattern1.categorySlug !== pattern2.categorySlug) {
             conflicts.push({
               conflictType: "overlap",
               severity: "critical",
@@ -180,14 +183,14 @@ function validateVendorPatterns(): { conflicts: RuleConflict[]; regexIssues: Reg
               rule1: {
                 id: `vendor:${i}`,
                 pattern: pattern1.pattern,
-                categoryId: pattern1.categoryId,
+                categorySlug: pattern1.categorySlug,
                 categoryName: pattern1.categoryName,
                 priority: pattern1.priority,
               },
               rule2: {
                 id: `vendor:${j}`,
                 pattern: pattern2.pattern,
-                categoryId: pattern2.categoryId,
+                categorySlug: pattern2.categorySlug,
                 categoryName: pattern2.categoryName,
                 priority: pattern2.priority,
               },
@@ -207,7 +210,7 @@ function validateVendorPatterns(): { conflicts: RuleConflict[]; regexIssues: Reg
         const p2Lower = pattern2.pattern.toLowerCase();
 
         if (p1Lower.includes(p2Lower) || p2Lower.includes(p1Lower)) {
-          if (pattern1.categoryId !== pattern2.categoryId) {
+          if (pattern1.categorySlug !== pattern2.categorySlug) {
             const containedIn = p1Lower.includes(p2Lower)
               ? "pattern1_contains_pattern2"
               : "pattern2_contains_pattern1";
@@ -218,14 +221,14 @@ function validateVendorPatterns(): { conflicts: RuleConflict[]; regexIssues: Reg
               rule1: {
                 id: `vendor:${i}`,
                 pattern: pattern1.pattern,
-                categoryId: pattern1.categoryId,
+                categorySlug: pattern1.categorySlug,
                 categoryName: pattern1.categoryName,
                 priority: pattern1.priority,
               },
               rule2: {
                 id: `vendor:${j}`,
                 pattern: pattern2.pattern,
-                categoryId: pattern2.categoryId,
+                categorySlug: pattern2.categorySlug,
                 categoryName: pattern2.categoryName,
                 priority: pattern2.priority,
               },
@@ -243,7 +246,7 @@ function validateVendorPatterns(): { conflicts: RuleConflict[]; regexIssues: Reg
       }
 
       // Priority inversion check: higher priority with lower confidence
-      if (pattern1.categoryId === pattern2.categoryId) {
+      if (pattern1.categorySlug === pattern2.categorySlug) {
         if (pattern1.priority > pattern2.priority && pattern1.confidence < pattern2.confidence) {
           conflicts.push({
             conflictType: "priority_inversion",
@@ -252,14 +255,14 @@ function validateVendorPatterns(): { conflicts: RuleConflict[]; regexIssues: Reg
             rule1: {
               id: `vendor:${i}`,
               pattern: pattern1.pattern,
-              categoryId: pattern1.categoryId,
+              categorySlug: pattern1.categorySlug,
               categoryName: pattern1.categoryName,
               priority: pattern1.priority,
             },
             rule2: {
               id: `vendor:${j}`,
               pattern: pattern2.pattern,
-              categoryId: pattern2.categoryId,
+              categorySlug: pattern2.categorySlug,
               categoryName: pattern2.categoryName,
               priority: pattern2.priority,
             },
@@ -295,7 +298,7 @@ function validateKeywordRules(): { conflicts: RuleConflict[]; regexIssues: Regex
         rule2.keywords.some((k2) => k1.toLowerCase() === k2.toLowerCase())
       );
 
-      if (commonKeywords.length > 0 && rule1.categoryId !== rule2.categoryId) {
+      if (commonKeywords.length > 0 && rule1.categorySlug !== rule2.categorySlug) {
         // Check if exclude keywords would prevent the conflict
         const isResolvedByExclude = commonKeywords.every((_keyword) => {
           const rule1Excludes = rule1.excludeKeywords?.some((ek) =>
@@ -323,14 +326,14 @@ function validateKeywordRules(): { conflicts: RuleConflict[]; regexIssues: Regex
             rule1: {
               id: `keyword:${i}:${rule1.domain}`,
               pattern: rule1.keywords.join(", "),
-              categoryId: rule1.categoryId,
+              categorySlug: rule1.categorySlug,
               categoryName: rule1.categoryName,
               priority: rule1.weight,
             },
             rule2: {
               id: `keyword:${j}:${rule2.domain}`,
               pattern: rule2.keywords.join(", "),
-              categoryId: rule2.categoryId,
+              categorySlug: rule2.categorySlug,
               categoryName: rule2.categoryName,
               priority: rule2.weight,
             },
@@ -353,7 +356,7 @@ function validateKeywordRules(): { conflicts: RuleConflict[]; regexIssues: Regex
           rule1: {
             id: `keyword:${i}:${rule1.domain}`,
             pattern: rule1.keywords.join(", "),
-            categoryId: rule1.categoryId,
+            categorySlug: rule1.categorySlug,
             categoryName: rule1.categoryName,
             priority: rule1.weight,
           },
