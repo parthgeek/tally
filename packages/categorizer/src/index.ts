@@ -160,3 +160,7 @@ export type {
   CategorizationContext,
   CategoryId,
 } from "@nexus/types";
+
+// Unified categorize function for benchmarking
+export { categorize } from "./categorize.js";
+export type { CategorizeInput, CategorizeResult } from "./categorize.js";
