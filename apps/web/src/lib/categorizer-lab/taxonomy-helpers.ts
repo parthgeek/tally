@@ -1,5 +1,5 @@
 import {
-  getActiveTaxonomy,
+  getCategoriesForIndustry,
   getCategoryById,
   isFeatureEnabled,
   CategorizerFeatureFlag,
@@ -12,7 +12,7 @@ interface CategoryNode {
   slug: string;
   name: string;
   parentId: string | null;
-  type: "revenue" | "cogs" | "opex" | "liability" | "clearing";
+  type: "revenue" | "cogs" | "opex" | "liability" | "clearing" | "asset" | "equity";
   isPnL: boolean;
   includeInPrompt: boolean;
 }
@@ -66,9 +66,7 @@ function getTaxonomyConfig(): {
  * Get category hierarchy information by ID
  */
 export function getCategoryHierarchy(categoryId: string): CategoryHierarchy | null {
-  const { config, environment } = getTaxonomyConfig();
-
-  const category = getCategoryById(categoryId, config, environment);
+  const category = getCategoryById(categoryId);
   if (!category) {
     return null;
   }
@@ -80,7 +78,7 @@ export function getCategoryHierarchy(categoryId: string): CategoryHierarchy | nu
   let parentId: string | null = null;
 
   if (category.parentId) {
-    parentCategory = getCategoryById(category.parentId, config, environment);
+    parentCategory = getCategoryById(category.parentId);
     if (parentCategory) {
       parentName = parentCategory.name;
       parentSlug = parentCategory.slug;
@@ -150,12 +148,14 @@ export function formatCategoryForDisplay(
   }
 
   if (includeType && hierarchy.type) {
-    const typeMap = {
+    const typeMap: Record<CategoryNode["type"], string> = {
       revenue: "Rev",
       cogs: "COGS",
       opex: "OpEx",
       liability: "Liab",
       clearing: "Clear",
+      asset: "Asset",
+      equity: "Equity",
     };
     const typeLabel = typeMap[hierarchy.type] || hierarchy.type;
     displayText = `[${typeLabel}] ${displayText}`;
@@ -192,6 +192,8 @@ export function getCategoryTypeColor(categoryId: string): string {
     opex: "orange",
     liability: "purple",
     clearing: "gray",
+    asset: "cyan",
+    equity: "indigo",
   };
 
   return colorMap[hierarchy.type] || "gray";
@@ -215,6 +217,8 @@ export function getCategoryTypeBadgeVariant(
     opex: "outline",
     liability: "destructive",
     clearing: "secondary",
+    asset: "secondary",
+    equity: "default",
   };
 
   return variantMap[hierarchy.type] || "outline";
@@ -232,8 +236,8 @@ export function isCategoryPnL(categoryId: string): boolean {
  * Get all available categories for the current taxonomy
  */
 export function getAvailableCategories(): CategoryNode[] {
-  const { config, environment } = getTaxonomyConfig();
-  return getActiveTaxonomy(config, environment);
+  // Default lab environment to the ecommerce industry
+  return getCategoriesForIndustry("ecommerce") as unknown as CategoryNode[];
 }
 
 /**

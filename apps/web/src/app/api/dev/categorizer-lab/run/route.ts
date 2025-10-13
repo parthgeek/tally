@@ -15,7 +15,7 @@ import { calculateMetrics } from "@/lib/categorizer-lab/metrics";
 import {
   enhancedPass1Categorize,
   createDefaultPass1Context,
-  scoreWithLLM,
+  categorizeWithUniversalLLM,
   type CategorizationContext,
 } from "@nexus/categorizer";
 
@@ -94,12 +94,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             }
 
             const llmStart = Date.now();
-            const llmResult = await scoreWithLLM(normalizedTx, {
-              ...ctx,
-              db: null, // Lab environment doesn't need real DB
+            const llmResult = await categorizeWithUniversalLLM(normalizedTx, {
+              industry: "ecommerce",
+              orgId: ctx.orgId,
               config: {
                 geminiApiKey: process.env.GEMINI_API_KEY,
                 model: "gemini-2.5-flash-lite",
+                temperature: 0,
               },
             });
             const llmEnd = Date.now();
@@ -152,12 +153,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             } else {
               // Use LLM for better accuracy
               const llmStart = Date.now();
-              const llmResult = await scoreWithLLM(normalizedTx, {
-                ...ctx,
-                db: null, // Lab environment doesn't need real DB
+              const llmResult = await categorizeWithUniversalLLM(normalizedTx, {
+                industry: "ecommerce",
+                orgId: ctx.orgId,
+                pass1Context: {
+                  categoryId: pass1Result.categoryId as string,
+                  confidence: pass1Result.confidence ?? 0,
+                  signals: pass1Result.rationale,
+                },
                 config: {
                   geminiApiKey: process.env.GEMINI_API_KEY,
                   model: "gemini-2.5-flash-lite",
+                  temperature: 0,
                 },
               });
               const llmEnd = Date.now();

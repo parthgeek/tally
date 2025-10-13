@@ -5,24 +5,7 @@ import {
   createValidationErrorResponse,
   createErrorResponse,
 } from "@/lib/api/with-org";
-import { mapCategorySlugToId, type FeatureFlagConfig } from "@nexus/categorizer";
-
-// Environment detection - defaults to production for safety
-const ENVIRONMENT = (
-  process.env.NODE_ENV === "development"
-    ? "development"
-    : process.env.VERCEL_ENV === "preview"
-      ? "staging"
-      : "production"
-) as "development" | "staging" | "production";
-
-// Feature flag configuration (can be extended to fetch from database per org)
-const getFeatureFlagConfig = (): FeatureFlagConfig => {
-  return {
-    // Use environment defaults from the feature-flags module
-    // This ensures consistency with the centralized taxonomy logic
-  };
-};
+import { mapCategorySlugToId } from "@nexus/categorizer";
 
 export async function POST(request: NextRequest) {
   try {
@@ -94,9 +77,8 @@ export async function POST(request: NextRequest) {
     } catch (edgeError) {
       console.error("Failed to call edge function:", edgeError);
 
-      // Fallback: simple pattern-based categorization with environment-aware taxonomy
+      // Fallback: simple pattern-based categorization with universal taxonomy
       let processed = 0;
-      const featureFlagConfig = getFeatureFlagConfig();
 
       for (const tx of transactions) {
         try {
@@ -134,10 +116,8 @@ export async function POST(request: NextRequest) {
             confidence = 0.6;
           }
 
-          // Map slug to ID using environment-aware taxonomy
-          const categoryId = categorySlug
-            ? mapCategorySlugToId(categorySlug, featureFlagConfig, ENVIRONMENT)
-            : null;
+          // Map slug to ID using universal taxonomy
+          const categoryId = categorySlug ? mapCategorySlugToId(categorySlug) : null;
 
           // Update the transaction
           const { error: updateError } = await supabase
