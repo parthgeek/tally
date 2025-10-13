@@ -1,458 +1,652 @@
-import type { CategoryId } from "@nexus/types";
-
 /**
- * Vendor pattern matching strength levels
+ * Universal Vendor Pattern Rules
+ * 
+ * These rules map vendor patterns to UNIVERSAL categories with ATTRIBUTES
+ * instead of vendor-specific categories.
+ * 
+ * Key Principles:
+ * - Vendor name is an ATTRIBUTE, not a category
+ * - Map to functional categories (payment_processing_fees, marketing_ads, etc.)
+ * - Extract vendor/platform/processor as attributes
  */
-export type VendorMatchStrength = "exact" | "prefix" | "suffix" | "contains" | "regex";
 
-/**
- * Vendor pattern rule definition
- */
-export interface VendorPattern {
+export interface VendorPatternUniversal {
   pattern: string;
-  matchType: VendorMatchStrength;
-  categoryId: CategoryId;
+  matchType: 'exact' | 'prefix' | 'suffix' | 'contains' | 'regex';
+  categorySlug: string;
   categoryName: string;
   confidence: number;
-  priority: number; // Higher priority wins in conflicts
+  priority: number;
+  attributes?: Record<string, string>; // NEW: Extract attributes from vendor
+  description?: string;
 }
 
 /**
- * Known merchant patterns with high-confidence categorization for e-commerce
- * Ordered by priority (higher priority patterns checked first)
- *
- * IMPORTANT: Ambiguous vendors (Stripe, PayPal, Shopify, Square) removed
- * These are handled by compound rules in database (vendor + keywords)
- * to distinguish between fees, payouts, and subscriptions
+ * Universal vendor patterns organized by category
  */
-export const VENDOR_PATTERNS: VendorPattern[] = [
-  // === Software & Technology (Unambiguous SaaS) ===
+export const UNIVERSAL_VENDOR_PATTERNS: VendorPatternUniversal[] = [
+  // ============================================================================
+  // PAYMENT PROCESSING FEES
+  // ============================================================================
+  // All payment processors → payment_processing_fees category
+  // Processor name goes in attributes
+
   {
-    pattern: "adobe",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440304" as CategoryId,
-    categoryName: "Software Subscriptions",
-    confidence: 0.92,
-    priority: 90,
-  },
-  {
-    pattern: "microsoft",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440304" as CategoryId,
-    categoryName: "Software Subscriptions",
-    confidence: 0.92,
-    priority: 90,
-  },
-  {
-    pattern: "canva",
-    matchType: "exact",
-    categoryId: "550e8400-e29b-41d4-a716-446655440304" as CategoryId,
-    categoryName: "Software Subscriptions",
-    confidence: 0.95,
-    priority: 95,
-  },
-  {
-    pattern: "squarespace",
-    matchType: "exact",
-    categoryId: "550e8400-e29b-41d4-a716-446655440304" as CategoryId,
-    categoryName: "Software Subscriptions",
+    pattern: 'stripe',
+    matchType: 'contains',
+    categorySlug: 'payment_processing_fees',
+    categoryName: 'Payment Processing Fees',
     confidence: 0.95,
     priority: 100,
+    attributes: { processor: 'Stripe', fee_type: 'transaction' },
+    description: 'Stripe payment processing fees'
   },
   {
-    pattern: "wix",
-    matchType: "exact",
-    categoryId: "550e8400-e29b-41d4-a716-446655440304" as CategoryId,
-    categoryName: "Software Subscriptions",
+    pattern: 'paypal',
+    matchType: 'contains',
+    categorySlug: 'payment_processing_fees',
+    categoryName: 'Payment Processing Fees',
     confidence: 0.95,
     priority: 100,
+    attributes: { processor: 'PayPal', fee_type: 'transaction' },
+    description: 'PayPal merchant fees'
   },
   {
-    pattern: "zoom",
-    matchType: "exact",
-    categoryId: "550e8400-e29b-41d4-a716-446655440304" as CategoryId,
-    categoryName: "Software Subscriptions",
-    confidence: 0.92,
-    priority: 90,
+    pattern: 'square',
+    matchType: 'contains',
+    categorySlug: 'payment_processing_fees',
+    categoryName: 'Payment Processing Fees',
+    confidence: 0.93,
+    priority: 95,
+    attributes: { processor: 'Square', fee_type: 'transaction' },
+    description: 'Square payment processing'
   },
   {
-    pattern: "slack",
-    matchType: "exact",
-    categoryId: "550e8400-e29b-41d4-a716-446655440304" as CategoryId,
-    categoryName: "Software Subscriptions",
+    pattern: 'shopify payments',
+    matchType: 'contains',
+    categorySlug: 'payment_processing_fees',
+    categoryName: 'Payment Processing Fees',
     confidence: 0.95,
-    priority: 90,
+    priority: 100,
+    attributes: { processor: 'Shopify Payments', fee_type: 'transaction' },
+    description: 'Shopify Payments processing fees'
   },
   {
-    pattern: "asana",
-    matchType: "exact",
-    categoryId: "550e8400-e29b-41d4-a716-446655440304" as CategoryId,
-    categoryName: "Software Subscriptions",
+    pattern: 'afterpay',
+    matchType: 'contains',
+    categorySlug: 'payment_processing_fees',
+    categoryName: 'Payment Processing Fees',
     confidence: 0.95,
-    priority: 90,
+    priority: 100,
+    attributes: { processor: 'Afterpay', fee_type: 'transaction' },
+    description: 'Afterpay BNPL fees'
+  },
+  {
+    pattern: 'affirm',
+    matchType: 'contains',
+    categorySlug: 'payment_processing_fees',
+    categoryName: 'Payment Processing Fees',
+    confidence: 0.95,
+    priority: 100,
+    attributes: { processor: 'Affirm', fee_type: 'transaction' },
+    description: 'Affirm BNPL fees'
+  },
+  {
+    pattern: 'klarna',
+    matchType: 'contains',
+    categorySlug: 'payment_processing_fees',
+    categoryName: 'Payment Processing Fees',
+    confidence: 0.95,
+    priority: 100,
+    attributes: { processor: 'Klarna', fee_type: 'transaction' },
+    description: 'Klarna BNPL fees'
   },
 
-  // === Marketing & Advertising Platforms (Unambiguous) ===
+  // ============================================================================
+  // MARKETING & ADVERTISING
+  // ============================================================================
+  // All ad platforms → marketing_ads category
+  // Platform name goes in attributes
+
   {
-    pattern: "facebook ads",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440303" as CategoryId,
-    categoryName: "Marketing & Ads",
-    confidence: 0.93,
-    priority: 95,
+    pattern: 'facebook ads',
+    matchType: 'contains',
+    categorySlug: 'marketing_ads',
+    categoryName: 'Marketing & Advertising',
+    confidence: 0.98,
+    priority: 110,
+    attributes: { platform: 'Meta', campaign_type: 'paid_social' },
+    description: 'Facebook advertising'
   },
   {
-    pattern: "meta for business",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440303" as CategoryId,
-    categoryName: "Marketing & Ads",
-    confidence: 0.93,
-    priority: 95,
+    pattern: 'meta ads',
+    matchType: 'contains',
+    categorySlug: 'marketing_ads',
+    categoryName: 'Marketing & Advertising',
+    confidence: 0.98,
+    priority: 110,
+    attributes: { platform: 'Meta', campaign_type: 'paid_social' },
+    description: 'Meta (Facebook/Instagram) advertising'
   },
   {
-    pattern: "google ads",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440303" as CategoryId,
-    categoryName: "Marketing & Ads",
-    confidence: 0.93,
-    priority: 95,
+    pattern: 'instagram ads',
+    matchType: 'contains',
+    categorySlug: 'marketing_ads',
+    categoryName: 'Marketing & Advertising',
+    confidence: 0.98,
+    priority: 110,
+    attributes: { platform: 'Meta', campaign_type: 'paid_social' },
+    description: 'Instagram advertising'
   },
   {
-    pattern: "tiktok ads",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440303" as CategoryId,
-    categoryName: "Marketing & Ads",
-    confidence: 0.93,
-    priority: 95,
+    pattern: 'google ads',
+    matchType: 'contains',
+    categorySlug: 'marketing_ads',
+    categoryName: 'Marketing & Advertising',
+    confidence: 0.98,
+    priority: 110,
+    attributes: { platform: 'Google', campaign_type: 'paid_search' },
+    description: 'Google Ads / AdWords'
   },
   {
-    pattern: "pinterest ads",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440303" as CategoryId,
-    categoryName: "Marketing & Ads",
-    confidence: 0.92,
-    priority: 90,
+    pattern: 'google adwords',
+    matchType: 'contains',
+    categorySlug: 'marketing_ads',
+    categoryName: 'Marketing & Advertising',
+    confidence: 0.98,
+    priority: 110,
+    attributes: { platform: 'Google', campaign_type: 'paid_search' },
+    description: 'Google AdWords'
+  },
+  {
+    pattern: 'tiktok ads',
+    matchType: 'contains',
+    categorySlug: 'marketing_ads',
+    categoryName: 'Marketing & Advertising',
+    confidence: 0.98,
+    priority: 110,
+    attributes: { platform: 'TikTok', campaign_type: 'paid_social' },
+    description: 'TikTok advertising'
+  },
+  {
+    pattern: 'linkedin ads',
+    matchType: 'contains',
+    categorySlug: 'marketing_ads',
+    categoryName: 'Marketing & Advertising',
+    confidence: 0.98,
+    priority: 110,
+    attributes: { platform: 'LinkedIn', campaign_type: 'paid_social' },
+    description: 'LinkedIn advertising'
+  },
+  {
+    pattern: 'pinterest ads',
+    matchType: 'contains',
+    categorySlug: 'marketing_ads',
+    categoryName: 'Marketing & Advertising',
+    confidence: 0.98,
+    priority: 110,
+    attributes: { platform: 'Pinterest', campaign_type: 'paid_social' },
+    description: 'Pinterest advertising'
+  },
+  {
+    pattern: 'snapchat ads',
+    matchType: 'contains',
+    categorySlug: 'marketing_ads',
+    categoryName: 'Marketing & Advertising',
+    confidence: 0.98,
+    priority: 110,
+    attributes: { platform: 'Snapchat', campaign_type: 'paid_social' },
+    description: 'Snapchat advertising'
+  },
+  {
+    pattern: 'klaviyo',
+    matchType: 'contains',
+    categorySlug: 'marketing_ads',
+    categoryName: 'Marketing & Advertising',
+    confidence: 0.90,
+    priority: 85,
+    attributes: { platform: 'Klaviyo', campaign_type: 'email' },
+    description: 'Klaviyo email marketing'
+  },
+  {
+    pattern: 'mailchimp',
+    matchType: 'contains',
+    categorySlug: 'marketing_ads',
+    categoryName: 'Marketing & Advertising',
+    confidence: 0.90,
+    priority: 85,
+    attributes: { platform: 'Mailchimp', campaign_type: 'email' },
+    description: 'Mailchimp email marketing'
   },
 
-  // === Shipping Carriers (COGS - Shipping & Postage) ===
-  {
-    pattern: "usps",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440207" as CategoryId,
-    categoryName: "Shipping & Postage",
-    confidence: 0.93,
-    priority: 95,
-  },
-  {
-    pattern: "fedex",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440207" as CategoryId,
-    categoryName: "Shipping & Postage",
-    confidence: 0.93,
-    priority: 95,
-  },
-  {
-    pattern: "ups",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440207" as CategoryId,
-    categoryName: "Shipping & Postage",
-    confidence: 0.93,
-    priority: 95,
-  },
-  {
-    pattern: "dhl",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440207" as CategoryId,
-    categoryName: "Shipping & Postage",
-    confidence: 0.92,
-    priority: 95,
-  },
+  // ============================================================================
+  // SOFTWARE & TECHNOLOGY
+  // ============================================================================
+  // All SaaS subscriptions → software_subscriptions category
+  // Vendor name goes in attributes
 
-  // === 3PL & Fulfillment (Operations & Logistics) ===
   {
-    pattern: "shipbob",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440306" as CategoryId,
-    categoryName: "Operations & Logistics",
-    confidence: 0.95,
-    priority: 95,
-  },
-  {
-    pattern: "shipmonk",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440306" as CategoryId,
-    categoryName: "Operations & Logistics",
-    confidence: 0.95,
-    priority: 95,
-  },
-  {
-    pattern: "deliverr",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440306" as CategoryId,
-    categoryName: "Operations & Logistics",
-    confidence: 0.95,
-    priority: 95,
-  },
-
-  // === Email/SMS Marketing Tools ===
-  {
-    pattern: "klaviyo",
-    matchType: "exact",
-    categoryId: "550e8400-e29b-41d4-a716-446655440304" as CategoryId,
-    categoryName: "Software Subscriptions",
-    confidence: 0.95,
-    priority: 90,
-  },
-  {
-    pattern: "mailchimp",
-    matchType: "exact",
-    categoryId: "550e8400-e29b-41d4-a716-446655440304" as CategoryId,
-    categoryName: "Software Subscriptions",
-    confidence: 0.95,
-    priority: 90,
-  },
-  {
-    pattern: "attentive",
-    matchType: "exact",
-    categoryId: "550e8400-e29b-41d4-a716-446655440304" as CategoryId,
-    categoryName: "Software Subscriptions",
+    pattern: 'adobe',
+    matchType: 'contains',
+    categorySlug: 'software_subscriptions',
+    categoryName: 'Software & Technology',
     confidence: 0.92,
     priority: 90,
+    attributes: { vendor: 'Adobe', category: 'design' },
+    description: 'Adobe software subscriptions'
   },
   {
-    pattern: "postscript",
-    matchType: "exact",
-    categoryId: "550e8400-e29b-41d4-a716-446655440304" as CategoryId,
-    categoryName: "Software Subscriptions",
-    confidence: 0.92,
+    pattern: 'microsoft 365',
+    matchType: 'contains',
+    categorySlug: 'software_subscriptions',
+    categoryName: 'Software & Technology',
+    confidence: 0.95,
+    priority: 95,
+    attributes: { vendor: 'Microsoft', category: 'productivity' },
+    description: 'Microsoft 365 subscription'
+  },
+  {
+    pattern: 'microsoft office',
+    matchType: 'contains',
+    categorySlug: 'software_subscriptions',
+    categoryName: 'Software & Technology',
+    confidence: 0.95,
+    priority: 95,
+    attributes: { vendor: 'Microsoft', category: 'productivity' },
+    description: 'Microsoft Office subscription'
+  },
+  {
+    pattern: 'google workspace',
+    matchType: 'contains',
+    categorySlug: 'software_subscriptions',
+    categoryName: 'Software & Technology',
+    confidence: 0.95,
+    priority: 95,
+    attributes: { vendor: 'Google', category: 'productivity' },
+    description: 'Google Workspace subscription'
+  },
+  {
+    pattern: 'slack',
+    matchType: 'exact',
+    categorySlug: 'software_subscriptions',
+    categoryName: 'Software & Technology',
+    confidence: 0.95,
     priority: 90,
+    attributes: { vendor: 'Slack', category: 'communication' },
+    description: 'Slack subscription'
+  },
+  {
+    pattern: 'zoom',
+    matchType: 'exact',
+    categorySlug: 'software_subscriptions',
+    categoryName: 'Software & Technology',
+    confidence: 0.92,
+    priority: 85,
+    attributes: { vendor: 'Zoom', category: 'communication' },
+    description: 'Zoom subscription'
+  },
+  {
+    pattern: 'asana',
+    matchType: 'exact',
+    categorySlug: 'software_subscriptions',
+    categoryName: 'Software & Technology',
+    confidence: 0.95,
+    priority: 90,
+    attributes: { vendor: 'Asana', category: 'productivity' },
+    description: 'Asana subscription'
+  },
+  {
+    pattern: 'canva',
+    matchType: 'exact',
+    categorySlug: 'software_subscriptions',
+    categoryName: 'Software & Technology',
+    confidence: 0.95,
+    priority: 95,
+    attributes: { vendor: 'Canva', category: 'design' },
+    description: 'Canva subscription'
+  },
+  {
+    pattern: 'figma',
+    matchType: 'exact',
+    categorySlug: 'software_subscriptions',
+    categoryName: 'Software & Technology',
+    confidence: 0.95,
+    priority: 95,
+    attributes: { vendor: 'Figma', category: 'design' },
+    description: 'Figma subscription'
+  },
+  {
+    pattern: 'quickbooks',
+    matchType: 'contains',
+    categorySlug: 'software_subscriptions',
+    categoryName: 'Software & Technology',
+    confidence: 0.95,
+    priority: 95,
+    attributes: { vendor: 'QuickBooks', category: 'accounting' },
+    description: 'QuickBooks accounting software'
+  },
+  {
+    pattern: 'xero',
+    matchType: 'exact',
+    categorySlug: 'software_subscriptions',
+    categoryName: 'Software & Technology',
+    confidence: 0.95,
+    priority: 95,
+    attributes: { vendor: 'Xero', category: 'accounting' },
+    description: 'Xero accounting software'
+  },
+  {
+    pattern: 'salesforce',
+    matchType: 'contains',
+    categorySlug: 'software_subscriptions',
+    categoryName: 'Software & Technology',
+    confidence: 0.95,
+    priority: 95,
+    attributes: { vendor: 'Salesforce', category: 'crm' },
+    description: 'Salesforce CRM'
+  },
+  {
+    pattern: 'hubspot',
+    matchType: 'contains',
+    categorySlug: 'software_subscriptions',
+    categoryName: 'Software & Technology',
+    confidence: 0.95,
+    priority: 95,
+    attributes: { vendor: 'HubSpot', category: 'crm' },
+    description: 'HubSpot CRM and marketing'
   },
 
-  // === General & Administrative ===
+  // ============================================================================
+  // PLATFORM FEES (E-commerce specific)
+  // ============================================================================
+  
   {
-    pattern: "quickbooks",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440307" as CategoryId,
-    categoryName: "General & Administrative",
+    pattern: 'shopify subscription',
+    matchType: 'contains',
+    categorySlug: 'platform_fees',
+    categoryName: 'Platform Fees',
     confidence: 0.95,
+    priority: 100,
+    attributes: { platform: 'Shopify', fee_type: 'monthly' },
+    description: 'Shopify monthly subscription'
+  },
+  {
+    pattern: 'amazon seller',
+    matchType: 'contains',
+    categorySlug: 'platform_fees',
+    categoryName: 'Platform Fees',
+    confidence: 0.90,
     priority: 90,
+    attributes: { platform: 'Amazon', fee_type: 'monthly' },
+    description: 'Amazon seller fees'
   },
   {
-    pattern: "gusto",
-    matchType: "exact",
-    categoryId: "550e8400-e29b-41d4-a716-446655440305" as CategoryId,
-    categoryName: "Labor",
+    pattern: 'etsy',
+    matchType: 'contains',
+    categorySlug: 'platform_fees',
+    categoryName: 'Platform Fees',
+    confidence: 0.90,
+    priority: 90,
+    attributes: { platform: 'Etsy', fee_type: 'transaction' },
+    description: 'Etsy marketplace fees'
+  },
+
+  // ============================================================================
+  // FULFILLMENT & LOGISTICS (E-commerce specific)
+  // ============================================================================
+
+  {
+    pattern: 'shipbob',
+    matchType: 'contains',
+    categorySlug: 'fulfillment_logistics',
+    categoryName: 'Fulfillment & Logistics',
     confidence: 0.95,
-    priority: 95,
+    priority: 100,
+    attributes: { provider: 'ShipBob', service_type: 'pick_pack' },
+    description: 'ShipBob 3PL services'
   },
   {
-    pattern: "rippling",
-    matchType: "exact",
-    categoryId: "550e8400-e29b-41d4-a716-446655440305" as CategoryId,
-    categoryName: "Labor",
+    pattern: 'shipmonk',
+    matchType: 'contains',
+    categorySlug: 'fulfillment_logistics',
+    categoryName: 'Fulfillment & Logistics',
     confidence: 0.95,
-    priority: 95,
+    priority: 100,
+    attributes: { provider: 'ShipMonk', service_type: 'pick_pack' },
+    description: 'ShipMonk 3PL services'
   },
   {
-    pattern: "staples",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440307" as CategoryId,
-    categoryName: "General & Administrative",
+    pattern: 'deliverr',
+    matchType: 'contains',
+    categorySlug: 'fulfillment_logistics',
+    categoryName: 'Fulfillment & Logistics',
+    confidence: 0.95,
+    priority: 100,
+    attributes: { provider: 'Deliverr', service_type: 'pick_pack' },
+    description: 'Deliverr fulfillment'
+  },
+  {
+    pattern: 'amazon fba',
+    matchType: 'contains',
+    categorySlug: 'fulfillment_logistics',
+    categoryName: 'Fulfillment & Logistics',
+    confidence: 0.95,
+    priority: 100,
+    attributes: { provider: 'Amazon FBA', service_type: 'pick_pack' },
+    description: 'Amazon FBA fulfillment fees'
+  },
+
+  // ============================================================================
+  // FREIGHT & SHIPPING (Universal)
+  // ============================================================================
+
+  {
+    pattern: 'usps',
+    matchType: 'contains',
+    categorySlug: 'freight_shipping',
+    categoryName: 'Freight & Shipping',
+    confidence: 0.90,
+    priority: 85,
+    attributes: { carrier: 'USPS', direction: 'outbound' },
+    description: 'USPS shipping'
+  },
+  {
+    pattern: 'fedex',
+    matchType: 'contains',
+    categorySlug: 'freight_shipping',
+    categoryName: 'Freight & Shipping',
+    confidence: 0.92,
+    priority: 90,
+    attributes: { carrier: 'FedEx', direction: 'outbound' },
+    description: 'FedEx shipping'
+  },
+  {
+    pattern: 'ups',
+    matchType: 'exact',
+    categorySlug: 'freight_shipping',
+    categoryName: 'Freight & Shipping',
+    confidence: 0.92,
+    priority: 90,
+    attributes: { carrier: 'UPS', direction: 'outbound' },
+    description: 'UPS shipping'
+  },
+  {
+    pattern: 'dhl',
+    matchType: 'exact',
+    categorySlug: 'freight_shipping',
+    categoryName: 'Freight & Shipping',
+    confidence: 0.92,
+    priority: 90,
+    attributes: { carrier: 'DHL', direction: 'outbound' },
+    description: 'DHL shipping'
+  },
+
+  // ============================================================================
+  // PROFESSIONAL SERVICES
+  // ============================================================================
+
+  {
+    pattern: 'cpa',
+    matchType: 'contains',
+    categorySlug: 'professional_services',
+    categoryName: 'Professional Services',
     confidence: 0.85,
-    priority: 75,
+    priority: 80,
+    attributes: { service_type: 'accounting' },
+    description: 'CPA / accounting services'
   },
   {
-    pattern: "office depot",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440307" as CategoryId,
-    categoryName: "General & Administrative",
+    pattern: 'accountant',
+    matchType: 'contains',
+    categorySlug: 'professional_services',
+    categoryName: 'Professional Services',
     confidence: 0.85,
+    priority: 80,
+    attributes: { service_type: 'accounting' },
+    description: 'Accountant fees'
+  },
+  {
+    pattern: 'legal',
+    matchType: 'contains',
+    categorySlug: 'professional_services',
+    categoryName: 'Professional Services',
+    confidence: 0.82,
     priority: 75,
+    attributes: { service_type: 'legal' },
+    description: 'Legal services'
+  },
+  {
+    pattern: 'attorney',
+    matchType: 'contains',
+    categorySlug: 'professional_services',
+    categoryName: 'Professional Services',
+    confidence: 0.82,
+    priority: 75,
+    attributes: { service_type: 'legal' },
+    description: 'Attorney fees'
+  },
+  {
+    pattern: 'lawyer',
+    matchType: 'contains',
+    categorySlug: 'professional_services',
+    categoryName: 'Professional Services',
+    confidence: 0.82,
+    priority: 75,
+    attributes: { service_type: 'legal' },
+    description: 'Lawyer fees'
+  },
+  {
+    pattern: 'consultant',
+    matchType: 'contains',
+    categorySlug: 'professional_services',
+    categoryName: 'Professional Services',
+    confidence: 0.80,
+    priority: 70,
+    attributes: { service_type: 'consulting' },
+    description: 'Consulting services'
   },
 
-  // === Insurance ===
+  // ============================================================================
+  // INSURANCE
+  // ============================================================================
+
   {
-    pattern: "state farm",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440307" as CategoryId,
-    categoryName: "General & Administrative",
-    confidence: 0.93,
-    priority: 90,
-  },
-  {
-    pattern: "allstate",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440307" as CategoryId,
-    categoryName: "General & Administrative",
-    confidence: 0.93,
-    priority: 90,
-  },
-  {
-    pattern: "geico",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440307" as CategoryId,
-    categoryName: "General & Administrative",
-    confidence: 0.93,
-    priority: 90,
+    pattern: 'insurance',
+    matchType: 'contains',
+    categorySlug: 'insurance',
+    categoryName: 'Insurance',
+    confidence: 0.90,
+    priority: 85,
+    attributes: {},
+    description: 'Business insurance'
   },
 
-  // === Miscellaneous (Travel, Meals) ===
+  // ============================================================================
+  // RENT & UTILITIES
+  // ============================================================================
+
   {
-    pattern: "starbucks",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440308" as CategoryId,
-    categoryName: "Miscellaneous",
-    confidence: 0.75,
-    priority: 70,
+    pattern: 'rent',
+    matchType: 'contains',
+    categorySlug: 'rent_utilities',
+    categoryName: 'Rent & Utilities',
+    confidence: 0.85,
+    priority: 80,
+    attributes: {},
+    description: 'Rent payment'
   },
   {
-    pattern: "dunkin",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440308" as CategoryId,
-    categoryName: "Miscellaneous",
-    confidence: 0.75,
-    priority: 70,
+    pattern: 'electric',
+    matchType: 'contains',
+    categorySlug: 'rent_utilities',
+    categoryName: 'Rent & Utilities',
+    confidence: 0.85,
+    priority: 80,
+    attributes: { utility_type: 'electric' },
+    description: 'Electric utility'
   },
   {
-    pattern: "shell",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440308" as CategoryId,
-    categoryName: "Miscellaneous",
-    confidence: 0.8,
-    priority: 75,
-  },
-  {
-    pattern: "chevron",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440308" as CategoryId,
-    categoryName: "Miscellaneous",
-    confidence: 0.8,
-    priority: 75,
-  },
-  {
-    pattern: "exxon",
-    matchType: "contains",
-    categoryId: "550e8400-e29b-41d4-a716-446655440308" as CategoryId,
-    categoryName: "Miscellaneous",
-    confidence: 0.8,
-    priority: 75,
+    pattern: 'utilities',
+    matchType: 'contains',
+    categorySlug: 'rent_utilities',
+    categoryName: 'Rent & Utilities',
+    confidence: 0.85,
+    priority: 80,
+    attributes: {},
+    description: 'Utility bills'
   },
 ];
 
 /**
- * Minimum length threshold for vendor names after suffix removal
- * Below this length, we preserve suffixes to avoid ambiguous short names
+ * Match vendor pattern against transaction
  */
-const MIN_VENDOR_NAME_LENGTH = 4;
+export function matchVendorPattern(
+  merchantName: string | null,
+  description: string,
+  pattern: VendorPatternUniversal
+): boolean {
+  const searchText = `${merchantName || ''} ${description}`.toLowerCase();
+  const patternLower = pattern.pattern.toLowerCase();
+
+  switch (pattern.matchType) {
+    case 'exact':
+      return searchText.trim() === patternLower;
+    case 'prefix':
+      return searchText.startsWith(patternLower);
+    case 'suffix':
+      return searchText.endsWith(patternLower);
+    case 'contains':
+      return searchText.includes(patternLower);
+    case 'regex':
+      try {
+        const regex = new RegExp(pattern.pattern, 'i');
+        return regex.test(searchText);
+      } catch {
+        return false;
+      }
+    default:
+      return false;
+  }
+}
 
 /**
- * Corporate suffixes to remove during normalization
+ * Find best matching vendor pattern
  */
-const CORPORATE_SUFFIXES = ["llc", "inc", "corp", "ltd", "co", "company"];
+export function findBestVendorMatch(
+  merchantName: string | null,
+  description: string
+): VendorPatternUniversal | null {
+  // Find all matching patterns
+  const matches = UNIVERSAL_VENDOR_PATTERNS.filter(pattern =>
+    matchVendorPattern(merchantName, description, pattern)
+  );
 
-/**
- * Removes corporate suffixes from normalized vendor name
- * Preserves suffixes if removal would result in very short names
- */
-function removeCorporateSuffixes(normalized: string): string {
-  const suffixPattern = new RegExp(`\\b(${CORPORATE_SUFFIXES.join("|")})\\b`, "g");
-  const withoutSuffixes = normalized.replace(suffixPattern, "").replace(/\s+/g, " ").trim();
-
-  // Preserve suffix if removal would create ambiguous short names (e.g., "AT&T Corp" → "at t corp")
-  if (
-    withoutSuffixes.length <= MIN_VENDOR_NAME_LENGTH &&
-    normalized.length > withoutSuffixes.length
-  ) {
-    return normalized;
+  if (matches.length === 0) {
+    return null;
   }
 
-  return withoutSuffixes;
+  // Sort by priority (descending) and return highest
+  matches.sort((a, b) => b.priority - a.priority);
+  return matches[0];
 }
 
-/**
- * Normalizes vendor name for consistent pattern matching
- * Converts to lowercase, removes punctuation, normalizes spacing, and handles corporate suffixes
- */
-export function normalizeVendorName(vendor: string): string {
-  const normalized = vendor
-    .trim()
-    .toLowerCase()
-    .replace(/[^\w\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  return removeCorporateSuffixes(normalized);
-}
-
-/**
- * Matches a vendor name against known patterns
- * Returns the best matching pattern or undefined
- */
-export function matchVendorPattern(vendorName: string): VendorPattern | undefined {
-  const normalized = normalizeVendorName(vendorName);
-
-  let bestMatch: VendorPattern | undefined;
-  let bestPriority = -1;
-
-  for (const pattern of VENDOR_PATTERNS) {
-    const normalizedPattern = normalizeVendorName(pattern.pattern);
-    let isMatch = false;
-
-    switch (pattern.matchType) {
-      case "exact":
-        isMatch = normalized === normalizedPattern;
-        break;
-      case "contains":
-        isMatch = normalized.includes(normalizedPattern);
-        break;
-      case "prefix":
-        isMatch = normalized.startsWith(normalizedPattern);
-        break;
-      case "suffix":
-        isMatch = normalized.endsWith(normalizedPattern);
-        break;
-      case "regex":
-        try {
-          const regex = new RegExp(pattern.pattern, "i");
-          isMatch = regex.test(normalized);
-        } catch {
-          // Invalid regex - skip
-          isMatch = false;
-        }
-        break;
-    }
-
-    if (isMatch && pattern.priority > bestPriority) {
-      bestMatch = pattern;
-      bestPriority = pattern.priority;
-    }
-  }
-
-  return bestMatch;
-}
-
-/**
- * Gets all patterns for a specific category
- */
-export function getPatternsForCategory(categoryId: CategoryId): VendorPattern[] {
-  return VENDOR_PATTERNS.filter((pattern) => pattern.categoryId === categoryId);
-}
-
-/**
- * Gets patterns that could conflict with each other (same vendor, different categories)
- */
-export function getConflictingPatterns(): Array<{ vendor: string; patterns: VendorPattern[] }> {
-  const vendorGroups = new Map<string, VendorPattern[]>();
-
-  for (const pattern of VENDOR_PATTERNS) {
-    const normalized = normalizeVendorName(pattern.pattern);
-    if (!vendorGroups.has(normalized)) {
-      vendorGroups.set(normalized, []);
-    }
-    vendorGroups.get(normalized)!.push(pattern);
-  }
-
-  return Array.from(vendorGroups.entries())
-    .filter(([, patterns]) => patterns.length > 1)
-    .map(([vendor, patterns]) => ({ vendor, patterns }));
-}

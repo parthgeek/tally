@@ -1,218 +1,304 @@
-import type { NormalizedTransaction } from "@nexus/types";
-import { getPromptCategories, getCategoriesByType } from "./taxonomy.js";
-import {
-  CategorizerFeatureFlag,
-  isFeatureEnabled,
-  type FeatureFlagConfig,
-} from "./feature-flags.js";
-
 /**
- * Pass-1 signal context for LLM prompts
+ * Universal Prompt Builder for Multi-Vertical Categorization
+ * 
+ * This prompt system teaches the LLM to:
+ * 1. Categorize into universal categories (not vendor names)
+ * 2. Extract relevant attributes (vendor, platform, etc.)
+ * 3. Provide confidence scores and rationale
  */
-export interface Pass1Context {
-  topSignals?: Array<{
-    type: string;
-    evidence: string;
-    confidence: number;
-  }>;
-  categoryName?: string;
-  confidence?: number;
+
+import { getPromptCategoriesForIndustry, type Industry, type UniversalCategory } from './taxonomy.js';
+
+export interface PromptContext {
+  industry: Industry;
+  transaction: {
+    description: string;
+    merchantName: string | null;
+    amount: number;
+    mcc: string | null;
+    date?: string;
+  };
+  pass1Context?: {
+    categoryId?: string;
+    confidence?: number;
+    signals?: string[];
+  };
+}
+
+export interface LLMResponse {
+  category_slug: string;
+  confidence: number;
+  attributes?: Record<string, string>;
+  rationale: string;
 }
 
 /**
- * Few-shot examples to guide LLM categorization
- * Selected based on common misclassification patterns from ablation studies
+ * Build universal categorization prompt
  */
-const FEW_SHOT_EXAMPLES = [
-  {
-    merchant: "USPS",
-    description: "POSTAGE STAMP PURCHASE",
-    amount: "$65.00",
-    mcc: "9402",
-    category_slug: "shipping_postage",
-    rationale: "Shipping costs are COGS for e-commerce, not operating expenses",
-  },
-  {
-    merchant: "FedEx",
-    description: "FEDEX GROUND SHIPPING",
-    amount: "$125.50",
-    mcc: "4215",
-    category_slug: "shipping_postage",
-    rationale: "Outbound shipping to customers is COGS",
-  },
-  {
-    merchant: "Alibaba",
-    description: "SUPPLIER PAYMENT - INVENTORY",
-    amount: "$2450.00",
-    mcc: "5999",
-    category_slug: "supplier_purchases",
-    rationale: "Inventory purchases from suppliers are COGS",
-  },
-  {
-    merchant: "Stripe",
-    description: "STRIPE PAYMENT PROCESSING FEE",
-    amount: "$45.80",
-    mcc: "6051",
-    category_slug: "payment_processing_fees",
-    rationale: "Payment processor fees are operating expenses, not COGS",
-  },
-  {
-    merchant: "QuickBooks",
-    description: "QUICKBOOKS SUBSCRIPTION",
-    amount: "$50.00",
-    mcc: "7372",
-    category_slug: "software_subscriptions",
-    rationale: "Accounting software is a business software subscription",
-  },
-  {
-    merchant: "Unknown Vendor",
-    description: "MISC EXPENSE - OFFICE",
-    amount: "$32.15",
-    mcc: null,
-    category_slug: "miscellaneous",
-    rationale: "Unclear expenses with no specific category should be marked miscellaneous",
-  },
-  {
-    merchant: "Customer Refund",
-    description: "REFUND - ORDER #12345",
-    amount: "$89.99",
-    mcc: null,
-    category_slug: "refunds_contra",
-    rationale: "Customer refunds are contra-revenue, not expenses",
-  },
-];
+export function buildUniversalPrompt(context: PromptContext): string {
+  const categories = getPromptCategoriesForIndustry(context.industry);
+  
+  // Format categories for prompt
+  const categoriesFormatted = categories.map(formatCategoryForPrompt).join('\n\n');
+  
+  // Build few-shot examples
+  const examples = getFewShotExamples(context.industry);
+  const examplesFormatted = examples.map(formatExample).join('\n\n');
+  
+  // Build Pass1 context section if available
+  const pass1Section = buildPass1Context(context.pass1Context);
+  
+  return `You are a financial categorization expert for ${getIndustryDescription(context.industry)} businesses.
 
-/**
- * Builds a categorization prompt for e-commerce businesses using centralized taxonomy
- * Optionally includes Pass-1 deterministic signals to guide LLM
- */
-export function buildCategorizationPrompt(
-  tx: NormalizedTransaction,
-  priorCategoryName?: string,
-  config: FeatureFlagConfig = {},
-  environment: "development" | "staging" | "production" = "development",
-  pass1Context?: Pass1Context
-): string {
-  // Trim description to 160 chars as specified in requirements
-  const trimmedDescription =
-    tx.description.length > 160 ? tx.description.substring(0, 157) + "..." : tx.description;
+Your task is to categorize this business transaction into ONE category AND extract relevant attributes.
 
-  // Get categories organized by type for display, respecting feature flags
-  const revenueCategories = getCategoriesByType("revenue", config, environment).filter(
-    (c) => c.includeInPrompt
-  );
-  const cogsCategories = getCategoriesByType("cogs", config, environment).filter(
-    (c) => c.includeInPrompt
-  );
-  const opexCategories = getCategoriesByType("opex", config, environment).filter(
-    (c) => c.includeInPrompt
-  );
+${pass1Section}
 
-  // Build category lists for prompt
-  const revenueSlugs = revenueCategories.map((c) => c.slug).join(", ");
-  const cogsSlugs = cogsCategories.map((c) => c.slug).join(", ");
-  const opexSlugs = opexCategories.map((c) => c.slug).join(", ");
+TRANSACTION TO CATEGORIZE:
+Merchant: ${context.transaction.merchantName || 'Unknown'}
+Description: ${context.transaction.description}
+Amount: $${(context.transaction.amount / 100).toFixed(2)}
+MCC Code: ${context.transaction.mcc || 'Not provided'}
+${context.transaction.date ? `Date: ${context.transaction.date}` : ''}
 
-  // Build Pass-1 context section if available
-  let pass1Section = "";
-  if (pass1Context && pass1Context.topSignals && pass1Context.topSignals.length > 0) {
-    pass1Section = `\nPass-1 Analysis (Rule-based signals):
-${pass1Context.topSignals
-  .map(
-    (s) =>
-      `- ${s.type.toUpperCase()}: ${s.evidence} (confidence: ${(s.confidence * 100).toFixed(0)}%)`
-  )
-  .join("\n")}`;
+AVAILABLE CATEGORIES:
+${categoriesFormatted}
 
-    if (pass1Context.categoryName && pass1Context.confidence && pass1Context.confidence >= 0.7) {
-      pass1Section += `\n- Suggested category: ${pass1Context.categoryName} (confidence: ${(pass1Context.confidence * 100).toFixed(0)}%)`;
-    }
+IMPORTANT INSTRUCTIONS:
+1. Choose the MOST APPROPRIATE category from the list above based on the transaction PURPOSE
+2. Vendor names (Stripe, Meta, Google, etc.) are NOT categories - they are ATTRIBUTES
+3. Extract any relevant attributes based on the transaction details
+4. Provide a confidence score (0-1) based on how certain you are
+5. Give a brief, specific rationale
 
-    pass1Section +=
-      "\n\nIMPORTANT: The above signals are from deterministic rules (MCC codes, vendor patterns, keywords). If these signals are strong (>80% confidence), they should heavily influence your categorization unless you have compelling evidence to the contrary.\n";
-  }
+CRITICAL RULES:
+- Payment processors (Stripe, PayPal, Square) → "payment_processing_fees" category with processor attribute
+- Ad platforms (Facebook, Google, TikTok) → "marketing_ads" category with platform attribute
+- Software/SaaS → "software_subscriptions" category with vendor attribute
+- 3PL/warehouses → "fulfillment_logistics" category with provider attribute
+- When uncertain, prefer more general categories over specific ones
+- If truly unclear, use "miscellaneous" category
 
-  // Build few-shot examples section
-  const fewShotSection = `
-Here are some example categorizations to guide you:
+EXAMPLES OF CORRECT CATEGORIZATION:
+${examplesFormatted}
 
-${FEW_SHOT_EXAMPLES.map(
-  (ex) => `Example:
-Merchant: ${ex.merchant}
-Description: ${ex.description}
-Amount: ${ex.amount}
-MCC: ${ex.mcc || "Not provided"}
-→ category_slug: "${ex.category_slug}"
-→ rationale: "${ex.rationale}"`
-).join("\n\n")}
-`;
-
-  const prompt = `You are a financial categorization expert for e-commerce businesses. Always respond with valid JSON only.
-${fewShotSection}
-
-Now categorize this business transaction for an e-commerce store:
-
-Transaction Details:
-- Merchant: ${tx.merchantName || "Unknown"}
-- Description: ${trimmedDescription}
-- Amount: $${(parseInt(tx.amountCents) / 100).toFixed(2)}
-- MCC: ${tx.mcc || "Not provided"}
-- Industry: ecommerce
-${priorCategoryName ? `- Prior category: ${priorCategoryName}` : ""}${pass1Section}
-
-Available categories:
-Revenue: ${revenueSlugs}
-COGS: ${cogsSlugs}
-Expenses: ${opexSlugs}
-
-Return JSON only:
+Now categorize the transaction above. Respond with valid JSON only:
 {
   "category_slug": "most_appropriate_category",
   "confidence": 0.95,
+  "attributes": {
+    "key": "value"
+  },
   "rationale": "Brief explanation of why this category fits"
+}`;
 }
 
+/**
+ * Format category for prompt display
+ */
+function formatCategoryForPrompt(category: UniversalCategory): string {
+  const attributes = Object.keys(category.attributeSchema);
+  const hasAttributes = attributes.length > 0;
+  
+  let formatted = `• ${category.slug} - "${category.name}"`;
+  
+  if (category.description) {
+    formatted += `\n  Description: ${category.description}`;
+  }
+  
+  if (category.examples && category.examples.length > 0) {
+    formatted += `\n  Examples: ${category.examples.slice(0, 3).join(', ')}`;
+  }
+  
+  if (hasAttributes) {
+    formatted += `\n  Extractable attributes: ${attributes.join(', ')}`;
+  }
+  
+  return formatted;
+}
+
+/**
+ * Get few-shot examples for an industry
+ */
+function getFewShotExamples(industry: Industry): Array<{
+  description: string;
+  merchant: string;
+  category: string;
+  attributes: Record<string, string>;
+  rationale: string;
+}> {
+  const universalExamples = [
+    {
+      description: 'STRIPE PAYMENT PROCESSING FEE',
+      merchant: 'Stripe',
+      category: 'payment_processing_fees',
+      attributes: { processor: 'Stripe', fee_type: 'transaction' },
+      rationale: 'Payment processing fee - NOT a Stripe category, but payment_processing_fees with Stripe as attribute'
+    },
+    {
+      description: 'FACEBOOK ADS MANAGER CHARGE',
+      merchant: 'Meta',
+      category: 'marketing_ads',
+      attributes: { platform: 'Meta', campaign_type: 'paid_social' },
+      rationale: 'Digital advertising - NOT a Facebook category, but marketing_ads with Meta as platform attribute'
+    },
+    {
+      description: 'ADOBE CREATIVE CLOUD SUBSCRIPTION',
+      merchant: 'Adobe',
+      category: 'software_subscriptions',
+      attributes: { vendor: 'Adobe', category: 'design', subscription_type: 'monthly' },
+      rationale: 'Software subscription - vendor name goes in attributes, not category'
+    },
+    {
+      description: 'CUSTOMER REFUND - ORDER #12345',
+      merchant: 'Unknown',
+      category: 'refunds_contra',
+      attributes: { reason: 'return' },
+      rationale: 'Customer refund reduces revenue (contra-revenue account)'
+    },
+  ];
+  
+  const ecommerceExamples = [
+    {
+      description: 'SHIPBOB FULFILLMENT FEES',
+      merchant: 'ShipBob',
+      category: 'fulfillment_logistics',
+      attributes: { provider: 'ShipBob', service_type: 'pick_pack' },
+      rationale: '3PL fulfillment service - e-commerce specific'
+    },
+    {
+      description: 'SHOPIFY MONTHLY SUBSCRIPTION',
+      merchant: 'Shopify',
+      category: 'platform_fees',
+      attributes: { platform: 'Shopify', fee_type: 'monthly' },
+      rationale: 'E-commerce platform subscription'
+    },
+    {
+      description: 'USPS POSTAGE STAMP PURCHASE',
+      merchant: 'USPS',
+      category: 'freight_shipping',
+      attributes: { carrier: 'USPS', direction: 'outbound' },
+      rationale: 'Shipping to customers (COGS for e-commerce)'
+    },
+  ];
+  
+  if (industry === 'ecommerce') {
+    return [...universalExamples, ...ecommerceExamples];
+  }
+  
+  return universalExamples;
+}
+
+/**
+ * Format example for prompt
+ */
+function formatExample(example: {
+  description: string;
+  merchant: string;
+  category: string;
+  attributes: Record<string, string>;
+  rationale: string;
+}): string {
+  const attrsFormatted = JSON.stringify(example.attributes, null, 2).split('\n').join('\n    ');
+  
+  return `Example:
+  Merchant: ${example.merchant}
+  Description: ${example.description}
+  → category_slug: "${example.category}"
+  → attributes: ${attrsFormatted}
+  → rationale: "${example.rationale}"`;
+}
+
+/**
+ * Build Pass1 context section
+ */
+function buildPass1Context(pass1Context?: {
+  categoryId?: string;
+  confidence?: number;
+  signals?: string[];
+}): string {
+  if (!pass1Context || !pass1Context.categoryId) {
+    return '';
+  }
+  
+  return `PASS-1 RULE SUGGESTION:
+Our rules-based system suggested a category with ${(pass1Context.confidence! * 100).toFixed(0)}% confidence.
+Signals: ${pass1Context.signals?.join(', ') || 'None'}
+
+You should consider this suggestion but verify it makes sense for the transaction.
+If you disagree, choose a different category and explain why in your rationale.
 `;
-
-  // Check if two-tier taxonomy is enabled for different rules
-  const isTwoTierEnabled = isFeatureEnabled(
-    CategorizerFeatureFlag.TWO_TIER_TAXONOMY_ENABLED,
-    config,
-    environment
-  );
-
-  const rulesSection = isTwoTierEnabled
-    ? `Rules:
-- Refunds/returns must not map to revenue; choose refunds_contra.
-- Payment processors (Stripe, PayPal, Shopify Payments, BNPL) must not map to revenue; choose payment_processing_fees.
-- Outbound shipping to customers goes to shipping_postage (COGS); inbound freight stays supplier_purchases.
-- If uncertain, choose miscellaneous with lower confidence.
-- Never put refunds or payment processors in miscellaneous.`
-    : `Rules:
-- Refunds/returns must not map to revenue; choose refunds_allowances_contra.
-- Payment processors (Stripe, PayPal, Shopify Payments, BNPL) must not map to revenue.
-- If uncertain, choose a broader expense category with lower confidence.`;
-
-  return prompt + rulesSection;
 }
 
 /**
- * Gets available category slugs for validation
+ * Get industry description for prompt
  */
-export function getAvailableCategorySlugs(
-  config: FeatureFlagConfig = {},
-  environment: "development" | "staging" | "production" = "development"
-): string[] {
-  return getPromptCategories(config, environment).map((category) => category.slug);
+function getIndustryDescription(industry: Industry): string {
+  const descriptions: Record<Industry, string> = {
+    all: 'general',
+    ecommerce: 'e-commerce',
+    saas: 'SaaS (Software-as-a-Service)',
+    restaurant: 'restaurant',
+    professional_services: 'professional services',
+  };
+  
+  return descriptions[industry] || 'business';
 }
 
 /**
- * Validates if a category slug is available in the prompt
+ * Parse LLM response
  */
-export function isValidCategorySlug(
-  slug: string,
-  config: FeatureFlagConfig = {},
-  environment: "development" | "staging" | "production" = "development"
-): boolean {
-  return getAvailableCategorySlugs(config, environment).includes(slug);
+export function parseLLMResponse(responseText: string): LLMResponse {
+  try {
+    // Try to extract JSON from markdown code blocks if present
+    const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/) || 
+                      responseText.match(/```\s*([\s\S]*?)\s*```/);
+    
+    const jsonText = jsonMatch ? jsonMatch[1] : responseText;
+    
+    if (!jsonText || jsonText.trim() === '') {
+      throw new Error('Empty response text from LLM');
+    }
+    
+    const parsed = JSON.parse(jsonText);
+    
+    // Validate required fields
+    if (!parsed.category_slug) {
+      throw new Error('Missing category_slug in response');
+    }
+    
+    return {
+      category_slug: parsed.category_slug,
+      confidence: Math.max(0, Math.min(1, parsed.confidence || 0.5)),
+      attributes: parsed.attributes || {},
+      rationale: parsed.rationale || 'No rationale provided',
+    };
+  } catch (error) {
+    console.error('Failed to parse LLM response:', error);
+    console.error('Response text:', responseText);
+    
+    // Fallback to miscellaneous
+    return {
+      category_slug: 'miscellaneous',
+      confidence: 0.3,
+      attributes: {},
+      rationale: 'Failed to parse LLM response',
+    };
+  }
 }
+
+/**
+ * Get available category slugs for validation
+ */
+export function getAvailableCategorySlugs(industry: Industry): string[] {
+  return getPromptCategoriesForIndustry(industry).map(c => c.slug);
+}
+
+/**
+ * Validate if a category slug is available in the prompt
+ */
+export function isValidCategorySlug(slug: string, industry: Industry): boolean {
+  const validSlugs = getAvailableCategorySlugs(industry);
+  return validSlugs.includes(slug);
+}
+
