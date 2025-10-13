@@ -7,7 +7,11 @@ import type {
 import {
   scoreWithLLM,
   applyGuardrails,
+  categorizeWithUniversalLLM,
+  getOrganizationIndustry,
+  GeminiClient,
   type EnhancedCategorizationResult,
+  type UniversalCategorizationResult,
   DEFAULT_GUARDRAIL_CONFIG
 } from '../../packages/categorizer/src/index.js';
 
@@ -49,6 +53,8 @@ export interface EnhancedLLMResult extends CategorizationResult {
   };
   /** Number of retry attempts made */
   retryCount: number;
+  /** Extracted attributes from universal LLM */
+  attributes?: Record<string, any>;
 }
 
 /**
@@ -90,8 +96,41 @@ export async function enhancedLLMCategorize(
         ? createEnhancedLLMContext(context, pass1Context, finalConfig.timeoutMs)
         : { ...context, timeoutMs: finalConfig.timeoutMs };
 
-      // Call the LLM
-      const llmResult = await scoreWithLLM(transaction, enhancedContext);
+      // Use universal LLM for categorization with attribute extraction
+      const geminiClient = new GeminiClient({
+        apiKey: process.env.GEMINI_API_KEY,
+        model: 'gemini-2.5-flash-lite',
+        temperature: 1.0,
+      });
+
+      const industry = getOrganizationIndustry(transaction.orgId);
+      const universalResult = await categorizeWithUniversalLLM(
+        transaction,
+        {
+          industry,
+          orgId: transaction.orgId,
+          config: {
+            model: 'gemini-2.5-flash-lite',
+            temperature: 1.0,
+          },
+          pass1Context: pass1Context ? {
+            categoryId: pass1Result?.categoryId,
+            confidence: pass1Result?.confidence,
+            signals: pass1Context.topSignals,
+          } : undefined,
+          logger: context.logger,
+          analytics: context.analytics,
+        },
+        geminiClient
+      );
+
+      // Convert universal result to standard format
+      const llmResult = {
+        categoryId: universalResult.categoryId,
+        confidence: universalResult.confidence,
+        rationale: universalResult.rationale,
+        attributes: universalResult.attributes,
+      };
 
       context.logger?.info('LLM categorization completed', {
         txId: transaction.id,
@@ -175,6 +214,7 @@ export async function enhancedLLMCategorize(
         rationale: Array.isArray(finalResult.rationale)
           ? finalResult.rationale
           : finalResult.rationale ? [finalResult.rationale] : [],
+        attributes: llmResult.attributes || {},
         guardrailsApplied,
         guardrailViolations,
         pass1Context,

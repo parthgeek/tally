@@ -5,6 +5,16 @@ export { pass1Categorize, normalizeVendor } from "./pass1.js";
 export { scoreWithLLM } from "./pass2_llm.js";
 export { GeminiClient } from "./gemini-client.js";
 
+// Universal taxonomy exports
+export { 
+  categorizeWithUniversalLLM,
+  getOrganizationIndustry 
+} from "./pass2_llm.js";
+export type { 
+  UniversalCategorizationContext,
+  UniversalCategorizationResult 
+} from "./pass2_llm.js";
+
 // New enhanced engine exports
 export {
   pass1Categorize as enhancedPass1Categorize,

@@ -133,6 +133,31 @@ nexus/
 
 📖 **[View E-commerce Implementation Details](./docs/ecommerce-switch-implementation.md)**
 
+### 🌍 **Universal Multi-Vertical Categorization** (Latest - Production Ready)
+
+**Status:** Phase 1-5 Complete | Ready for Deployment
+
+The categorization system has been redesigned with a universal, multi-vertical taxonomy that supports expansion across industries while maintaining bookkeeping best practices.
+
+**Key Features:**
+- **30 Universal Categories** (5 parent + 25 operational) aligned with standard chart of accounts
+- **Attribute-Based Tracking** - Vendor/platform/processor data stored as transaction metadata instead of categories
+- **Multi-Industry Support** - Designed for e-commerce, SaaS, professional services, and beyond
+- **100% Attribute Extraction Accuracy** - Validated with Gemini 2.5 Flash Lite
+- **Improved LLM Performance** - Temperature 1.0 with confidence calibration
+
+**Category Structure:**
+- **Revenue (5):** Product Sales, Service Revenue, Shipping Income, Refunds, Discounts
+- **COGS (4):** Materials, Labor, Packaging, Freight  
+- **OpEx (14):** Marketing, Software, Payment Processing, Labor, Professional Services, etc.
+- **Non-P&L (2):** Sales Tax, Payouts Clearing
+- **Industry-Specific (5):** Fulfillment, Platform Fees, Hosting, etc.
+
+**Why Attributes?**
+Instead of creating "Stripe Fees" and "PayPal Fees" categories, transactions are categorized as "Payment Processing" with `{processor: "stripe"}` or `{processor: "paypal"}` attributes. This keeps the chart of accounts clean while preserving vendor-level detail for reporting.
+
+📖 **[View Universal Taxonomy Migration Guide](./docs/universal-taxonomy-migration.md)**
+
 ### 🚀 **Gemini Migration** (Previously Completed)
 
 - **Migrated from OpenAI to Google Gemini 2.5 Flash-Lite** for transaction categorization

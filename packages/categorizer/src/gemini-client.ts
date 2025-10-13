@@ -28,7 +28,7 @@ export class GeminiClient {
     }
 
     this.modelName = config.model || "gemini-2.5-flash-lite";
-    this.temperature = config.temperature ?? 0.2;
+    this.temperature = config.temperature ?? 1.0;
     this.genAI = new GoogleGenerativeAI(apiKey);
     this.model = this.genAI.getGenerativeModel({
       model: this.modelName,

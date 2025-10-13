@@ -152,6 +152,31 @@ export async function categorizeWithUniversalLLM(
       });
     }
 
+    // Track categorization completion (PostHog)
+    if (context.analytics?.captureEvent) {
+      context.analytics.captureEvent('universal_categorization_completed', {
+        category_slug: parsed.category_slug,
+        category_id: categoryId,
+        confidence: calibratedConfidence,
+        has_attributes: Object.keys(validatedAttributes).length > 0,
+        attribute_count: Object.keys(validatedAttributes).length,
+        industry: context.industry,
+        model: context.config?.model || 'gemini-2.5-flash-lite',
+        latency_ms: latency,
+      });
+
+      // Track attribute extraction separately if attributes were extracted
+      if (Object.keys(validatedAttributes).length > 0) {
+        context.analytics.captureEvent('attributes_extracted', {
+          category_slug: parsed.category_slug,
+          category_id: categoryId,
+          attributes: Object.keys(validatedAttributes),
+          attribute_values: validatedAttributes,
+          industry: context.industry,
+        });
+      }
+    }
+
     return {
       categoryId,
       confidence: calibratedConfidence,

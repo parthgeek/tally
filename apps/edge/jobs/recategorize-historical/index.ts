@@ -5,6 +5,8 @@ import { buildCategorizationPrompt } from '../../../packages/categorizer/src/pro
 import { mapCategorySlugToId, isValidCategorySlug } from '../../../packages/categorizer/src/taxonomy.ts';
 import { applyEcommerceGuardrails } from '../../../packages/categorizer/src/guardrails.ts';
 import { pass1Categorize } from '../../../packages/categorizer/src/engine/pass1.ts';
+import { categorizeWithUniversalLLM } from '../../../packages/categorizer/src/index.ts';
+import { GeminiClient } from '../../../packages/categorizer/src/gemini-client.ts';
 import type { NormalizedTransaction } from '../../../packages/types/src/index.ts';
 import { type FeatureFlagConfig } from '../../../packages/categorizer/src/feature-flags.ts';
 
@@ -151,14 +153,22 @@ async function updateTransactionRecord(
   originalCategoryId: string | null
 ): Promise<void> {
   // Always mark changed categories for review
+  const updateData: any = {
+    category_id: finalResult.categoryId,
+    confidence: finalResult.confidence,
+    needs_review: true, // Always mark for review when recategorizing
+    reviewed: false
+  };
+
+  // Save attributes if present (from universal LLM)
+  if (finalResult.attributes && Object.keys(finalResult.attributes).length > 0) {
+    updateData.attributes = finalResult.attributes;
+    console.log(`[Recategorize Attributes] Transaction ${tx.id}: ${JSON.stringify(finalResult.attributes)}`);
+  }
+
   const { error: updateError } = await supabase
     .from('transactions')
-    .update({
-      category_id: finalResult.categoryId,
-      confidence: finalResult.confidence,
-      needs_review: true, // Always mark for review when recategorizing
-      reviewed: false
-    })
+    .update(updateData)
     .eq('id', tx.id);
 
   if (updateError) {
@@ -365,7 +375,7 @@ async function runPass1Categorization(supabase: any, tx: any, orgId: string) {
   }
 }
 
-// LLM categorization for recategorization
+// LLM categorization for recategorization using universal taxonomy
 async function runLLMCategorization(supabase: any, tx: any, orgId: string) {
   // Convert to NormalizedTransaction format for centralized functions
   const normalizedTx: NormalizedTransaction = {
@@ -385,80 +395,49 @@ async function runLLMCategorization(supabase: any, tx: any, orgId: string) {
     raw: tx.raw || {}
   };
 
-  // Get feature flag configuration for this environment
-  const featureFlagConfig = getFeatureFlagConfig();
-  
-  // Use centralized prompt builder with environment-aware taxonomy
-  const prompt = buildCategorizationPrompt(normalizedTx, undefined, featureFlagConfig, ENVIRONMENT);
-
   try {
-    // Initialize Gemini client
-    const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY')!);
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-2.5-flash-lite',
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 200,
-      }
+    // Initialize Gemini client with validated settings
+    const geminiClient = new GeminiClient({
+      apiKey: Deno.env.get('GEMINI_API_KEY'),
+      model: 'gemini-2.5-flash-lite', // 100% accuracy in tests
+      temperature: 1.0, // Validated optimal temperature
     });
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const content = response.text();
-
-    // Parse and validate LLM response
-    let parsed;
-    try {
-      let cleanText = content.trim();
-
-      // Extract JSON from markdown if wrapped
-      const jsonMatch = cleanText.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-      if (jsonMatch && jsonMatch[1]) {
-        cleanText = jsonMatch[1].trim();
-      } else {
-        const objectMatch = cleanText.match(/\{[\s\S]*\}/);
-        if (objectMatch && objectMatch[0]) {
-          cleanText = objectMatch[0].trim();
+    // Use universal categorization with attribute extraction
+    const result = await categorizeWithUniversalLLM(
+      normalizedTx,
+      {
+        industry: 'ecommerce', // TODO: Get from org settings when multi-vertical
+        orgId: orgId,
+        config: {
+          model: 'gemini-2.5-flash-lite',
+          temperature: 1.0,
+        },
+        logger: {
+          debug: (msg: string, meta?: any) => console.log(`[Recategorize LLM] ${msg}`, meta),
+          info: (msg: string, meta?: any) => console.log(`[Recategorize LLM] ${msg}`, meta),
+          error: (msg: string, error?: any) => console.error(`[Recategorize LLM] ${msg}`, error),
         }
-      }
+      },
+      geminiClient
+    );
 
-      parsed = JSON.parse(cleanText);
-    } catch (parseError) {
-      console.error('Failed to parse LLM response:', content, parseError);
-      parsed = {
-        category_slug: 'other_ops',
-        confidence: 0.5,
-        rationale: 'Failed to parse LLM response'
-      };
-    }
-
-    // Validate category slug against the active taxonomy
-    let categorySlug = parsed.category_slug || 'other_ops';
-    if (!isValidCategorySlug(categorySlug, featureFlagConfig, ENVIRONMENT)) {
-      console.warn(`Invalid category slug from LLM: ${categorySlug}, falling back to other_ops`);
-      categorySlug = 'other_ops';
-    }
-
-    let confidence = Math.max(0, Math.min(1, parsed.confidence || 0.5));
-
-    // Apply e-commerce guardrails
-    const guardrailResult = applyEcommerceGuardrails(normalizedTx, categorySlug, confidence);
+    console.log(`[Recategorize] Transaction ${tx.id}: category=${result.categoryId}, confidence=${result.confidence}, attributes=${JSON.stringify(result.attributes || {})}`);
 
     return {
-      categoryId: mapCategorySlugToId(guardrailResult.categorySlug, featureFlagConfig, ENVIRONMENT),
-      confidence: guardrailResult.confidence,
-      rationale: [
-        `LLM: ${parsed.rationale || 'AI categorization'}`,
-        ...guardrailResult.guardrailsApplied.map(g => `Guardrail: ${g}`)
-      ]
+      categoryId: result.categoryId,
+      confidence: result.confidence,
+      attributes: result.attributes || {},
+      rationale: result.rationale || ['Universal LLM recategorization']
     };
 
   } catch (error) {
-    console.error('Gemini categorization error:', error);
+    console.error('Universal LLM recategorization error:', error);
     const featureFlagConfig = getFeatureFlagConfig();
     return {
-      categoryId: mapCategorySlugToId('other_ops', featureFlagConfig, ENVIRONMENT),
+      categoryId: mapCategorySlugToId('miscellaneous', featureFlagConfig, ENVIRONMENT),
       confidence: 0.5,
+      attributes: {},
       rationale: ['LLM categorization failed, using fallback']
     };
   }

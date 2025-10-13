@@ -77,6 +77,8 @@ export interface HybridCategorizationResult {
   confidence?: number;
   /** Structured rationale from Pass-1 signals or LLM reasoning */
   rationale: string[];
+  /** Extracted attributes from universal LLM */
+  attributes?: Record<string, any>;
   /** Which engine provided the final result */
   engine: 'pass1' | 'llm';
   /** Pass-1 result for debugging (always populated) */
@@ -245,12 +247,27 @@ export async function categorizeTransaction(
     // Determine final result
     if (pass2Result && (pass2Result.confidence || 0) > pass1Confidence) {
       // Use LLM result if it has higher confidence
+      const hasAttributes = 'attributes' in pass2Result && 
+        Object.keys(pass2Result.attributes || {}).length > 0;
+      
+      // Track attribute extraction
+      if (hasAttributes && context.analytics?.captureEvent) {
+        context.analytics.captureEvent('attributes_extracted', {
+          transaction_id: transaction.id,
+          org_id: transaction.orgId,
+          category_id: pass2Result.categoryId,
+          attributes: Object.keys(pass2Result.attributes || {}),
+          attribute_count: Object.keys(pass2Result.attributes || {}).length,
+        });
+      }
+
       return {
         categoryId: pass2Result.categoryId,
         confidence: pass2Result.confidence,
         rationale: Array.isArray(pass2Result.rationale)
           ? pass2Result.rationale
           : pass2Result.rationale ? [pass2Result.rationale] : [],
+        attributes: 'attributes' in pass2Result ? pass2Result.attributes : {},
         engine: 'llm',
         pass1Result,
         llmAttempted: true,
