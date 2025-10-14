@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
           Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({ orgId }),
       });
 
       console.log(`Edge function response status: ${response.status}`);

@@ -46,13 +46,30 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Get transactions that need categorization - focus on truly uncategorized ones
-    const { data: transactions, error } = await supabase
+    // Parse request body to get optional org_id parameter
+    let requestOrgId: string | null = null;
+    try {
+      const body = await req.json();
+      requestOrgId = body.orgId || null;
+    } catch {
+      // No body or invalid JSON - process all orgs
+    }
+
+    // Get transactions that need categorization
+    // If org_id provided, only process that org's transactions
+    let query = supabase
       .from('transactions')
       .select('id, org_id, merchant_name, mcc, description, amount_cents, category_id, needs_review, created_at')
       .is('category_id', null)  // Only process transactions with no category assigned
       .order('created_at', { ascending: true })
       .limit(RATE_LIMIT.BATCH_SIZE);
+
+    if (requestOrgId) {
+      query = query.eq('org_id', requestOrgId);
+      console.log(`Processing transactions for specific org: ${requestOrgId}`);
+    }
+
+    const { data: transactions, error } = await query;
 
     if (error || !transactions) {
       throw new Error(`Failed to fetch transactions: ${error?.message}`);
@@ -60,8 +77,11 @@ serve(async (req) => {
 
     if (transactions.length === 0) {
       return new Response(JSON.stringify({ 
-        message: 'No transactions to process',
-        processed: 0 
+        message: requestOrgId 
+          ? `No transactions to process for org ${requestOrgId}`
+          : 'No transactions to process',
+        processed: 0,
+        orgId: requestOrgId
       }), {
         headers: { 'Content-Type': 'application/json' },
       });
@@ -121,7 +141,8 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       processed: results.reduce((sum, r) => sum + (r.processed || 0), 0),
       organizations: results.length,
-      results
+      results,
+      orgId: requestOrgId
     }), {
       headers: { 'Content-Type': 'application/json' },
     });

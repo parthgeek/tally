@@ -19,10 +19,10 @@ serve(async (req) => {
 
     const result = await backfillTransactionsForConnection(connectionId, startDays);
 
-    // If we inserted new transactions, trigger categorization
-    if (result.inserted > 0) {
+    // If we inserted new transactions, trigger categorization for this org
+    if (result.inserted > 0 && result.orgId) {
       try {
-        console.log(`Triggering categorization for ${result.inserted} backfilled transactions`);
+        console.log(`Triggering categorization for ${result.inserted} backfilled transactions for org ${result.orgId}`);
 
         const categorizationResponse = await fetch(
           `${Deno.env.get('SUPABASE_URL')}/functions/v1/jobs-categorize-queue`,
@@ -32,6 +32,7 @@ serve(async (req) => {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
             },
+            body: JSON.stringify({ orgId: result.orgId }),
           }
         );
 

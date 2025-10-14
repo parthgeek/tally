@@ -7,11 +7,13 @@ export interface SyncResult {
   updated: number;
   removed: number;
   hasMore: boolean;
+  orgId: string;
 }
 
 export interface BackfillResult {
   inserted: number;
   updated: number;
+  orgId: string;
 }
 
 export interface PlaidTransaction {
@@ -369,6 +371,7 @@ export async function syncTransactionsForConnection(connectionId: string): Promi
     updated,
     removed,
     hasMore: syncData.has_more,
+    orgId: connection.org_id,
   };
 }
 
@@ -414,5 +417,9 @@ export async function backfillTransactionsForConnection(
     }
   }
 
-  return { inserted, updated };
+  return { 
+    inserted, 
+    updated,
+    orgId: connection.org_id
+  };
 }
