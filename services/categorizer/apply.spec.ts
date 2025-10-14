@@ -69,7 +69,8 @@ describe('decideAndApply', () => {
       source: 'pass1',
       confidence: 0.9,
       rationale: ['MCC mapping: 7230 → Hair Services'],
-      decided_by: 'system'
+      org_id: mockOrgId,
+      category_id: mockCategoryId
     });
 
     // Verify analytics event

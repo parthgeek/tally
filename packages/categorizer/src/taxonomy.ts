@@ -77,8 +77,6 @@ export const UNIVERSAL_CATEGORY_IDS = {
   telecommunications: '550e8400-e29b-41d4-a716-446655440361',
   repairs_maintenance: '550e8400-e29b-41d4-a716-446655440362',
   vehicle_transportation: '550e8400-e29b-41d4-a716-446655440363',
-  depreciation: '550e8400-e29b-41d4-a716-446655440364',
-  taxes_licenses: '550e8400-e29b-41d4-a716-446655440365',
   legal_compliance: '550e8400-e29b-41d4-a716-446655440366',
   miscellaneous: '550e8400-e29b-41d4-a716-446655440308',
   
@@ -524,7 +522,7 @@ export const UNIVERSAL_TAXONOMY: UniversalCategory[] = [
     attributeSchema: {
       service_type: {
         type: 'enum',
-        values: ['accounting', 'legal', 'consulting', 'bookkeeping', 'tax_prep', 'other'],
+        values: ['accounting', 'consulting', 'bookkeeping', 'tax_prep', 'other'],
         required: false,
         description: 'Type of professional service'
       },
@@ -534,8 +532,8 @@ export const UNIVERSAL_TAXONOMY: UniversalCategory[] = [
         description: 'Service provider name'
       }
     },
-    description: 'Accounting, legal, consulting, and other professional services for business operations. USE THIS for services from CPAs, lawyers, consultants, bookkeepers. DO NOT use for direct labor on products (use direct_labor COGS) or payroll for employees (use labor).',
-    examples: ['CPA fees', 'Legal counsel', 'Business consultant', 'Tax preparation', 'Bookkeeping services', 'Contract review', 'Business advisory']
+    description: 'Professional advisory services including accounting, bookkeeping, business consulting, and tax preparation. USE THIS for CPA fees, business consultants, and tax prep services. DO NOT use for ongoing legal fees or compliance work (use legal_compliance) or direct labor on products (use direct_labor COGS).',
+    examples: ['CPA fees', 'Business consultant', 'Tax preparation', 'Bookkeeping services', 'Financial advisory', 'Business strategy consultant']
   },
   {
     id: UNIVERSAL_CATEGORY_IDS.rent_utilities,
@@ -562,8 +560,8 @@ export const UNIVERSAL_TAXONOMY: UniversalCategory[] = [
         description: 'Type of utility'
       }
     },
-    description: 'Rent, utilities, and facility costs for business operations INCLUDING office rent, warehouse rent, electricity, water, gas, internet service. USE THIS for facilities and utilities expenses. DO NOT use for 3PL fulfillment services (use fulfillment_logistics) or telecommunications specifically for phone service (use telecommunications).',
-    examples: ['Office rent', 'Warehouse rent', 'Electricity bill', 'Water bill', 'Internet service', 'Co-working space', 'Storage unit']
+    description: 'Rent, utilities, and facility costs including office rent, warehouse rent, electricity, water, gas, internet service. USE THIS for facilities and basic utilities. DO NOT use for mobile phones or business phone systems (use telecommunications) or 3PL fulfillment services (use fulfillment_logistics).',
+    examples: ['Office rent', 'Warehouse rent', 'Electricity bill', 'Water bill', 'Internet service', 'Co-working space', 'Natural gas', 'Sewer charges']
   },
   {
     id: UNIVERSAL_CATEGORY_IDS.insurance,
@@ -633,8 +631,8 @@ export const UNIVERSAL_TAXONOMY: UniversalCategory[] = [
         description: 'Travel destination'
       }
     },
-    description: 'Business travel, meals, and entertainment',
-    examples: ['Airfare', 'Hotel', 'Business meal', 'Uber for business', 'Client dinner']
+    description: 'Business travel expenses including airfare, hotels, rental cars, and business meals/entertainment. USE THIS for travel-related expenses when away from primary business location. DO NOT use for daily commuting, local transportation, or vehicle operating costs (use vehicle_transportation).',
+    examples: ['Airfare', 'Hotel', 'Business meal', 'Client dinner', 'Conference registration', 'Rental car during business trip', 'Uber to airport for trip']
   },
   {
     id: UNIVERSAL_CATEGORY_IDS.bank_fees,
@@ -663,6 +661,118 @@ export const UNIVERSAL_TAXONOMY: UniversalCategory[] = [
     },
     description: 'Bank fees, wire transfer fees, and other financial service charges',
     examples: ['Monthly account fee', 'Wire transfer fee', 'Overdraft charge', 'ATM fee']
+  },
+  {
+    id: UNIVERSAL_CATEGORY_IDS.telecommunications,
+    slug: 'telecommunications',
+    name: 'Telecommunications',
+    parentId: UNIVERSAL_CATEGORY_IDS.operating_expenses,
+    type: 'opex',
+    tier: 2,
+    isPnL: true,
+    includeInPrompt: true,
+    industries: ['all'],
+    isUniversal: true,
+    displayOrder: 11,
+    attributeSchema: {
+      service_type: {
+        type: 'enum',
+        values: ['mobile', 'landline', 'voip', 'conferencing', 'other'],
+        required: false,
+        description: 'Type of telecom service'
+      },
+      provider: {
+        type: 'string',
+        required: false,
+        description: 'Telecom provider name'
+      }
+    },
+    description: 'Business phone and communications systems including mobile phones, business phone lines, VoIP services, and video conferencing subscriptions (Zoom Phone, not general Zoom subscription). USE THIS for all phone/telecom services. DO NOT use for internet service (use rent_utilities) or general software (use software_subscriptions).',
+    examples: ['AT&T business mobile', 'Verizon phone bill', 'RingCentral VoIP', 'Business phone line', 'Cell phone plan', 'Zoom Phone subscription', 'Conference call service']
+  },
+  {
+    id: UNIVERSAL_CATEGORY_IDS.vehicle_transportation,
+    slug: 'vehicle_transportation',
+    name: 'Vehicle & Transportation',
+    parentId: UNIVERSAL_CATEGORY_IDS.operating_expenses,
+    type: 'opex',
+    tier: 2,
+    isPnL: true,
+    includeInPrompt: true,
+    industries: ['all'],
+    isUniversal: true,
+    displayOrder: 12,
+    attributeSchema: {
+      expense_type: {
+        type: 'enum',
+        values: ['fuel', 'maintenance', 'payment', 'insurance', 'rideshare', 'parking', 'tolls', 'other'],
+        required: false,
+        description: 'Type of vehicle expense'
+      },
+      vehicle: {
+        type: 'string',
+        required: false,
+        description: 'Vehicle identifier'
+      }
+    },
+    description: 'Daily vehicle and local transportation expenses including gas, car payments, vehicle maintenance, rideshare for local business, parking, and tolls. USE THIS for vehicle operating costs and daily/local transportation. DO NOT use for business travel away from home office (use travel_meals for Uber to airport, rental cars during trips).',
+    examples: ['Gas station fill-up', 'Car payment', 'Oil change', 'Uber to client meeting', 'Lyft to office', 'Parking meter', 'Toll road', 'Vehicle registration', 'Car wash']
+  },
+  {
+    id: UNIVERSAL_CATEGORY_IDS.repairs_maintenance,
+    slug: 'repairs_maintenance',
+    name: 'Repairs & Maintenance',
+    parentId: UNIVERSAL_CATEGORY_IDS.operating_expenses,
+    type: 'opex',
+    tier: 2,
+    isPnL: true,
+    includeInPrompt: true,
+    industries: ['all'],
+    isUniversal: true,
+    displayOrder: 13,
+    attributeSchema: {
+      asset_type: {
+        type: 'enum',
+        values: ['building', 'equipment', 'machinery', 'hvac', 'plumbing', 'electrical', 'other'],
+        required: false,
+        description: 'Type of asset being repaired'
+      },
+      vendor: {
+        type: 'string',
+        required: false,
+        description: 'Repair service provider'
+      }
+    },
+    description: 'Repairs and maintenance of business property, equipment, and facilities (NOT vehicles). USE THIS for building repairs, equipment servicing, HVAC maintenance, plumbing, electrical work. DO NOT use for vehicle maintenance (use vehicle_transportation) or product-related repairs (use materials_supplies COGS).',
+    examples: ['HVAC repair', 'Plumbing service', 'Equipment maintenance', 'Building repair', 'Electrical contractor', 'Roof repair', 'Appliance repair', 'Landscape maintenance']
+  },
+  {
+    id: UNIVERSAL_CATEGORY_IDS.legal_compliance,
+    slug: 'legal_compliance',
+    name: 'Legal & Compliance',
+    parentId: UNIVERSAL_CATEGORY_IDS.operating_expenses,
+    type: 'opex',
+    tier: 2,
+    isPnL: true,
+    includeInPrompt: true,
+    industries: ['all'],
+    isUniversal: true,
+    displayOrder: 14,
+    attributeSchema: {
+      service_type: {
+        type: 'enum',
+        values: ['legal_fees', 'trademark', 'patents', 'regulatory', 'compliance', 'litigation', 'contracts', 'other'],
+        required: false,
+        description: 'Type of legal service'
+      },
+      firm: {
+        type: 'string',
+        required: false,
+        description: 'Law firm or legal provider name'
+      }
+    },
+    description: 'Legal services, regulatory compliance, and related fees including attorney fees, trademark/patent filings, regulatory compliance costs, and litigation. USE THIS for all legal and compliance-related expenses. DO NOT use for one-time business formation (could use miscellaneous) or tax preparation (use professional_services).',
+    examples: ['Attorney fees', 'Law firm retainer', 'Trademark filing', 'Patent application', 'Legal consultation', 'Contract review by lawyer', 'Compliance audit', 'Regulatory filing fees']
   },
   {
     id: UNIVERSAL_CATEGORY_IDS.miscellaneous,

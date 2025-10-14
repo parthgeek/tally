@@ -47,8 +47,8 @@ export const MCC_MAPPINGS: Record<string, MCCMapping> = {
     baseConfidence: 0.88
   },
   '6300': { // Insurance
-    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
-    categoryName: 'General & Administrative',
+    categoryId: '550e8400-e29b-41d4-a716-446655440354' as CategoryId,
+    categoryName: 'Insurance',
     strength: 'exact',
     baseConfidence: 0.90
   },
@@ -111,8 +111,8 @@ export const MCC_MAPPINGS: Record<string, MCCMapping> = {
     baseConfidence: 0.90
   },
   '4814': { // Telecommunication Services (Phone/Internet)
-    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
-    categoryName: 'General & Administrative',
+    categoryId: '550e8400-e29b-41d4-a716-446655440361' as CategoryId,
+    categoryName: 'Telecommunications',
     strength: 'family',
     baseConfidence: 0.82
   },
@@ -177,26 +177,26 @@ export const MCC_MAPPINGS: Record<string, MCCMapping> = {
 
   // === Business Services ===
   '7399': { // Business Services (General)
-    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
-    categoryName: 'General & Administrative',
+    categoryId: '550e8400-e29b-41d4-a716-446655440352' as CategoryId,
+    categoryName: 'Professional Services',
     strength: 'family',
     baseConfidence: 0.70
   },
   '8931': { // Accounting/Bookkeeping Services
-    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
-    categoryName: 'General & Administrative',
+    categoryId: '550e8400-e29b-41d4-a716-446655440352' as CategoryId,
+    categoryName: 'Professional Services',
     strength: 'exact',
     baseConfidence: 0.88
   },
   '8111': { // Legal Services
-    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
-    categoryName: 'General & Administrative',
+    categoryId: '550e8400-e29b-41d4-a716-446655440366' as CategoryId,
+    categoryName: 'Legal & Compliance',
     strength: 'exact',
     baseConfidence: 0.90
   },
   '8999': { // Professional Services (Consultants)
-    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
-    categoryName: 'General & Administrative',
+    categoryId: '550e8400-e29b-41d4-a716-446655440352' as CategoryId,
+    categoryName: 'Professional Services',
     strength: 'family',
     baseConfidence: 0.75
   },
@@ -211,28 +211,28 @@ export const MCC_MAPPINGS: Record<string, MCCMapping> = {
 
   // === Office & Administrative ===
   '5943': { // Office Supply Stores
-    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
-    categoryName: 'General & Administrative',
+    categoryId: '550e8400-e29b-41d4-a716-446655440356' as CategoryId,
+    categoryName: 'Office Supplies',
     strength: 'family',
     baseConfidence: 0.80
   },
   '5021': { // Office and Commercial Furniture
-    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
-    categoryName: 'General & Administrative',
+    categoryId: '550e8400-e29b-41d4-a716-446655440356' as CategoryId,
+    categoryName: 'Office Supplies',
     strength: 'family',
     baseConfidence: 0.75
   },
 
   // === Utilities & Facilities ===
   '4900': { // Utilities (Electric, Gas, Water, Sanitary)
-    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
-    categoryName: 'General & Administrative',
+    categoryId: '550e8400-e29b-41d4-a716-446655440353' as CategoryId,
+    categoryName: 'Rent & Utilities',
     strength: 'exact',
     baseConfidence: 0.92
   },
   '4899': { // Cable and Other Pay TV (Internet/Utilities)
-    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
-    categoryName: 'General & Administrative',
+    categoryId: '550e8400-e29b-41d4-a716-446655440353' as CategoryId,
+    categoryName: 'Rent & Utilities',
     strength: 'family',
     baseConfidence: 0.85
   },
@@ -247,8 +247,8 @@ export const MCC_MAPPINGS: Record<string, MCCMapping> = {
 
   // === Government & Compliance ===
   '9399': { // Government Services
-    categoryId: '550e8400-e29b-41d4-a716-446655440307' as CategoryId,
-    categoryName: 'General & Administrative',
+    categoryId: '550e8400-e29b-41d4-a716-446655440366' as CategoryId,
+    categoryName: 'Legal & Compliance',
     strength: 'exact',
     baseConfidence: 0.88
   },
@@ -335,13 +335,16 @@ export function isMCCCompatibleWithCategory(mcc: string, categoryId: CategoryId)
  * Used for cross-category compatibility checking within two-tier taxonomy
  */
 function isCompatibleCategoryFamily(mccCategoryId: CategoryId, targetCategoryId: CategoryId): boolean {
-  // Define category families that can be compatible (two-tier taxonomy)
+  // Define category families that can be compatible (universal taxonomy)
   const categoryFamilies = [
-    // OpEx - G&A family (software, admin, professional services can overlap)
-    ['550e8400-e29b-41d4-a716-446655440304', '550e8400-e29b-41d4-a716-446655440307'], // software_subscriptions, general_administrative
+    // OpEx - Software & Professional Services family (software tools for business can overlap)
+    ['550e8400-e29b-41d4-a716-446655440304', '550e8400-e29b-41d4-a716-446655440352'], // software_subscriptions, professional_services
     
     // OpEx - Marketing & Ads family
     ['550e8400-e29b-41d4-a716-446655440303', '550e8400-e29b-41d4-a716-446655440304'], // marketing_ads, software_subscriptions (ad platforms as SaaS)
+    
+    // OpEx - Telecommunications & Utilities family
+    ['550e8400-e29b-41d4-a716-446655440361', '550e8400-e29b-41d4-a716-446655440353'], // telecommunications, rent_utilities
     
     // COGS - Shipping & Logistics family
     ['550e8400-e29b-41d4-a716-446655440207', '550e8400-e29b-41d4-a716-446655440306'], // shipping_postage, operations_logistics

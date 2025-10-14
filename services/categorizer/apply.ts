@@ -102,11 +102,12 @@ export async function decideAndApply(
     const { error: decisionError } = await ctx.db
       .from('decisions')
       .insert({
+        org_id: ctx.orgId,
         tx_id: txId,
+        category_id: result.categoryId || null,
         source,
         confidence: result.confidence || 0,
-        rationale: result.rationale || [],
-        decided_by: 'system'
+        rationale: result.rationale || []
       });
 
     if (decisionError) {

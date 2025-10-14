@@ -211,12 +211,6 @@ Tier 3: Attributes (flexible, stored as JSONB)
 | Office Supplies | `office_supplies` | All | `category`, `vendor` |
 | Travel & Meals | `travel_meals` | All | `trip_purpose`, `location` |
 | Bank & Merchant Fees | `bank_fees` | All | `fee_type`, `institution` |
-| Telecommunications | `telecommunications` | All | `service_type`, `provider` |
-| Repairs & Maintenance | `repairs_maintenance` | All | `asset_type`, `vendor` |
-| Vehicle & Transportation | `vehicle_transportation` | All | `vehicle`, `expense_type` |
-| Depreciation | `depreciation` | All | `asset_type`, `method` |
-| Taxes & Licenses | `taxes_licenses` | All | `tax_type`, `jurisdiction` |
-| Legal & Compliance | `legal_compliance` | All | `service_type`, `firm` |
 | Miscellaneous | `miscellaneous` | All | `note`, `type` |
 | **Industry-Specific** | | | |
 | Fulfillment & Logistics | `fulfillment_logistics` | E-comm | `3pl_provider`, `warehouse`, `service_type` |

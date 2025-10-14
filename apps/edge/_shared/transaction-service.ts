@@ -159,7 +159,7 @@ export async function insertTransactions(transactions: NormalizedTransaction[]):
   return insertedCount;
 }
 
-export async function upsertTransactions(transactions: NormalizedTransaction[]): Promise<number> {
+export async function upsertTransactions(transactions: NormalizedTransaction[], ignoreDuplicates = true): Promise<number> {
   if (transactions.length === 0) return 0;
 
   const supabase = createClient(
@@ -176,18 +176,53 @@ export async function upsertTransactions(transactions: NormalizedTransaction[]):
   for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
     const batch = transactions.slice(i, i + BATCH_SIZE);
     
+    // Deduplicate within batch to prevent intra-batch conflicts
+    const seen = new Set<string>();
+    const deduped: NormalizedTransaction[] = [];
+    let duplicatesSkipped = 0;
+    
+    for (const t of batch) {
+      if (!t.provider_tx_id || t.provider_tx_id.trim() === '') {
+        console.warn('Skipping transaction with missing provider_tx_id:', {
+          org_id: t.org_id,
+          account_id: t.account_id,
+          date: t.date,
+          description: t.description
+        });
+        continue;
+      }
+      
+      const key = `${t.org_id}:${t.provider_tx_id}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduped.push(t);
+      } else {
+        duplicatesSkipped++;
+      }
+    }
+    
+    if (duplicatesSkipped > 0) {
+      console.log(`Deduped ${duplicatesSkipped} duplicate(s) in batch ${i / BATCH_SIZE + 1} (${deduped.length} unique transactions)`);
+    }
+    
+    if (deduped.length === 0) {
+      console.warn(`Batch ${i / BATCH_SIZE + 1} had no valid transactions after deduplication`);
+      continue;
+    }
+    
     const { error, count } = await supabase
       .from('transactions')
-      .upsert(batch, {
+      .upsert(deduped, {
         onConflict: 'org_id,provider_tx_id',
-        count: 'exact'
+        count: 'exact',
+        ignoreDuplicates
       });
 
     if (error) {
       console.error(`Failed to upsert batch ${i / BATCH_SIZE + 1}:`, error);
       // Continue with next batch rather than failing completely
     } else {
-      upsertedCount += count || batch.length;
+      upsertedCount += count || deduped.length;
     }
   }
 

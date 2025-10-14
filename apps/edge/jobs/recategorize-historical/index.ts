@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { GoogleGenerativeAI } from 'https://esm.sh/@google/generative-ai@0.24.1';
 import { buildCategorizationPrompt } from '../../../packages/categorizer/src/prompt.ts';
-import { mapCategorySlugToId, isValidCategorySlug } from '../../../packages/categorizer/src/taxonomy.ts';
+import { mapCategorySlugToId } from '../../../packages/categorizer/src/taxonomy.ts';
 import { applyEcommerceGuardrails } from '../../../packages/categorizer/src/guardrails.ts';
 import { pass1Categorize } from '../../../packages/categorizer/src/engine/pass1.ts';
 import { categorizeWithUniversalLLM } from '../../../packages/categorizer/src/index.ts';
@@ -188,8 +188,7 @@ async function updateTransactionRecord(
         'Historical recategorization due to industry switch',
         `Previous category: ${originalCategoryId || 'none'}`,
         ...(finalResult.rationale || [])
-      ],
-      decided_by: 'system'
+      ]
     });
 
   if (decisionError) {
@@ -433,9 +432,8 @@ async function runLLMCategorization(supabase: any, tx: any, orgId: string) {
 
   } catch (error) {
     console.error('Universal LLM recategorization error:', error);
-    const featureFlagConfig = getFeatureFlagConfig();
     return {
-      categoryId: mapCategorySlugToId('miscellaneous', featureFlagConfig, ENVIRONMENT),
+      categoryId: mapCategorySlugToId('miscellaneous'),
       confidence: 0.5,
       attributes: {},
       rationale: ['LLM categorization failed, using fallback']

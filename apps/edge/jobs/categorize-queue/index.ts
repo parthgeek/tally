@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { GoogleGenerativeAI } from 'https://esm.sh/@google/generative-ai@0.24.1';
 import { buildCategorizationPrompt } from '../../../packages/categorizer/src/prompt.ts';
-import { mapCategorySlugToId, isValidCategorySlug, getActiveTaxonomy } from '../../../packages/categorizer/src/taxonomy.ts';
+import { mapCategorySlugToId } from '../../../packages/categorizer/src/taxonomy.ts';
 import { applyEcommerceGuardrails } from '../../../packages/categorizer/src/guardrails.ts';
 import { pass1Categorize } from '../../../packages/categorizer/src/engine/pass1.ts';
 import { categorizeWithUniversalLLM, type UniversalCategorizationContext } from '../../../packages/categorizer/src/index.ts';
@@ -315,9 +315,8 @@ async function runLLMCategorization(supabase: any, tx: any, orgId: string): Prom
 
   } catch (error) {
     console.error('Universal LLM categorization error:', error);
-    const featureFlagConfig = getFeatureFlagConfig();
     return {
-      categoryId: mapCategorySlugToId('miscellaneous', featureFlagConfig, ENVIRONMENT),
+      categoryId: mapCategorySlugToId('miscellaneous'),
       confidence: 0.5,
       attributes: {},
       rationale: ['LLM categorization failed, using fallback']
@@ -372,11 +371,12 @@ async function decideAndApply(
   const { error: decisionError } = await supabase
     .from('decisions')
     .insert({
+      org_id: orgId,
       tx_id: txId,
+      category_id: result.categoryId || null,
       source,
       confidence: result.confidence || 0,
-      rationale: result.rationale || [],
-      decided_by: 'system'
+      rationale: result.rationale || []
     });
 
   if (decisionError) {

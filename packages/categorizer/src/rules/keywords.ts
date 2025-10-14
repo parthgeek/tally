@@ -269,84 +269,135 @@ export const KEYWORD_RULES: KeywordRule[] = [
     domain: "customer_support",
   },
 
-  // === General & Administrative (OpEx) ===
+  // === Rent & Utilities (OpEx) ===
   {
     keywords: ["rent", "lease", "office space", "co-working"],
-    categoryId: "550e8400-e29b-41d4-a716-446655440307" as CategoryId,
-    categoryName: "General & Administrative",
+    categoryId: "550e8400-e29b-41d4-a716-446655440353" as CategoryId,
+    categoryName: "Rent & Utilities",
     confidence: 0.9,
     weight: 5,
     domain: "facilities",
     excludeKeywords: ["car", "vehicle"],
   },
   {
-    keywords: ["electric", "electricity", "gas", "water", "utilities", "internet", "phone"],
-    categoryId: "550e8400-e29b-41d4-a716-446655440307" as CategoryId,
-    categoryName: "General & Administrative",
+    keywords: ["electric", "electricity", "gas", "water", "utilities", "internet"],
+    categoryId: "550e8400-e29b-41d4-a716-446655440353" as CategoryId,
+    categoryName: "Rent & Utilities",
     confidence: 0.88,
     weight: 5,
     domain: "utilities",
-    excludeKeywords: ["gasoline", "fuel"],
+    excludeKeywords: ["gasoline", "fuel", "phone", "mobile", "cell"],
   },
+
+  // === Telecommunications (OpEx) ===
+  {
+    keywords: ["phone", "mobile", "cell phone", "voip", "conferencing", "ringcentral", "zoom phone"],
+    categoryId: "550e8400-e29b-41d4-a716-446655440361" as CategoryId,
+    categoryName: "Telecommunications",
+    confidence: 0.92,
+    weight: 5,
+    domain: "telecom",
+    excludeKeywords: ["internet"],
+  },
+
+  // === Insurance (OpEx) ===
   {
     keywords: ["insurance", "liability", "coverage", "premium", "policy"],
-    categoryId: "550e8400-e29b-41d4-a716-446655440307" as CategoryId,
-    categoryName: "General & Administrative",
+    categoryId: "550e8400-e29b-41d4-a716-446655440354" as CategoryId,
+    categoryName: "Insurance",
     confidence: 0.92,
     weight: 5,
     domain: "insurance",
   },
+
+  // === Professional Services (OpEx) ===
   {
-    keywords: ["accountant", "bookkeeping", "lawyer", "attorney", "legal fees"],
-    categoryId: "550e8400-e29b-41d4-a716-446655440307" as CategoryId,
-    categoryName: "General & Administrative",
+    keywords: ["accountant", "bookkeeping", "cpa", "tax prep", "tax preparation", "consultant"],
+    categoryId: "550e8400-e29b-41d4-a716-446655440352" as CategoryId,
+    categoryName: "Professional Services",
     confidence: 0.9,
     weight: 5,
     domain: "professional_services",
+    excludeKeywords: ["lawyer", "attorney", "legal"],
   },
+
+  // === Legal & Compliance (OpEx) ===
+  {
+    keywords: ["lawyer", "attorney", "legal fees", "law firm", "trademark", "patent", "compliance"],
+    categoryId: "550e8400-e29b-41d4-a716-446655440366" as CategoryId,
+    categoryName: "Legal & Compliance",
+    confidence: 0.92,
+    weight: 5,
+    domain: "legal",
+  },
+
+  // === Office Supplies (OpEx) ===
   {
     keywords: ["office supplies", "paper", "pens", "furniture", "desk"],
-    categoryId: "550e8400-e29b-41d4-a716-446655440307" as CategoryId,
-    categoryName: "General & Administrative",
+    categoryId: "550e8400-e29b-41d4-a716-446655440356" as CategoryId,
+    categoryName: "Office Supplies",
     confidence: 0.82,
     weight: 3,
     domain: "office_supplies",
   },
+
+  // === Bank Fees (OpEx) ===
   {
     keywords: ["bank fee", "monthly fee", "overdraft", "wire transfer"],
-    categoryId: "550e8400-e29b-41d4-a716-446655440307" as CategoryId,
-    categoryName: "General & Administrative",
+    categoryId: "550e8400-e29b-41d4-a716-446655440358" as CategoryId,
+    categoryName: "Bank & Merchant Fees",
     confidence: 0.85,
     weight: 4,
     domain: "banking",
     excludeKeywords: ["payment processing", "merchant"],
   },
 
-  // === Miscellaneous (OpEx) ===
+  // === Travel & Meals (OpEx) ===
   {
-    keywords: ["travel", "hotel", "airfare", "conference", "trade show"],
-    categoryId: "550e8400-e29b-41d4-a716-446655440308" as CategoryId,
-    categoryName: "Miscellaneous",
+    keywords: ["travel", "hotel", "airfare", "conference", "trade show", "rental car", "flight"],
+    categoryId: "550e8400-e29b-41d4-a716-446655440357" as CategoryId,
+    categoryName: "Travel & Meals",
     confidence: 0.85,
     weight: 4,
     domain: "business_travel",
   },
   {
-    keywords: ["gasoline", "fuel", "parking", "toll", "mileage"],
-    categoryId: "550e8400-e29b-41d4-a716-446655440308" as CategoryId,
-    categoryName: "Miscellaneous",
+    keywords: ["lunch", "dinner", "meal", "restaurant", "catering"],
+    categoryId: "550e8400-e29b-41d4-a716-446655440357" as CategoryId,
+    categoryName: "Travel & Meals",
+    confidence: 0.75,
+    weight: 3,
+    domain: "meals",
+    excludeKeywords: ["personal"],
+  },
+
+  // === Vehicle & Transportation (OpEx) ===
+  {
+    keywords: ["gasoline", "fuel", "parking", "toll", "mileage", "car payment", "oil change", "car wash"],
+    categoryId: "550e8400-e29b-41d4-a716-446655440363" as CategoryId,
+    categoryName: "Vehicle & Transportation",
     confidence: 0.82,
     weight: 3,
     domain: "vehicle",
   },
   {
-    keywords: ["lunch", "dinner", "meal", "restaurant", "catering"],
+    keywords: ["uber", "lyft", "taxi", "rideshare"],
+    categoryId: "550e8400-e29b-41d4-a716-446655440363" as CategoryId,
+    categoryName: "Vehicle & Transportation",
+    confidence: 0.78,
+    weight: 3,
+    domain: "rideshare",
+    excludeKeywords: ["airport", "travel", "trip", "hotel"],
+  },
+
+  // === Miscellaneous (OpEx) ===
+  {
+    keywords: ["miscellaneous", "other", "unclear", "unclassified"],
     categoryId: "550e8400-e29b-41d4-a716-446655440308" as CategoryId,
     categoryName: "Miscellaneous",
-    confidence: 0.75,
-    weight: 3,
-    domain: "meals",
-    excludeKeywords: ["personal"],
+    confidence: 0.60,
+    weight: 2,
+    domain: "miscellaneous",
   },
 
   // === Taxes & Liabilities (Hidden) ===
