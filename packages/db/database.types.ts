@@ -41,6 +41,48 @@ export interface Database {
         }
         Relationships: []
       }
+      accounts: {
+        Row: {
+          id: string
+          org_id: string
+          connection_id: string
+          provider_account_id: string
+          name: string
+          type: string
+          currency: string
+          is_active: boolean
+          created_at: string
+          current_balance_cents: string | null
+          mask: string | null
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          connection_id: string
+          provider_account_id: string
+          name: string
+          type: string
+          currency: string
+          is_active?: boolean
+          created_at?: string
+          current_balance_cents?: string | null
+          mask?: string | null
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          connection_id?: string
+          provider_account_id?: string
+          name?: string
+          type?: string
+          currency?: string
+          is_active?: boolean
+          created_at?: string
+          current_balance_cents?: string | null
+          mask?: string | null
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           id: string

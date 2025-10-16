@@ -45,7 +45,8 @@ export interface NormalizedTransaction {
 }
 
 export function toCentsString(amount: number): string {
-  return Math.round(Math.abs(amount) * 100).toString();
+  // Preserve sign: negative = expense (money out), positive = income (money in)
+  return Math.round(amount * 100).toString();
 }
 
 export async function fetchPlaidTransactionsSync(

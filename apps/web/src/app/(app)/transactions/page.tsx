@@ -15,7 +15,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { CategoryPill, type CategoryTier1 } from "@/components/ui/category-pill";
 import { ConfidenceBadge } from "@/components/ui/confidence-badge";
-import { MoreHorizontal, Receipt, Trash2 } from "lucide-react";
+import { Receipt, Trash2, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { createClient } from "@/lib/supabase";
 import {
   filterTransactions,
@@ -56,6 +57,7 @@ function getCategoryTier1(categoryType?: string | null): CategoryTier1 {
 
 interface Account {
   name: string;
+  mask?: string | null;
 }
 
 interface Category {
@@ -80,12 +82,14 @@ interface Transaction {
   accounts?: Account | Account[] | null;
   categories?: Category | Category[] | null;
   account_name?: string;
+  account_mask?: string | null;
   category_name?: string;
   category_type?: string | null;
 }
 
-interface TransactionWithNormalized extends Omit<Transaction, "category_name" | "account_name"> {
+interface TransactionWithNormalized extends Omit<Transaction, "category_name" | "account_name" | "account_mask"> {
   account_name: string;
+  account_mask: string | null;
   category_name: string | null;
   category_type?: string | null;
 }
@@ -100,14 +104,12 @@ const initialFilterState: FilterState = {
   minAmount: "",
   maxAmount: "",
   lowConfidenceOnly: false,
+  month: new Date().toISOString().slice(0, 7), // Current month: "YYYY-MM"
 };
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<TransactionWithNormalized[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedTransaction, setSelectedTransaction] = useState<TransactionWithNormalized | null>(
-    null
-  );
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<FilterState>(initialFilterState);
   const [updatingCategories, setUpdatingCategories] = useState<Set<string>>(new Set());
@@ -120,6 +122,7 @@ export default function TransactionsPage() {
   const [deletionProgress, setDeletionProgress] = useState<{ done: number; total: number } | null>(
     null
   );
+  const [uncategorizedCount, setUncategorizedCount] = useState<number>(0);
 
   const supabase = createClient();
   const posthog = getPosthogClientBrowser();
@@ -136,6 +139,40 @@ export default function TransactionsPage() {
       fetchCategories();
     }
   }, [currentOrgId, isEnhancedUIEnabled]);
+
+  // Poll for uncategorized transaction count
+  useEffect(() => {
+    const fetchUncategorizedCount = async () => {
+      try {
+        const response = await fetch('/api/transactions/uncategorized-count');
+        if (response.ok) {
+          const data = await response.json();
+          const newCount = data.uncategorizedCount || 0;
+          
+          // If categorization just completed, refresh transactions
+          if (uncategorizedCount > 0 && newCount === 0) {
+            fetchTransactions();
+          }
+          
+          setUncategorizedCount(newCount);
+        }
+      } catch (error) {
+        console.error('Failed to fetch uncategorized count:', error);
+      }
+    };
+
+    // Fetch immediately
+    fetchUncategorizedCount();
+
+    // Poll every 5 seconds if there are uncategorized transactions
+    const pollInterval = setInterval(() => {
+      if (uncategorizedCount > 0) {
+        fetchUncategorizedCount();
+      }
+    }, 5000);
+
+    return () => clearInterval(pollInterval);
+  }, [uncategorizedCount]);
 
   const filteredTransactions = useMemo(() => {
     if (!isEnhancedUIEnabled) return transactions;
@@ -346,7 +383,10 @@ export default function TransactionsPage() {
   );
 
   const clearFilters = useCallback(() => {
-    setFilters(initialFilterState);
+    setFilters({
+      ...initialFilterState,
+      month: new Date().toISOString().slice(0, 7), // Reset to current month
+    });
   }, []);
 
   const refreshData = useCallback(() => {
@@ -567,7 +607,7 @@ export default function TransactionsPage() {
         ? `
           id, date, amount_cents, currency, description, merchant_name, source, account_id, raw,
           category_id, confidence, needs_review,
-          accounts(name),
+          accounts(name, mask),
           categories(name, type)
         `
         : "*";
@@ -585,10 +625,10 @@ export default function TransactionsPage() {
       }
 
       const normalizedTransactions = (data || []).map((t) => {
-        const accountName = (t as any).accounts
+        const accountData = (t as any).accounts
           ? Array.isArray((t as any).accounts)
-            ? (t as any).accounts?.[0]?.name
-            : (t as any).accounts?.name
+            ? (t as any).accounts?.[0]
+            : (t as any).accounts
           : undefined;
 
         const categoryData = (t as any).categories
@@ -599,7 +639,8 @@ export default function TransactionsPage() {
 
         return {
           ...(t as any),
-          account_name: accountName || "Unknown",
+          account_name: accountData?.name || "Unknown",
+          account_mask: accountData?.mask || null,
           category_name: categoryData?.name || null,
           category_type: categoryData?.type || null,
         } as TransactionWithNormalized;
@@ -696,10 +737,40 @@ export default function TransactionsPage() {
       </div>
 
       {/* Enhanced Filters */}
-      {isEnhancedUIEnabled && filteredTransactions.length > 0 && (
+      {isEnhancedUIEnabled && transactions.length > 0 && (
         <Card>
           <CardContent className="p-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="month" className="text-xs">
+                  Month
+                </Label>
+                <Select
+                  value={filters.month}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, month: value }))}
+                >
+                  <SelectTrigger id="month">
+                    <SelectValue placeholder="Select month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="YTD">Year to Date</SelectItem>
+                    {Array.from({ length: 24 }, (_, i) => {
+                      const date = new Date();
+                      date.setMonth(date.getMonth() - i);
+                      const yearMonth = date.toISOString().slice(0, 7);
+                      const label = date.toLocaleDateString("en-US", {
+                        month: "short",
+                        year: "numeric",
+                      });
+                      return (
+                        <SelectItem key={yearMonth} value={yearMonth}>
+                          {label}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="search" className="text-xs">
                   Search
@@ -752,26 +823,6 @@ export default function TransactionsPage() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="dateFrom" className="text-xs">
-                  Date Range
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="dateFrom"
-                    type="date"
-                    value={filters.dateFrom}
-                    onChange={(e) => setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))}
-                    className="flex-1"
-                  />
-                  <Input
-                    type="date"
-                    value={filters.dateTo}
-                    onChange={(e) => setFilters((prev) => ({ ...prev, dateTo: e.target.value }))}
-                    className="flex-1"
-                  />
-                </div>
               </div>
             </div>
             <div className="flex items-center justify-between pt-2">
@@ -843,6 +894,17 @@ export default function TransactionsPage() {
         </Card>
       )}
 
+      {/* Categorization Progress Badge */}
+      {uncategorizedCount > 0 && (
+        <Alert className="border-blue-200 bg-blue-50">
+          <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+          <AlertDescription className="text-blue-900">
+            <strong>Categorizing {uncategorizedCount} transaction{uncategorizedCount !== 1 ? 's' : ''}...</strong>
+            {' '}This usually takes a few moments. The page will update automatically when complete.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {filteredTransactions.length > 0 ? (
         <>
           {/* Desktop Table View - hidden on mobile */}
@@ -869,11 +931,14 @@ export default function TransactionsPage() {
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
                       Vendor
                     </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      Account
+                    </th>
                     <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">
                       Amount
                     </th>
                     {isEnhancedUIEnabled && (
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground w-80">
                         Category
                       </th>
                     )}
@@ -882,9 +947,6 @@ export default function TransactionsPage() {
                         Confidence
                       </th>
                     )}
-                    <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                      Actions
-                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -892,6 +954,9 @@ export default function TransactionsPage() {
                     const isUpdating = updatingCategories.has(transaction.id);
                     const tier1 = getCategoryTier1(transaction.category_type);
                     const isSelected = selectedTransactions.has(transaction.id);
+                    const amountCents = parseInt(transaction.amount_cents);
+                    const isExpense = amountCents < 0;
+                    const isIncome = amountCents > 0;
 
                     return (
                       <tr
@@ -902,7 +967,7 @@ export default function TransactionsPage() {
                         )}
                       >
                         {selectionMode && (
-                          <td className="px-4 py-3 text-center">
+                          <td className="px-4 py-4 text-center">
                             <Checkbox
                               checked={isSelected}
                               onCheckedChange={() => toggleSelect(transaction.id)}
@@ -910,14 +975,14 @@ export default function TransactionsPage() {
                             />
                           </td>
                         )}
-                        <td className="px-4 py-3 text-sm">
+                        <td className="px-4 py-4 text-sm">
                           {new Date(transaction.date).toLocaleDateString("en-US", {
                             month: "short",
                             day: "numeric",
                             year: "numeric",
                           })}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-4">
                           <div className="flex flex-col">
                             <span className="text-sm font-medium">
                               {transaction.merchant_name || transaction.description}
@@ -929,11 +994,22 @@ export default function TransactionsPage() {
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums">
+                        <td className="px-4 py-4 text-sm">
+                          {transaction.account_name}
+                          {transaction.account_mask && (
+                            <span className="text-muted-foreground"> (...{transaction.account_mask})</span>
+                          )}
+                        </td>
+                        <td className={cn(
+                          "px-4 py-4 text-right text-sm font-semibold tabular-nums",
+                          isExpense && "text-red-600",
+                          isIncome && "text-green-600"
+                        )}>
+                          {isIncome && "+"}
                           {formatAmount(transaction.amount_cents, transaction.currency)}
                         </td>
                         {isEnhancedUIEnabled && (
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-4">
                             {isUpdating ? (
                               <span className="text-xs text-muted-foreground">Saving...</span>
                             ) : (
@@ -944,15 +1020,13 @@ export default function TransactionsPage() {
                                 }
                                 disabled={isUpdating}
                               >
-                                <SelectTrigger className="h-8 w-full border-none bg-transparent hover:bg-muted/50 focus:bg-muted/50 transition-colors">
+                                <SelectTrigger className="h-10 w-full border-none bg-transparent hover:bg-muted/50 focus:bg-muted/50 transition-colors">
                                   <SelectValue>
-                                    <CategoryPill
-                                      tier1={tier1}
-                                      {...(transaction.category_name
-                                        ? { tier2: transaction.category_name }
-                                        : {})}
-                                      size="sm"
-                                    />
+                                    {transaction.category_name ? (
+                                      <span className="text-sm font-medium">{transaction.category_name}</span>
+                                    ) : (
+                                      <span className="text-sm text-muted-foreground">Uncategorized</span>
+                                    )}
                                   </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
@@ -979,21 +1053,13 @@ export default function TransactionsPage() {
                           </td>
                         )}
                         {isEnhancedUIEnabled && (
-                          <td className="px-4 py-3 text-center">
+                          <td className="px-4 py-4 text-center">
                             <ConfidenceBadge
                               confidence={transaction.confidence ?? null}
                               size="sm"
                             />
                           </td>
                         )}
-                        <td className="px-4 py-3 text-center">
-                          <button
-                            className="p-1.5 rounded hover:bg-muted transition-colors"
-                            onClick={() => setSelectedTransaction(transaction)}
-                          >
-                            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                          </button>
-                        </td>
                       </tr>
                     );
                   })}
@@ -1007,6 +1073,9 @@ export default function TransactionsPage() {
             {filteredTransactions.map((transaction) => {
               const isUpdating = updatingCategories.has(transaction.id);
               const tier1 = getCategoryTier1(transaction.category_type);
+              const amountCents = parseInt(transaction.amount_cents);
+              const isExpense = amountCents < 0;
+              const isIncome = amountCents > 0;
 
               return (
                 <Card key={transaction.id} className="p-4">
@@ -1021,16 +1090,15 @@ export default function TransactionsPage() {
                             year: "numeric",
                           })}
                         </div>
-                        <div className="text-base font-semibold mt-1">
+                        <div className={cn(
+                          "text-base font-semibold mt-1",
+                          isExpense && "text-red-600",
+                          isIncome && "text-green-600"
+                        )}>
+                          {isIncome && "+"}
                           {formatAmount(transaction.amount_cents, transaction.currency)}
                         </div>
                       </div>
-                      <button
-                        className="p-2 rounded-md hover:bg-muted transition-colors -mr-2 -mt-2"
-                        onClick={() => setSelectedTransaction(transaction)}
-                      >
-                        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                      </button>
                     </div>
 
                     {/* Vendor/Description */}
@@ -1043,6 +1111,12 @@ export default function TransactionsPage() {
                           {transaction.description}
                         </div>
                       )}
+                    </div>
+
+                    {/* Account */}
+                    <div className="text-xs text-muted-foreground">
+                      {transaction.account_name}
+                      {transaction.account_mask && ` (...${transaction.account_mask})`}
                     </div>
 
                     {/* Category and Confidence - Enhanced UI Only */}
@@ -1060,19 +1134,15 @@ export default function TransactionsPage() {
                               <SelectTrigger className="h-9 w-full border-none bg-muted/50 hover:bg-muted">
                                 <SelectValue>
                                   {transaction.category_name ? (
-                                    <CategoryPill
-                                      tier1={tier1}
-                                      tier2={transaction.category_name}
-                                      size="sm"
-                                    />
+                                    <span className="text-sm font-medium">{transaction.category_name}</span>
                                   ) : (
-                                    <CategoryPill tier1={null} tier2="Uncategorized" size="sm" />
+                                    <span className="text-sm text-muted-foreground">Uncategorized</span>
                                   )}
                                 </SelectValue>
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="__none__">
-                                  <CategoryPill tier1={null} tier2="Uncategorized" size="sm" />
+                                  <span className="text-muted-foreground">Uncategorized</span>
                                 </SelectItem>
                                 {categories.map((category) => {
                                   const catTier1 = getCategoryTier1(category.type);
@@ -1106,38 +1176,38 @@ export default function TransactionsPage() {
               <div className="rounded-full bg-primary/10 p-4">
                 <Receipt className="h-10 w-10 text-primary" />
               </div>
-              <div className="space-y-2 max-w-md">
-                <h3 className="text-xl font-semibold">No transactions found</h3>
-                <p className="text-sm text-muted-foreground">
-                  Connect your bank accounts to start importing transaction data automatically.
-                </p>
-              </div>
-              <Button asChild size="lg" className="mt-2">
-                <a href="/settings/connections">Connect Bank Account</a>
-              </Button>
+              {transactions.length === 0 ? (
+                // No transactions at all - suggest connecting account
+                <>
+                  <div className="space-y-2 max-w-md">
+                    <h3 className="text-xl font-semibold">No transactions found</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Connect your bank accounts to start importing transaction data automatically.
+                    </p>
+                  </div>
+                  <Button asChild size="lg" className="mt-2">
+                    <a href="/settings/connections">Connect Bank Account</a>
+                  </Button>
+                </>
+              ) : (
+                // Transactions exist but filters return none - suggest clearing filters
+                <>
+                  <div className="space-y-2 max-w-md">
+                    <h3 className="text-xl font-semibold">No transactions match your filters</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Try adjusting your search criteria or clear filters to see all {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}.
+                    </p>
+                  </div>
+                  <Button onClick={clearFilters} size="lg" className="mt-2">
+                    Clear Filters
+                  </Button>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Raw Data Modal */}
-      {selectedTransaction && (
-        <div className="fixed inset-0 bg-foreground/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <Card className="max-w-2xl w-full max-h-[80vh] overflow-hidden">
-            <div className="flex justify-between items-center p-4 border-b border-border-subtle">
-              <h3 className="font-semibold">Raw Transaction Data</h3>
-              <Button variant="ghost" size="sm" onClick={() => setSelectedTransaction(null)}>
-                Close
-              </Button>
-            </div>
-            <CardContent className="p-4 overflow-auto max-h-[60vh]">
-              <pre className="text-xs whitespace-pre-wrap bg-muted p-4 rounded font-mono">
-                {JSON.stringify(selectedTransaction.raw, null, 2)}
-              </pre>
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   );
 }

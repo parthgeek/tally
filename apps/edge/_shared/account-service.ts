@@ -7,6 +7,7 @@ export interface PlaidAccount {
   name: string;
   type: string;
   subtype: string;
+  mask: string | null;
   balances: {
     available: number | null;
     current: number | null;
@@ -23,6 +24,7 @@ export interface NormalizedAccount {
   currency: string;
   is_active: boolean;
   current_balance_cents?: string;
+  mask?: string | null;
 }
 
 export function normalizeAccountType(plaidType: string, plaidSubtype: string): string {
@@ -81,6 +83,7 @@ export function transformPlaidAccounts(
     currency: account.balances.iso_currency_code || 'USD',
     is_active: true,
     current_balance_cents: balanceToCents(account.balances.current),
+    mask: account.mask,
   }));
 }
 

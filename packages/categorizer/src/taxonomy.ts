@@ -142,6 +142,36 @@ export const UNIVERSAL_TAXONOMY: UniversalCategory[] = [
     attributeSchema: {},
     description: 'Ongoing business expenses not directly tied to production'
   },
+  {
+    id: UNIVERSAL_CATEGORY_IDS.taxes_liabilities,
+    slug: 'taxes_liabilities',
+    name: 'Taxes & Liabilities',
+    parentId: null,
+    type: 'liability',
+    tier: 1,
+    isPnL: false,
+    includeInPrompt: false,
+    industries: ['all'],
+    isUniversal: true,
+    displayOrder: 4,
+    attributeSchema: {},
+    description: 'Tax obligations and business liabilities'
+  },
+  {
+    id: UNIVERSAL_CATEGORY_IDS.clearing,
+    slug: 'clearing',
+    name: 'Clearing Accounts',
+    parentId: null,
+    type: 'clearing',
+    tier: 1,
+    isPnL: false,
+    includeInPrompt: false,
+    industries: ['all'],
+    isUniversal: true,
+    displayOrder: 5,
+    attributeSchema: {},
+    description: 'Temporary clearing and suspense accounts for transfers'
+  },
   
   // ============================================================================
   // REVENUE CATEGORIES

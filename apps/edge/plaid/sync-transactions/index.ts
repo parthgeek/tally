@@ -32,7 +32,10 @@ serve(async (req) => {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
             },
-            body: JSON.stringify({ orgId: result.orgId }),
+            body: JSON.stringify({ 
+              orgId: result.orgId,
+              maxBatches: 10  // Process up to 10 batches (100 transactions) immediately
+            }),
           }
         );
 

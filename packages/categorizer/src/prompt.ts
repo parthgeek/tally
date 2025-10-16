@@ -64,7 +64,9 @@ IMPORTANT INSTRUCTIONS:
 CRITICAL RULES:
 - Payment processors (Stripe, PayPal, Square) → "payment_processing_fees" category with processor attribute
 - Ad platforms (Facebook, Google, TikTok) → "marketing_ads" category with platform attribute
-- Software/SaaS → "software_subscriptions" category with vendor attribute
+- Internet service providers (Comcast, Verizon, AT&T, Spectrum) → "telecommunications" category (NOT software_subscriptions)
+- Business phone/VoIP (Zoom Phone, RingCentral) → "telecommunications" category
+- Business software tools (Slack, Zoom meetings, Google Workspace, Adobe) → "software_subscriptions" category with vendor attribute
 - 3PL/warehouses → "fulfillment_logistics" category with provider attribute
 - When uncertain, prefer more general categories over specific ones
 - If truly unclear, use "miscellaneous" category
@@ -95,7 +97,9 @@ Step 4: Common Disambiguations
 - Office supplies for business → office_supplies (general OpEx)
 - Packaging supplies for products → packaging (COGS, direct product cost)
 - Marketing tools (Klaviyo, Mailchimp) → marketing_ads (customer acquisition)
-- General business tools (Slack, Zoom) → software_subscriptions (productivity)
+- General business tools (Slack, Zoom meetings) → software_subscriptions (productivity)
+- Internet service (Comcast, Verizon, Spectrum, AT&T) → telecommunications (NOT software_subscriptions)
+- Business phone systems (Zoom Phone, RingCentral) → telecommunications (NOT software_subscriptions)
 - Warehouse/fulfillment services → fulfillment_logistics (e-commerce specific)
 - Rent for warehouse → rent_utilities (facilities OpEx)
 

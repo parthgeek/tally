@@ -66,10 +66,10 @@ export function validateIntegerCentsConversion(
 
 /**
  * Validates amount sign is preserved correctly
- * Plaid convention: negative = money out, positive = money in
+ * Plaid convention: negative = money out (expenses), positive = money in (income)
  */
 export function validateAmountSign(
-  _originalAmount: number,
+  originalAmount: number,
   centsString: string,
 ): ValidationResult {
   const errors: string[] = [];
@@ -80,11 +80,12 @@ export function validateAmountSign(
     return { valid: false, errors };
   }
 
-  // Note: toCentsString in transaction-service.ts uses Math.abs()
-  // This means sign information must be preserved separately if needed
-  // For now, we validate that cents are always positive (absolute value)
-  if (cents < 0) {
-    errors.push(`Cents should be absolute value, got negative: ${cents}`);
+  // Verify sign is preserved correctly
+  const originalSign = Math.sign(originalAmount);
+  const centsSign = Math.sign(cents);
+  
+  if (originalSign !== centsSign && originalAmount !== 0) {
+    errors.push(`Sign mismatch: original=${originalAmount} (${originalSign}), cents=${cents} (${centsSign})`);
     return { valid: false, errors };
   }
 

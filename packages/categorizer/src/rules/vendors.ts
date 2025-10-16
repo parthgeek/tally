@@ -595,6 +595,143 @@ export const UNIVERSAL_VENDOR_PATTERNS: VendorPatternUniversal[] = [
     attributes: {},
     description: 'Utility bills'
   },
+
+  // ============================================================================
+  // TELECOMMUNICATIONS & INTERNET SERVICE PROVIDERS
+  // ============================================================================
+  // ISPs and telecom providers → telecommunications category
+  // Provider name goes in attributes
+
+  {
+    pattern: 'comcast',
+    matchType: 'contains',
+    categorySlug: 'telecommunications',
+    categoryName: 'Telecommunications',
+    confidence: 0.92,
+    priority: 90,
+    attributes: { provider: 'Comcast', service_type: 'internet' },
+    description: 'Comcast internet and cable service'
+  },
+  {
+    pattern: 'verizon',
+    matchType: 'contains',
+    categorySlug: 'telecommunications',
+    categoryName: 'Telecommunications',
+    confidence: 0.92,
+    priority: 90,
+    attributes: { provider: 'Verizon', service_type: 'telecom' },
+    description: 'Verizon telecommunications'
+  },
+  {
+    pattern: 'at&t',
+    matchType: 'contains',
+    categorySlug: 'telecommunications',
+    categoryName: 'Telecommunications',
+    confidence: 0.92,
+    priority: 90,
+    attributes: { provider: 'AT&T', service_type: 'telecom' },
+    description: 'AT&T telecommunications'
+  },
+  {
+    pattern: 'att ',
+    matchType: 'contains',
+    categorySlug: 'telecommunications',
+    categoryName: 'Telecommunications',
+    confidence: 0.92,
+    priority: 90,
+    attributes: { provider: 'AT&T', service_type: 'telecom' },
+    description: 'AT&T telecommunications (alternate format)'
+  },
+  {
+    pattern: 'spectrum',
+    matchType: 'contains',
+    categorySlug: 'telecommunications',
+    categoryName: 'Telecommunications',
+    confidence: 0.92,
+    priority: 90,
+    attributes: { provider: 'Spectrum', service_type: 'internet' },
+    description: 'Spectrum internet and cable service'
+  },
+  {
+    pattern: 'cox communications',
+    matchType: 'contains',
+    categorySlug: 'telecommunications',
+    categoryName: 'Telecommunications',
+    confidence: 0.92,
+    priority: 90,
+    attributes: { provider: 'Cox', service_type: 'internet' },
+    description: 'Cox internet and cable service'
+  },
+  {
+    pattern: 'cox cable',
+    matchType: 'contains',
+    categorySlug: 'telecommunications',
+    categoryName: 'Telecommunications',
+    confidence: 0.92,
+    priority: 90,
+    attributes: { provider: 'Cox', service_type: 'internet' },
+    description: 'Cox cable service'
+  },
+  {
+    pattern: 'centurylink',
+    matchType: 'contains',
+    categorySlug: 'telecommunications',
+    categoryName: 'Telecommunications',
+    confidence: 0.92,
+    priority: 90,
+    attributes: { provider: 'CenturyLink', service_type: 'internet' },
+    description: 'CenturyLink internet service'
+  },
+  {
+    pattern: 'frontier communications',
+    matchType: 'contains',
+    categorySlug: 'telecommunications',
+    categoryName: 'Telecommunications',
+    confidence: 0.92,
+    priority: 90,
+    attributes: { provider: 'Frontier', service_type: 'internet' },
+    description: 'Frontier internet service'
+  },
+  {
+    pattern: 'optimum',
+    matchType: 'contains',
+    categorySlug: 'telecommunications',
+    categoryName: 'Telecommunications',
+    confidence: 0.92,
+    priority: 90,
+    attributes: { provider: 'Optimum', service_type: 'internet' },
+    description: 'Optimum internet and cable service'
+  },
+  {
+    pattern: 'xfinity',
+    matchType: 'contains',
+    categorySlug: 'telecommunications',
+    categoryName: 'Telecommunications',
+    confidence: 0.92,
+    priority: 90,
+    attributes: { provider: 'Comcast Xfinity', service_type: 'internet' },
+    description: 'Comcast Xfinity internet and cable service'
+  },
+  {
+    pattern: 't-mobile',
+    matchType: 'contains',
+    categorySlug: 'telecommunications',
+    categoryName: 'Telecommunications',
+    confidence: 0.92,
+    priority: 90,
+    attributes: { provider: 'T-Mobile', service_type: 'mobile' },
+    description: 'T-Mobile wireless service'
+  },
+  {
+    pattern: 'sprint',
+    matchType: 'contains',
+    categorySlug: 'telecommunications',
+    categoryName: 'Telecommunications',
+    confidence: 0.90,
+    priority: 85,
+    attributes: { provider: 'Sprint', service_type: 'mobile' },
+    description: 'Sprint wireless service'
+  },
 ];
 
 /**

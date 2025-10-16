@@ -13,6 +13,7 @@ export interface FilterState {
   minAmount: string;
   maxAmount: string;
   lowConfidenceOnly: boolean;
+  month: string; // Format: "YYYY-MM"
 }
 
 export interface TransactionForFilter {
@@ -42,6 +43,20 @@ export function filterTransactions(
   filters: FilterState
 ): TransactionForFilter[] {
   return transactions.filter((tx) => {
+    // Month filter (takes precedence over date range)
+    if (filters.month) {
+      if (filters.month === "YTD") {
+        // Year to Date: from January 1st of current year to today
+        const currentYear = new Date().getFullYear();
+        const ytdStart = `${currentYear}-01-01`;
+        const txDate = tx.date;
+        if (txDate < ytdStart) return false;
+      } else {
+        const txMonth = tx.date.slice(0, 7); // Extract "YYYY-MM" from date
+        if (txMonth !== filters.month) return false;
+      }
+    }
+
     // Search filter (description or merchant)
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
@@ -70,16 +85,18 @@ export function filterTransactions(
       return false;
     }
 
-    // Date range filter
-    if (filters.dateFrom) {
-      const txDate = new Date(tx.date);
-      const fromDate = new Date(filters.dateFrom);
-      if (txDate < fromDate) return false;
-    }
-    if (filters.dateTo) {
-      const txDate = new Date(tx.date);
-      const toDate = new Date(filters.dateTo);
-      if (txDate > toDate) return false;
+    // Date range filter (only applied if month filter is not set)
+    if (!filters.month) {
+      if (filters.dateFrom) {
+        const txDate = new Date(tx.date);
+        const fromDate = new Date(filters.dateFrom);
+        if (txDate < fromDate) return false;
+      }
+      if (filters.dateTo) {
+        const txDate = new Date(tx.date);
+        const toDate = new Date(filters.dateTo);
+        if (txDate > toDate) return false;
+      }
     }
 
     // Amount range filter

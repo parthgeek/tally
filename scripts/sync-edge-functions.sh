@@ -48,6 +48,7 @@ if [ -d "jobs" ]; then
   mv jobs/plaid-daily-sync ./jobs-plaid-daily-sync
   mv jobs/embeddings-refresh ./jobs-embeddings-refresh
   mv jobs/categorize-queue ./jobs-categorize-queue
+  mv jobs/categorize-worker ./jobs-categorize-worker
   mv jobs/recategorize-historical ./jobs-recategorize-historical
   rmdir jobs
 fi

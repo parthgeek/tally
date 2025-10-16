@@ -46,102 +46,129 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Parse request body to get optional org_id parameter
+    // Parse request body to get optional org_id parameter and maxBatches
     let requestOrgId: string | null = null;
+    let maxBatches: number = 1; // Default: one batch (backwards compatible)
     try {
       const body = await req.json();
       requestOrgId = body.orgId || null;
-    } catch {
-      // No body or invalid JSON - process all orgs
-    }
-
-    // Get transactions that need categorization
-    // If org_id provided, only process that org's transactions
-    let query = supabase
-      .from('transactions')
-      .select('id, org_id, merchant_name, mcc, description, amount_cents, category_id, needs_review, created_at')
-      .is('category_id', null)  // Only process transactions with no category assigned
-      .order('created_at', { ascending: true })
-      .limit(RATE_LIMIT.BATCH_SIZE);
-
-    if (requestOrgId) {
-      query = query.eq('org_id', requestOrgId);
-      console.log(`Processing transactions for specific org: ${requestOrgId}`);
-    }
-
-    const { data: transactions, error } = await query;
-
-    if (error || !transactions) {
-      throw new Error(`Failed to fetch transactions: ${error?.message}`);
-    }
-
-    if (transactions.length === 0) {
-      return new Response(JSON.stringify({ 
-        message: requestOrgId 
-          ? `No transactions to process for org ${requestOrgId}`
-          : 'No transactions to process',
-        processed: 0,
-        orgId: requestOrgId
-      }), {
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    const results: any[] = [];
-    const orgGroups = new Map<string, typeof transactions>();
-
-    // Group transactions by organization for rate limiting
-    for (const tx of transactions) {
-      if (!orgGroups.has(tx.org_id)) {
-        orgGroups.set(tx.org_id, []);
-      }
-      orgGroups.get(tx.org_id)!.push(tx);
-    }
-
-    // Process each organization's transactions
-    for (const [orgId, orgTransactions] of orgGroups) {
-      // Check rate limits
-      const currentOrgProcessing = orgProcessing.get(orgId) || 0;
-      if (currentOrgProcessing >= RATE_LIMIT.ORG_CONCURRENCY) {
-        console.log(`Rate limit reached for org ${orgId}, skipping`);
-        continue;
+      maxBatches = body.maxBatches || 1;
+      
+      // Validate and cap maxBatches to prevent timeouts
+      if (maxBatches < 1 || maxBatches > 20) {
+        console.warn(`Invalid maxBatches: ${body.maxBatches}, capping to valid range`);
+        maxBatches = Math.max(1, Math.min(20, maxBatches));
       }
       
-      if (globalProcessing >= RATE_LIMIT.GLOBAL_CONCURRENCY) {
-        console.log('Global rate limit reached, stopping processing');
+      console.log(`Processing with maxBatches=${maxBatches}${requestOrgId ? ` for org ${requestOrgId}` : ''}`);
+    } catch {
+      // No body or invalid JSON - process all orgs with single batch
+    }
+
+    // Track overall results across all batches
+    const allResults: any[] = [];
+    let totalProcessed = 0;
+    let batchCount = 0;
+
+    // Loop for multiple batches
+    while (batchCount < maxBatches) {
+      // Get transactions that need categorization for this batch
+      let query = supabase
+        .from('transactions')
+        .select('id, org_id, merchant_name, mcc, description, amount_cents, date, source, reviewed, raw, category_id, needs_review, created_at')
+        .is('category_id', null)  // Only process transactions with no category assigned
+        .order('created_at', { ascending: true })
+        .limit(RATE_LIMIT.BATCH_SIZE);
+
+      if (requestOrgId) {
+        query = query.eq('org_id', requestOrgId);
+      }
+
+      const { data: transactions, error } = await query;
+
+      if (error || !transactions) {
+        throw new Error(`Failed to fetch transactions: ${error?.message}`);
+      }
+
+      // No more transactions - we're done
+      if (transactions.length === 0) {
+        console.log(`Batch ${batchCount + 1}: No more transactions to process`);
         break;
       }
 
-      // Update rate limiting counters
-      orgProcessing.set(orgId, currentOrgProcessing + 1);
-      globalProcessing++;
+      console.log(`Batch ${batchCount + 1}/${maxBatches}: Processing ${transactions.length} transactions`);
 
-      try {
-        const orgResults = await processOrgTransactions(supabase, orgId, orgTransactions);
-        results.push(orgResults);
-      } catch (error) {
-        console.error(`Failed to process org ${orgId}:`, error);
-        results.push({
-          orgId,
-          error: error.message,
-          processed: 0,
-        });
-      } finally {
-        // Decrement counters
-        const newCount = Math.max(0, (orgProcessing.get(orgId) || 1) - 1);
-        if (newCount === 0) {
-          orgProcessing.delete(orgId);
-        } else {
-          orgProcessing.set(orgId, newCount);
+      // Process this batch (existing logic)
+      const results: any[] = [];
+      const orgGroups = new Map<string, typeof transactions>();
+
+      // Group transactions by organization for rate limiting
+      for (const tx of transactions) {
+        if (!orgGroups.has(tx.org_id)) {
+          orgGroups.set(tx.org_id, []);
         }
-        globalProcessing = Math.max(0, globalProcessing - 1);
+        orgGroups.get(tx.org_id)!.push(tx);
+      }
+
+      // Process each organization's transactions
+      for (const [orgId, orgTransactions] of orgGroups) {
+        // Check rate limits
+        const currentOrgProcessing = orgProcessing.get(orgId) || 0;
+        if (currentOrgProcessing >= RATE_LIMIT.ORG_CONCURRENCY) {
+          console.log(`Rate limit reached for org ${orgId}, skipping`);
+          continue;
+        }
+        
+        if (globalProcessing >= RATE_LIMIT.GLOBAL_CONCURRENCY) {
+          console.log('Global rate limit reached, stopping processing');
+          break;
+        }
+
+        // Update rate limiting counters
+        orgProcessing.set(orgId, currentOrgProcessing + 1);
+        globalProcessing++;
+
+        try {
+          const orgResults = await processOrgTransactions(supabase, orgId, orgTransactions);
+          results.push(orgResults);
+          totalProcessed += orgResults.processed || 0;
+        } catch (error) {
+          console.error(`Failed to process org ${orgId}:`, error);
+          results.push({
+            orgId,
+            error: error.message,
+            processed: 0,
+          });
+        } finally {
+          // Decrement counters
+          const newCount = Math.max(0, (orgProcessing.get(orgId) || 1) - 1);
+          if (newCount === 0) {
+            orgProcessing.delete(orgId);
+          } else {
+            orgProcessing.set(orgId, newCount);
+          }
+          globalProcessing = Math.max(0, globalProcessing - 1);
+        }
+      }
+
+      allResults.push(...results);
+      batchCount++;
+
+      // If we processed a full batch, wait 1 second before next batch (rate limiting)
+      if (transactions.length === RATE_LIMIT.BATCH_SIZE && batchCount < maxBatches) {
+        console.log(`Waiting 1 second before next batch...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
 
+    console.log(`Completed ${batchCount} batch(es), processed ${totalProcessed} total transactions`);
+
     return new Response(JSON.stringify({
-      processed: results.reduce((sum, r) => sum + (r.processed || 0), 0),
-      organizations: results.length,
-      results,
+      processed: totalProcessed,
+      batches: batchCount,
+      maxBatches: maxBatches,
+      organizations: new Set(allResults.map(r => r.orgId)).size,
+      results: allResults,
       orgId: requestOrgId
     }), {
       headers: { 'Content-Type': 'application/json' },
@@ -165,24 +192,36 @@ async function processOrgTransactions(supabase: any, orgId: string, transactions
     processed: 0,
     autoApplied: 0,
     markedForReview: 0,
+    fallbackCount: 0,
     errors: [] as string[],
   };
 
   for (const tx of transactions) {
     try {
       // Run Pass-1 categorization
-      const pass1Result = await runPass1Categorization(supabase, tx, orgId);
+      let pass1Result = await runPass1Categorization(supabase, tx, orgId);
+      
+      // Validate Pass1 result
+      if (!pass1Result.categoryId) {
+        console.warn(`Pass1 failed to categorize tx ${tx.id}, will try LLM`);
+        pass1Result.confidence = 0;  // Force LLM attempt
+      }
       
       let finalResult = pass1Result;
       let source: 'pass1' | 'llm' = 'pass1';
 
-      // If Pass-1 confidence < 0.95, try LLM scoring
-      if (!pass1Result.confidence || pass1Result.confidence < 0.95) {
+      // If Pass-1 confidence < 0.95 OR no category, try LLM scoring
+      if (!pass1Result.categoryId || !pass1Result.confidence || pass1Result.confidence < 0.95) {
         try {
           const llmResult = await runLLMCategorization(supabase, tx, orgId);
-          if (llmResult.confidence && llmResult.confidence > (pass1Result.confidence || 0)) {
+          
+          // Validate LLM result
+          if (llmResult.categoryId && llmResult.confidence && 
+              llmResult.confidence > (pass1Result.confidence || 0)) {
             finalResult = llmResult;
             source = 'llm';
+          } else if (!llmResult.categoryId) {
+            console.warn(`LLM also failed to categorize tx ${tx.id}`);
           }
         } catch (llmError) {
           console.error(`LLM categorization failed for tx ${tx.id}:`, llmError);
@@ -190,7 +229,29 @@ async function processOrgTransactions(supabase: any, orgId: string, transactions
         }
       }
 
-      // Apply decision
+      // Final fallback if BOTH Pass1 and LLM failed
+      if (!finalResult.categoryId) {
+        console.error(
+          `[Critical] Both Pass1 and LLM failed for tx ${tx.id}. ` +
+          `Merchant: ${tx.merchant_name || 'N/A'}, Description: ${tx.description || 'N/A'}, ` +
+          `MCC: ${tx.mcc || 'N/A'}. Using fallback category.`
+        );
+        
+        finalResult = {
+          categoryId: mapCategorySlugToId('miscellaneous'),
+          confidence: 0.3,
+          rationale: [
+            'Automatic categorization failed',
+            'Neither rules-based nor AI could categorize this transaction',
+            'Manual review required'
+          ],
+          attributes: {}
+        };
+        source = 'llm';  // Track as LLM to distinguish from Pass1
+        results.fallbackCount++;
+      }
+
+      // Apply decision (now guaranteed to have categoryId)
       await decideAndApply(supabase, tx.id, finalResult, source, orgId);
       
       results.processed++;
@@ -352,25 +413,22 @@ async function decideAndApply(
   source: 'pass1' | 'llm', 
   orgId: string
 ): Promise<void> {
+  // Sanity check - should never happen with caller's fallback logic
+  if (!result.categoryId) {
+    throw new Error(
+      `Internal error: decideAndApply called without categoryId for tx ${txId}. ` +
+      `This should have been caught by the caller.`
+    );
+  }
+
   const shouldAutoApply = result.confidence && result.confidence >= 0.95;
 
   const updateData: any = {
     reviewed: false,
+    category_id: result.categoryId,
+    needs_review: !shouldAutoApply,
+    confidence: result.confidence || 0,
   };
-
-  if (shouldAutoApply && result.categoryId) {
-    updateData.category_id = result.categoryId;
-    updateData.confidence = result.confidence;
-    updateData.needs_review = false;
-  } else {
-    updateData.needs_review = true;
-    if (result.categoryId) {
-      updateData.category_id = result.categoryId;
-    }
-    if (result.confidence) {
-      updateData.confidence = result.confidence;
-    }
-  }
 
   // Save attributes if present (from universal LLM)
   if (result.attributes && Object.keys(result.attributes).length > 0) {
@@ -394,7 +452,7 @@ async function decideAndApply(
     .insert({
       org_id: orgId,
       tx_id: txId,
-      category_id: result.categoryId || null,
+      category_id: result.categoryId,
       source,
       confidence: result.confidence || 0,
       rationale: result.rationale || []
