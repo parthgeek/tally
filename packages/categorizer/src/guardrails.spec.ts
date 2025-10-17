@@ -27,12 +27,63 @@ const createMockTransaction = (overrides: any = {}) => ({
 
 describe('guardrails', () => {
   describe('checkRevenueGuardrails', () => {
-    test('allows non-revenue categories without restriction', () => {
+    test('allows non-revenue categories without restriction when strict directionality disabled', () => {
       const tx = createMockTransaction();
-      const result = checkRevenueGuardrails(tx, 'stripe_fees');
+      const result = checkRevenueGuardrails(tx, 'stripe_fees', {}, 'production');
 
       expect(result.allowed).toBe(true);
       expect(result.reason).toBeUndefined();
+    });
+
+    test('blocks positive amounts mapping to OpEx when strict directionality enabled', () => {
+      const tx = createMockTransaction({
+        description: 'GENERIC PAYMENT',
+        amountCents: '5000' // Positive
+      });
+      const config = { categorizer_strict_revenue_directionality: true };
+      const result = checkRevenueGuardrails(tx, 'software_subscriptions', config, 'development');
+
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toContain('Positive amount (MONEY IN) cannot map to OpEx/COGS');
+      expect(result.suggestedCategorySlug).toBe('miscellaneous');
+      expect(result.confidencePenalty).toBe(0.6);
+    });
+
+    test('blocks positive amounts mapping to COGS when strict directionality enabled', () => {
+      const tx = createMockTransaction({
+        description: 'SUPPLIER PAYMENT',
+        amountCents: '10000' // Positive
+      });
+      const config = { categorizer_strict_revenue_directionality: true };
+      const result = checkRevenueGuardrails(tx, 'materials_supplies', config, 'development');
+
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toContain('Positive amount (MONEY IN) cannot map to OpEx/COGS');
+    });
+
+    test('redirects positive amounts with refund keywords to refunds_contra', () => {
+      const tx = createMockTransaction({
+        description: 'REFUND FROM SUPPLIER',
+        amountCents: '2500' // Positive
+      });
+      const config = { categorizer_strict_revenue_directionality: true };
+      const result = checkRevenueGuardrails(tx, 'materials_supplies', config, 'development');
+
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toContain('Refund pattern detected');
+      expect(result.suggestedCategorySlug).toBe('refunds_contra');
+      expect(result.confidencePenalty).toBe(0.4);
+    });
+
+    test('allows negative amounts to OpEx/COGS categories', () => {
+      const tx = createMockTransaction({
+        description: 'OFFICE SUPPLIES',
+        amountCents: '-5000' // Negative (expense)
+      });
+      const config = { categorizer_strict_revenue_directionality: true };
+      const result = checkRevenueGuardrails(tx, 'office_supplies', config, 'development');
+
+      expect(result.allowed).toBe(true);
     });
 
     test('allows normal revenue transactions', () => {
@@ -199,6 +250,53 @@ describe('guardrails', () => {
       });
       const result = checkPayoutGuardrails(tx, 'shopify_payouts_clearing');
 
+      expect(result.allowed).toBe(true);
+    });
+
+    test('detects extended payout keywords when enhanced mode enabled', () => {
+      const config = { categorizer_enhanced_payout_guardrails: true };
+      const patterns = [
+        { description: 'MERCHANT DISBURSEMENT', merchantName: 'Stripe' },
+        { description: 'BATCH PAYOUT 2024-01-15', merchantName: 'PayPal' },
+        { description: 'NET PROCEEDS TRANSFER', merchantName: 'Square' },
+        { description: 'FUNDS TRANSFER TO BANK', merchantName: 'Shopify' }
+      ];
+
+      for (const pattern of patterns) {
+        const tx = createMockTransaction(pattern);
+        const result = checkPayoutGuardrails(tx, 'product_sales', config, 'development');
+
+        expect(result.allowed).toBe(false);
+        expect(result.reason).toContain('Payment processor payouts should map to clearing account');
+        expect(result.suggestedCategorySlug).toBe('payouts_clearing');
+      }
+    });
+
+    test('detects expanded payment processors when enhanced mode enabled', () => {
+      const config = { categorizer_enhanced_payout_guardrails: true };
+      const processors = ['Adyen', 'Braintree', 'Klarna', 'Affirm', 'Afterpay', 'Sezzle', 'Venmo'];
+
+      for (const processor of processors) {
+        const tx = createMockTransaction({
+          merchantName: processor,
+          description: 'PAYOUT FROM SALES'
+        });
+        const result = checkPayoutGuardrails(tx, 'product_sales', config, 'development');
+
+        expect(result.allowed).toBe(false);
+        expect(result.suggestedCategorySlug).toBe('payouts_clearing');
+      }
+    });
+
+    test('uses basic keywords when enhanced mode disabled', () => {
+      const config = { categorizer_enhanced_payout_guardrails: false };
+      const tx = createMockTransaction({
+        merchantName: 'Stripe',
+        description: 'MERCHANT DISBURSEMENT' // Extended keyword
+      });
+      const result = checkPayoutGuardrails(tx, 'product_sales', config, 'production');
+
+      // Should not match with enhanced disabled
       expect(result.allowed).toBe(true);
     });
   });

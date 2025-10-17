@@ -43,6 +43,12 @@ export enum CategorizerFeatureFlag {
 
   // Two-tier taxonomy flag
   TWO_TIER_TAXONOMY_ENABLED = 'categorizer_two_tier_taxonomy_enabled',
+
+  // Revenue accuracy enhancement flags
+  STRICT_REVENUE_DIRECTIONALITY = 'categorizer_strict_revenue_directionality',
+  ENHANCED_PAYOUT_GUARDRAILS = 'categorizer_enhanced_payout_guardrails',
+  RAISE_REVENUE_THRESHOLDS = 'categorizer_raise_revenue_thresholds',
+  HARD_NEGATIVE_FEWSHOTS = 'categorizer_hard_negative_fewshots',
 }
 
 /**
@@ -74,6 +80,10 @@ export const DEFAULT_FEATURE_FLAGS = {
     [CategorizerFeatureFlag.SHADOW_MODE]: false,
     [CategorizerFeatureFlag.GRADUAL_ROLLOUT_PERCENTAGE]: 100,
     [CategorizerFeatureFlag.TWO_TIER_TAXONOMY_ENABLED]: true,
+    [CategorizerFeatureFlag.STRICT_REVENUE_DIRECTIONALITY]: true,
+    [CategorizerFeatureFlag.ENHANCED_PAYOUT_GUARDRAILS]: true,
+    [CategorizerFeatureFlag.RAISE_REVENUE_THRESHOLDS]: true,
+    [CategorizerFeatureFlag.HARD_NEGATIVE_FEWSHOTS]: true,
   },
 
   staging: {
@@ -101,6 +111,10 @@ export const DEFAULT_FEATURE_FLAGS = {
     [CategorizerFeatureFlag.SHADOW_MODE]: false,
     [CategorizerFeatureFlag.GRADUAL_ROLLOUT_PERCENTAGE]: 50,
     [CategorizerFeatureFlag.TWO_TIER_TAXONOMY_ENABLED]: true,
+    [CategorizerFeatureFlag.STRICT_REVENUE_DIRECTIONALITY]: true,
+    [CategorizerFeatureFlag.ENHANCED_PAYOUT_GUARDRAILS]: true,
+    [CategorizerFeatureFlag.RAISE_REVENUE_THRESHOLDS]: true,
+    [CategorizerFeatureFlag.HARD_NEGATIVE_FEWSHOTS]: true,
   },
 
   production: {
@@ -128,6 +142,10 @@ export const DEFAULT_FEATURE_FLAGS = {
     [CategorizerFeatureFlag.SHADOW_MODE]: true, // Start with shadow mode
     [CategorizerFeatureFlag.GRADUAL_ROLLOUT_PERCENTAGE]: 0,
     [CategorizerFeatureFlag.TWO_TIER_TAXONOMY_ENABLED]: true, // Enable two-tier taxonomy in prod
+    [CategorizerFeatureFlag.STRICT_REVENUE_DIRECTIONALITY]: false, // Start disabled, gradual ramp
+    [CategorizerFeatureFlag.ENHANCED_PAYOUT_GUARDRAILS]: false,
+    [CategorizerFeatureFlag.RAISE_REVENUE_THRESHOLDS]: false,
+    [CategorizerFeatureFlag.HARD_NEGATIVE_FEWSHOTS]: false,
   },
 } as const;
 

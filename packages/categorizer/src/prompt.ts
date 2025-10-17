@@ -79,6 +79,11 @@ CRITICAL RULES:
 ⚠️  ALWAYS CHECK TRANSACTION DIRECTION FIRST:
 Look at the 🟢 MONEY IN or 🔴 MONEY OUT indicator above!
 
+⚠️  DO NOT:
+- Map positive-amount (🟢 MONEY IN) transactions to OpEx or COGS categories, UNLESS it is explicitly a refund/contra pattern
+- Treat payment processor payouts/settlements/deposits/transfers as revenue; these must use payouts_clearing
+- Ignore the transaction direction indicator - it is the primary signal for revenue vs expense
+
 INTERPRETING AMBIGUOUS DESCRIPTIONS:
 When description contains "PAYMENT", "CREDIT", "DEBIT", or institution names:
 
@@ -337,7 +342,42 @@ function getFewShotExamples(industry: Industry): Array<{
       merchant: 'Shopify',
       category: 'payouts_clearing',
       attributes: { platform: 'Shopify' },
-      rationale: 'Payout is just a transfer of money already earned (clearing account), NOT new revenue'
+      rationale: '🟢 MONEY IN: Payout is just a transfer of money already earned (clearing account), NOT new revenue'
+    },
+    {
+      description: 'STRIPE TRANSFER TO BANK',
+      merchant: 'Stripe',
+      category: 'payouts_clearing',
+      attributes: { platform: 'Stripe' },
+      rationale: '🟢 MONEY IN: Stripe transfer/payout = clearing account, NOT revenue. Money already earned, just moving to bank'
+    },
+    {
+      description: 'PAYPAL SETTLEMENT DEPOSIT',
+      merchant: 'PayPal',
+      category: 'payouts_clearing',
+      attributes: { platform: 'PayPal' },
+      rationale: '🟢 MONEY IN: PayPal settlement deposit = payouts_clearing, NOT revenue. Net proceeds transfer'
+    },
+    {
+      description: 'SQUARE PAYOUT - BATCH 2024-03-15',
+      merchant: 'Square',
+      category: 'payouts_clearing',
+      attributes: { platform: 'Square', batch_date: '2024-03-15' },
+      rationale: '🟢 MONEY IN: Square batch payout = payouts_clearing. Consolidated transfer, NOT individual sales'
+    },
+    {
+      description: 'ACH CREDIT - REFUND FROM SUPPLIER ABC WHOLESALE',
+      merchant: 'ABC Wholesale',
+      category: 'refunds_contra',
+      attributes: { refund_type: 'supplier', supplier: 'ABC Wholesale' },
+      rationale: '🟢 MONEY IN: Refund FROM supplier = refunds_contra (money back from previous expense), NOT revenue'
+    },
+    {
+      description: 'WIRE REVERSAL - AMTRAK TRAVEL CANCELLATION',
+      merchant: 'Amtrak',
+      category: 'refunds_contra',
+      attributes: { refund_type: 'travel', reason: 'cancellation' },
+      rationale: '🟢 MONEY IN: Travel cancellation refund = refunds_contra (expense refund), NOT travel expense'
     },
     {
       description: 'SHIPBOB FULFILLMENT FEES',

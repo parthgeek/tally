@@ -58,6 +58,24 @@ export const KEYWORD_RULES: KeywordRule[] = [
     domain: "payouts",
     excludeKeywords: ["fee", "charge"],
   },
+  {
+    keywords: ["disb", "batch payout", "merchant payout", "merchant disbursement", "net proceeds"],
+    categoryId: "550e8400-e29b-41d4-a716-446655440503" as CategoryId,
+    categoryName: "Payouts Clearing",
+    confidence: 0.90,
+    weight: 6,
+    domain: "payouts_extended",
+    excludeKeywords: ["fee", "charge"],
+  },
+  {
+    keywords: ["funds transfer", "bank transfer", "settle", "batch settle"],
+    categoryId: "550e8400-e29b-41d4-a716-446655440503" as CategoryId,
+    categoryName: "Payouts Clearing",
+    confidence: 0.85,
+    weight: 4,
+    domain: "payouts_transfers",
+    excludeKeywords: ["fee", "charge", "wire fee", "transfer fee"],
+  },
 
   // === Refunds (Contra-Revenue) ===
   {
@@ -462,6 +480,24 @@ export const KEYWORD_RULES: KeywordRule[] = [
     weight: 3,
     domain: "revenue",
     excludeKeywords: ["fee", "charge", "refund"],
+  },
+  {
+    keywords: ["invoice paid", "inv #", "inv-", "invoice #", "customer payment"],
+    categoryId: "550e8400-e29b-41d4-a716-446655440101" as CategoryId,
+    categoryName: "Product Sales",
+    confidence: 0.75,
+    weight: 4,
+    domain: "revenue_invoices",
+    excludeKeywords: ["fee", "charge", "refund"],
+  },
+  {
+    keywords: ["po #", "po-", "purchase order", "order paid"],
+    categoryId: "550e8400-e29b-41d4-a716-446655440101" as CategoryId,
+    categoryName: "Product Sales",
+    confidence: 0.70,
+    weight: 4,
+    domain: "revenue_orders",
+    excludeKeywords: ["fee", "charge", "refund", "supplier"],
   },
   {
     keywords: ["pos purchase", "pos debit", "point of sale"],

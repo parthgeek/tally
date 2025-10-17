@@ -14,6 +14,12 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createServerClient();
 
+    // Get the user's session token for authenticated edge function call
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      return createErrorResponse("Missing authorization header", 401);
+    }
+
     // Get uncategorized transactions for this org
     const { data: transactions, error: txError } = await supabase
       .from("transactions")
@@ -49,7 +55,7 @@ export async function POST(request: NextRequest) {
       const response = await fetch(edgeFunctionUrl, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+          Authorization: authHeader, // Pass user's JWT token for authentication
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ orgId }),

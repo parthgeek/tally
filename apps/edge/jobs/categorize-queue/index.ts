@@ -24,9 +24,17 @@ const RATE_LIMIT = {
   BATCH_SIZE: 10, // Transactions to process per batch
 };
 
+// Timeout and API limits
+const FUNCTION_TIMEOUT = 55000; // 55 seconds (edge function limit is 60s, leave 5s buffer)
+const GEMINI_RATE_LIMIT = 15; // Gemini API: 15 requests per minute
+const GEMINI_RETRY_MAX = 3; // Max retries for rate limit errors
+
 // Simple in-memory rate limiting
 const orgProcessing = new Map<string, number>();
 let globalProcessing = 0;
+
+// Gemini API rate tracking (resets every minute)
+const geminiCallsThisMinute = { count: 0, resetAt: Date.now() + 60000 };
 
 // Environment detection - defaults to production for safety
 const ENVIRONMENT = (Deno.env.get('ENVIRONMENT') || 'production') as 'development' | 'staging' | 'production';
@@ -40,40 +48,155 @@ const getFeatureFlagConfig = (): FeatureFlagConfig => {
 };
 
 serve(async (req) => {
+  const startTime = Date.now();
+  
   try {
-    const supabase = createClient(
+    // SECURITY: Initialize both service role client (for queries) and auth client (for user verification)
+    const supabaseServiceRole = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
+    const supabaseAuth = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
     // Parse request body to get optional org_id parameter and maxBatches
     let requestOrgId: string | null = null;
-    let maxBatches: number = 1; // Default: one batch (backwards compatible)
+    let maxBatches: number;
+    let authenticatedUserId: string | null = null;
+
     try {
       const body = await req.json();
       requestOrgId = body.orgId || null;
-      maxBatches = body.maxBatches || 1;
       
-      // Validate and cap maxBatches to prevent timeouts
-      if (maxBatches < 1 || maxBatches > 20) {
-        console.warn(`Invalid maxBatches: ${body.maxBatches}, capping to valid range`);
-        maxBatches = Math.max(1, Math.min(20, maxBatches));
+      // SECURITY: Verify authentication for org-specific requests
+      if (requestOrgId) {
+        const authHeader = req.headers.get('authorization');
+        
+        if (!authHeader) {
+          return new Response(
+            JSON.stringify({ 
+              error: 'Unauthorized', 
+              message: 'Authorization header required for org-specific requests' 
+            }),
+            { 
+              status: 401, 
+              headers: { 'Content-Type': 'application/json' } 
+            }
+          );
+        }
+
+        const token = authHeader.replace('Bearer ', '');
+        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+        // Check if using service role key (for scheduled/background jobs)
+        if (token === serviceRoleKey) {
+          console.log(`Service role authentication for org ${requestOrgId} (scheduled job)`);
+          authenticatedUserId = 'system'; // Mark as system request
+        } else {
+          // User JWT authentication - verify user and org membership
+          const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
+
+          if (authError || !user) {
+            console.error('Authentication failed:', authError?.message);
+            return new Response(
+              JSON.stringify({ 
+                error: 'Unauthorized', 
+                message: 'Invalid or expired authentication token' 
+              }),
+              { 
+                status: 401, 
+                headers: { 'Content-Type': 'application/json' } 
+              }
+            );
+          }
+
+          authenticatedUserId = user.id;
+          console.log(`User ${user.id} (${user.email}) requesting categorization for org ${requestOrgId}`);
+
+          // Verify user has access to this organization
+          const { data: membership, error: membershipError } = await supabaseServiceRole
+            .from('org_memberships')
+            .select('org_id, role')
+            .eq('org_id', requestOrgId)
+            .eq('user_id', user.id)
+            .single();
+
+          if (membershipError || !membership) {
+            console.warn(
+              `Access denied: User ${user.id} attempted to access org ${requestOrgId} without membership`
+            );
+            return new Response(
+              JSON.stringify({ 
+                error: 'Forbidden', 
+                message: 'You do not have access to this organization' 
+              }),
+              { 
+                status: 403, 
+                headers: { 'Content-Type': 'application/json' } 
+              }
+            );
+          }
+
+          console.log(`Authorization successful: User ${user.id} has role '${membership.role}' in org ${requestOrgId}`);
+        }
       }
       
-      console.log(`Processing with maxBatches=${maxBatches}${requestOrgId ? ` for org ${requestOrgId}` : ''}`);
-    } catch {
-      // No body or invalid JSON - process all orgs with single batch
+      if (requestOrgId) {
+        // SCALABILITY FIX: For single-org requests, estimate transaction count
+        // and set appropriate batch limit based on timeout constraints
+        const { count } = await supabaseServiceRole
+          .from('transactions')
+          .select('*', { count: 'exact', head: true })
+          .eq('org_id', requestOrgId)
+          .is('category_id', null);
+
+        const estimatedBatches = Math.ceil((count || 0) / RATE_LIMIT.BATCH_SIZE);
+        
+        // Cap based on function timeout (assume ~3s per transaction with LLM)
+        const maxSafeBatches = Math.floor(FUNCTION_TIMEOUT / (3000 * RATE_LIMIT.BATCH_SIZE / 1000));
+        
+        // Process ALL transactions for this org (up to safety limits)
+        maxBatches = Math.min(estimatedBatches, maxSafeBatches, 100);
+        
+        console.log(
+          `Single-org request: ${count} uncategorized transactions found, ` +
+          `will process up to ${maxBatches} batches (${maxBatches * RATE_LIMIT.BATCH_SIZE} transactions max)`
+        );
+      } else {
+        // Multi-org: use provided limit or default
+        maxBatches = body.maxBatches || 1;
+        if (maxBatches < 1 || maxBatches > 20) {
+          console.warn(`Invalid maxBatches: ${body.maxBatches}, capping to valid range`);
+          maxBatches = Math.max(1, Math.min(20, maxBatches));
+        }
+        console.log(`Multi-org processing with maxBatches=${maxBatches}`);
+      }
+    } catch (parseError) {
+      // No body or invalid JSON - process all orgs with single batch (backwards compatible)
+      maxBatches = 1;
+      console.log('No request body, using default maxBatches=1');
     }
 
     // Track overall results across all batches
     const allResults: any[] = [];
     let totalProcessed = 0;
     let batchCount = 0;
+    let timeoutReached = false;
 
-    // Loop for multiple batches
+    // Loop for multiple batches with timeout awareness
     while (batchCount < maxBatches) {
+      // TIMEOUT FIX: Check if we're approaching function timeout
+      if (Date.now() - startTime > FUNCTION_TIMEOUT) {
+        console.warn(`Approaching function timeout after ${batchCount} batches, stopping gracefully`);
+        timeoutReached = true;
+        break;
+      }
+
       // Get transactions that need categorization for this batch
-      let query = supabase
+      let query = supabaseServiceRole
         .from('transactions')
         .select('id, org_id, merchant_name, mcc, description, amount_cents, date, source, reviewed, raw, category_id, needs_review, created_at')
         .is('category_id', null)  // Only process transactions with no category assigned
@@ -129,7 +252,7 @@ serve(async (req) => {
         globalProcessing++;
 
         try {
-          const orgResults = await processOrgTransactions(supabase, orgId, orgTransactions);
+          const orgResults = await processOrgTransactions(supabaseServiceRole, orgId, orgTransactions);
           results.push(orgResults);
           totalProcessed += orgResults.processed || 0;
         } catch (error) {
@@ -161,15 +284,35 @@ serve(async (req) => {
       }
     }
 
-    console.log(`Completed ${batchCount} batch(es), processed ${totalProcessed} total transactions`);
+    // Get remaining count for client info
+    let remainingCount = 0;
+    if (requestOrgId) {
+      const { count } = await supabaseServiceRole
+        .from('transactions')
+        .select('*', { count: 'exact', head: true })
+        .eq('org_id', requestOrgId)
+        .is('category_id', null);
+      remainingCount = count || 0;
+    }
+
+    const duration = Date.now() - startTime;
+    
+    console.log(
+      `Completed ${batchCount} batch(es), processed ${totalProcessed} total transactions, ` +
+      `${remainingCount} remaining${timeoutReached ? ' (timeout reached)' : ''}`
+    );
 
     return new Response(JSON.stringify({
       processed: totalProcessed,
       batches: batchCount,
       maxBatches: maxBatches,
+      remaining: remainingCount,
+      timeoutReached,
+      needsAnotherCall: remainingCount > 0,
       organizations: new Set(allResults.map(r => r.orgId)).size,
       results: allResults,
-      orgId: requestOrgId
+      orgId: requestOrgId,
+      duration
     }), {
       headers: { 'Content-Type': 'application/json' },
     });
@@ -341,6 +484,30 @@ async function runPass1Categorization(supabase: any, tx: any, orgId: string): Pr
   }
 }
 
+/**
+ * RATE LIMITING FIX: Check and wait for Gemini API rate limits
+ */
+async function checkGeminiRateLimit(): Promise<void> {
+  const now = Date.now();
+  
+  // Reset counter if minute has passed
+  if (now >= geminiCallsThisMinute.resetAt) {
+    geminiCallsThisMinute.count = 0;
+    geminiCallsThisMinute.resetAt = now + 60000;
+  }
+  
+  // If at limit, wait until reset
+  if (geminiCallsThisMinute.count >= GEMINI_RATE_LIMIT) {
+    const waitMs = geminiCallsThisMinute.resetAt - now;
+    console.warn(`Gemini rate limit reached (${GEMINI_RATE_LIMIT}/min), waiting ${waitMs}ms`);
+    await new Promise(resolve => setTimeout(resolve, waitMs + 100)); // Add small buffer
+    geminiCallsThisMinute.count = 0;
+    geminiCallsThisMinute.resetAt = Date.now() + 60000;
+  }
+  
+  geminiCallsThisMinute.count++;
+}
+
 async function runLLMCategorization(supabase: any, tx: any, orgId: string): Promise<CategorizationResult> {
   // Convert to NormalizedTransaction format for centralized functions
   const normalizedTx = {
@@ -359,51 +526,80 @@ async function runLLMCategorization(supabase: any, tx: any, orgId: string): Prom
     raw: tx.raw || {}
   };
 
-  try {
-    // Initialize Gemini client with validated settings
-    const geminiClient = new GeminiClient({
-      apiKey: Deno.env.get('GEMINI_API_KEY'),
-      model: 'gemini-2.5-flash-lite', // 100% accuracy in tests
-      temperature: 1.0, // Validated optimal temperature
-    });
+  // RATE LIMITING FIX: Implement retry logic with exponential backoff
+  let retries = 0;
+  while (retries < GEMINI_RETRY_MAX) {
+    try {
+      // RATE LIMITING FIX: Check rate limit before calling API
+      await checkGeminiRateLimit();
 
-    // Use universal categorization with attribute extraction
-    const result = await categorizeWithUniversalLLM(
-      normalizedTx,
-      {
-        industry: 'ecommerce', // TODO: Get from org settings when multi-vertical
-        orgId: orgId,
-        config: {
-          model: 'gemini-2.5-flash-lite',
-          temperature: 1.0,
+      // Initialize Gemini client with validated settings
+      const geminiClient = new GeminiClient({
+        apiKey: Deno.env.get('GEMINI_API_KEY'),
+        model: 'gemini-2.5-flash-lite', // 100% accuracy in tests
+        temperature: 0.2, // UPDATED: Use new lower temperature for determinism
+      });
+
+      // Use universal categorization with attribute extraction
+      const result = await categorizeWithUniversalLLM(
+        normalizedTx,
+        {
+          industry: 'ecommerce', // TODO: Get from org settings when multi-vertical
+          orgId: orgId,
+          config: {
+            model: 'gemini-2.5-flash-lite',
+            temperature: 0.2, // UPDATED: Use new lower temperature
+          },
+          logger: {
+            debug: (msg: string, meta?: any) => console.log(`[Universal LLM] ${msg}`, meta),
+            info: (msg: string, meta?: any) => console.log(`[Universal LLM] ${msg}`, meta),
+            error: (msg: string, error?: any) => console.error(`[Universal LLM] ${msg}`, error),
+          }
         },
-        logger: {
-          debug: (msg: string, meta?: any) => console.log(`[Universal LLM] ${msg}`, meta),
-          info: (msg: string, meta?: any) => console.log(`[Universal LLM] ${msg}`, meta),
-          error: (msg: string, error?: any) => console.error(`[Universal LLM] ${msg}`, error),
+        geminiClient
+      );
+
+      console.log(`[LLM] Transaction ${tx.id}: category=${result.categoryId}, confidence=${result.confidence}, attributes=${JSON.stringify(result.attributes || {})}`);
+
+      return {
+        categoryId: result.categoryId,
+        confidence: result.confidence,
+        attributes: result.attributes || {},
+        rationale: result.rationale || ['Universal LLM categorization']
+      };
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      // Check if it's a rate limit error
+      if (errorMessage.includes('429') || errorMessage.includes('rate limit') || errorMessage.includes('quota')) {
+        retries++;
+        if (retries < GEMINI_RETRY_MAX) {
+          const delayMs = Math.min(1000 * Math.pow(2, retries), 10000); // Exponential backoff, max 10s
+          console.warn(`Rate limit hit for tx ${tx.id}, retry ${retries}/${GEMINI_RETRY_MAX} in ${delayMs}ms`);
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+          continue; // Retry
         }
-      },
-      geminiClient
-    );
-
-    console.log(`[LLM] Transaction ${tx.id}: category=${result.categoryId}, confidence=${result.confidence}, attributes=${JSON.stringify(result.attributes || {})}`);
-
-    return {
-      categoryId: result.categoryId,
-      confidence: result.confidence,
-      attributes: result.attributes || {},
-      rationale: result.rationale || ['Universal LLM categorization']
-    };
-
-  } catch (error) {
-    console.error('Universal LLM categorization error:', error);
-    return {
-      categoryId: mapCategorySlugToId('miscellaneous'),
-      confidence: 0.5,
-      attributes: {},
-      rationale: ['LLM categorization failed, using fallback']
-    };
+      }
+      
+      // Non-retryable error or max retries reached
+      console.error(`Universal LLM categorization error for tx ${tx.id}:`, error);
+      return {
+        categoryId: mapCategorySlugToId('miscellaneous'),
+        confidence: 0.5,
+        attributes: {},
+        rationale: [`LLM categorization failed after ${retries} retries: ${errorMessage}`]
+      };
+    }
   }
+
+  // Should never reach here, but fallback just in case
+  return {
+    categoryId: mapCategorySlugToId('miscellaneous'),
+    confidence: 0.3,
+    attributes: {},
+    rationale: ['LLM categorization failed: max retries exceeded']
+  };
 }
 
 async function decideAndApply(

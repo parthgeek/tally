@@ -19,6 +19,25 @@ interface DecisionContext extends CategorizationContext {
 const AUTO_APPLY_THRESHOLD = 0.95;
 
 /**
+ * Compute effective threshold considering guardrail violations
+ * If guardrails applied or needsReview flag set, may require review
+ */
+function shouldForceReview(result: CategorizationResult): boolean {
+  // Check if needsReview flag is explicitly set
+  if ('needsReview' in result && result.needsReview === true) {
+    return true;
+  }
+
+  // Check for guardrail violations in rationale
+  const rationaleStr = result.rationale?.join(' ') || '';
+  if (rationaleStr.includes('guardrail') || rationaleStr.includes('violation') || rationaleStr.includes('blocked')) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Applies categorization decision to a transaction based on confidence threshold
  *
  * Policy:
@@ -34,7 +53,8 @@ export async function decideAndApply(
   ctx: DecisionContext
 ): Promise<void> {
   try {
-    const shouldAutoApply = result.confidence !== undefined && result.confidence >= AUTO_APPLY_THRESHOLD;
+    const forceReview = shouldForceReview(result);
+    const shouldAutoApply = !forceReview && result.confidence !== undefined && result.confidence >= AUTO_APPLY_THRESHOLD;
     
     // Start transaction for consistency
     const { data: transaction, error: txError } = await ctx.db
@@ -131,9 +151,11 @@ export async function decideAndApply(
         transaction_id: txId,
         confidence: result.confidence || 0,
         source,
-        reason: result.confidence !== undefined && result.confidence < AUTO_APPLY_THRESHOLD 
-          ? 'low_confidence' 
-          : 'no_confidence'
+        reason: forceReview 
+          ? 'guardrail_violation_or_needs_review' 
+          : (result.confidence !== undefined && result.confidence < AUTO_APPLY_THRESHOLD 
+            ? 'low_confidence' 
+            : 'no_confidence')
       });
     }
 

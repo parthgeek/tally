@@ -31,7 +31,53 @@ export function checkRevenueGuardrails(
     environment
   );
 
-  // Only apply to revenue categories
+  // Check if strict revenue directionality is enabled
+  const isStrictDirectionalityEnabled = isFeatureEnabled(
+    CategorizerFeatureFlag.STRICT_REVENUE_DIRECTIONALITY,
+    config,
+    environment
+  );
+
+  // NEW: Block positive amounts from mapping to OpEx/COGS (strict directionality)
+  if (isStrictDirectionalityEnabled && category && (category.type === 'opex' || category.type === 'cogs')) {
+    const isPositiveAmount = parseInt(tx.amountCents) > 0;
+    
+    if (isPositiveAmount) {
+      const description = tx.description.toLowerCase();
+      const merchantName = (tx.merchantName || '').toLowerCase();
+      
+      // Check if this is a legitimate refund/contra pattern
+      const refundKeywords = [
+        'refund', 'return', 'chargeback', 'reversal', 'void',
+        'cancelled', 'dispute', 'adjustment', 'credit', 'reimbursement'
+      ];
+      
+      const hasRefundKeywords = refundKeywords.some(keyword =>
+        description.includes(keyword) || (merchantName && merchantName.includes(keyword))
+      );
+      
+      if (!hasRefundKeywords) {
+        // Positive amount mapping to expense without refund pattern - block it
+        return {
+          allowed: false,
+          reason: 'Positive amount (MONEY IN) cannot map to OpEx/COGS without explicit refund pattern',
+          suggestedCategorySlug: 'miscellaneous', // Force review
+          confidencePenalty: 0.6 // Heavy penalty
+        };
+      } else {
+        // Has refund keywords, suggest refunds_contra
+        const refundCategory = isTwoTierEnabled ? 'refunds_contra' : 'refunds_allowances_contra';
+        return {
+          allowed: false,
+          reason: 'Refund pattern detected - should map to contra-revenue, not expense',
+          suggestedCategorySlug: refundCategory,
+          confidencePenalty: 0.4
+        };
+      }
+    }
+  }
+
+  // Only apply to revenue categories below this point
   if (!category || category.type !== 'revenue') {
     return { allowed: true };
   }
@@ -222,12 +268,28 @@ export function checkPayoutGuardrails(
     environment
   );
 
-  // Universal payout patterns
-  const payoutKeywords = [
+  const isEnhancedPayoutGuardrails = isFeatureEnabled(
+    CategorizerFeatureFlag.ENHANCED_PAYOUT_GUARDRAILS,
+    config,
+    environment
+  );
+
+  // Universal payout patterns - expanded for enhanced mode
+  const payoutKeywords = isEnhancedPayoutGuardrails ? [
+    'payout', 'transfer', 'deposit', 'settlement', 'disbursement',
+    'disb', 'batch payout', 'merchant payout', 'merchant disbursement',
+    'net proceeds', 'funds transfer', 'bank transfer'
+  ] : [
     'payout', 'transfer', 'deposit', 'settlement', 'disbursement'
   ];
 
-  const paymentProcessors = [
+  // Expanded processor list for enhanced mode
+  const paymentProcessors = isEnhancedPayoutGuardrails ? [
+    'shopify', 'shop pay', 'shopify payments',
+    'stripe', 'paypal', 'square',
+    'adyen', 'braintree', 'klarna', 'affirm', 'afterpay', 'sezzle',
+    'amazon payments', 'amazon pay', 'venmo'
+  ] : [
     'shopify', 'stripe', 'paypal', 'square', 'amazon payments'
   ];
 
