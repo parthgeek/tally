@@ -201,6 +201,7 @@ serve(async (req) => {
         .select('id, org_id, merchant_name, mcc, description, amount_cents, date, source, reviewed, raw, category_id, needs_review, created_at')
         .is('category_id', null)  // Only process transactions with no category assigned
         .order('created_at', { ascending: true })
+        .order('id', { ascending: true })  // Add ID as tiebreaker for stable ordering
         .limit(RATE_LIMIT.BATCH_SIZE);
 
       if (requestOrgId) {
@@ -219,7 +220,11 @@ serve(async (req) => {
         break;
       }
 
-      console.log(`Batch ${batchCount + 1}/${maxBatches}: Processing ${transactions.length} transactions`);
+      // Log batch details for debugging
+      console.log(
+        `Batch ${batchCount + 1}/${maxBatches}: Processing ${transactions.length} transactions ` +
+        `(first: ${transactions[0].id.substring(0, 8)}..., last: ${transactions[transactions.length - 1].id.substring(0, 8)}...)`
+      );
 
       // Process this batch (existing logic)
       const results: any[] = [];
