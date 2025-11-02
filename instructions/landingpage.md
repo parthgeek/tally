@@ -54,6 +54,8 @@
 
 ## 🎨 Design System
 
+**Note:** App is **dark-only**. Light mode has been removed entirely. All color tokens default to dark values.
+
 ### Color Palette (Dark Minimalist - Supabase-inspired with Purple)
 
 ```css

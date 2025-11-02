@@ -16,47 +16,46 @@ type ThemeProviderState = {
 };
 
 const initialState: ThemeProviderState = {
-  theme: "system",
+  theme: "dark",
   setTheme: () => null,
 };
 
 const ThemeProviderContext = React.createContext<ThemeProviderState>(initialState);
 
+/**
+ * Theme provider that forces dark mode
+ * Light mode has been removed - app is dark-only
+ */
 export function ThemeProvider({
   children,
-  defaultTheme = "system",
+  defaultTheme = "dark",
   storageKey = "nexus-ui-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = React.useState<Theme>(
-    () =>
-      (typeof window !== "undefined"
-        ? (localStorage.getItem(storageKey) as Theme)
-        : defaultTheme) || defaultTheme
-  );
+  // Always use dark theme, ignore localStorage and system preferences
+  const theme: Theme = "dark";
 
   React.useEffect(() => {
     const root = window.document.documentElement;
-
+    
+    // Always apply dark class
     root.classList.remove("light", "dark");
-
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light";
-
-      root.classList.add(systemTheme);
-      return;
+    root.classList.add("dark");
+    
+    // Clear any old light mode preference from localStorage
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem(storageKey);
+      if (stored && stored !== "dark") {
+        localStorage.setItem(storageKey, "dark");
+      }
     }
-
-    root.classList.add(theme);
-  }, [theme]);
+  }, [storageKey]);
 
   const value = {
-    theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme);
-      setTheme(theme);
+    theme: "dark" as Theme,
+    setTheme: () => {
+      // No-op: theme is always dark
+      console.warn("Theme switching is disabled. App is dark-only.");
     },
   };
 

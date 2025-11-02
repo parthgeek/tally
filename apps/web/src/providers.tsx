@@ -83,7 +83,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light" storageKey="nexus-ui-theme">
+      <ThemeProvider defaultTheme="dark" storageKey="nexus-ui-theme">
         {posthog && !initializationError ? (
           <PostHogProvider client={posthog}>
             <PostHogIdentify />

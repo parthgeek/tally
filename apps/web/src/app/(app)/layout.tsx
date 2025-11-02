@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Menu, X, Home, Receipt, TrendingUp, Eye, Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import { OrgSwitcher } from "@/components/org-switcher";
 import { UserMenu } from "@/components/user-menu";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { CommandPalette } from "@/components/command-palette";
 import { useSidebarState } from "@/hooks/use-sidebar-state";
 import { cn } from "@/lib/utils";
@@ -108,13 +107,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {/* Spacer */}
           <div className="flex flex-1" />
 
-          {/* Right side: Theme Toggle + Org Switcher + User Menu */}
+          {/* Right side: Org Switcher + User Menu */}
           <div className="flex items-center gap-x-1.5 sm:gap-x-2">
-            <ThemeToggle />
-            <div className="h-5 w-px bg-border-subtle hidden sm:block" />
             <div className="hidden sm:block">
               <OrgSwitcher />
             </div>
+            <div className="h-5 w-px bg-border-subtle hidden sm:block" />
             <UserMenu />
           </div>
         </div>
