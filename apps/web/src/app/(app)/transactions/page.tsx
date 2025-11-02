@@ -1038,7 +1038,7 @@ export default function TransactionsPage() {
                                     {transaction.category_name ? (
                                       <div className="flex items-center gap-2">
                                         {(() => {
-                                          const Icon = getCategoryIcon(transaction.category_id);
+                                          const Icon = getCategoryIcon(transaction.category_id ?? null);
                                           return <Icon className="h-4 w-4 text-muted-foreground shrink-0" />;
                                         })()}
                                         <span className="text-sm font-medium">{transaction.category_name}</span>
@@ -1164,7 +1164,7 @@ export default function TransactionsPage() {
                                   {transaction.category_name ? (
                                     <div className="flex items-center gap-2">
                                       {(() => {
-                                        const Icon = getCategoryIcon(transaction.category_id);
+                                        const Icon = getCategoryIcon(transaction.category_id ?? null);
                                         return <Icon className="h-4 w-4 text-muted-foreground shrink-0" />;
                                       })()}
                                       <span className="text-sm font-medium">{transaction.category_name}</span>
