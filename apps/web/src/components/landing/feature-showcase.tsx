@@ -71,30 +71,30 @@ export function FeatureShowcase() {
       id="features"
       ref={ref}
       className={cn(
-        "py-24 bg-muted/30 transition-all duration-700",
+        "py-16 sm:py-24 bg-muted/30 transition-all duration-700",
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
       )}
     >
-      <div className="container mx-auto px-6">
+      <div className="container mx-auto px-4 sm:px-6">
         {/* Section Header */}
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+        <div className="text-center mb-12 sm:mb-16">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
             What You Get with Tally
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
             Everything you need to keep your books clean and your accountant happy.
           </p>
         </div>
 
         {/* Navigation Pills */}
-        <div className="flex justify-center gap-2 mb-12 flex-wrap max-w-3xl mx-auto">
+        <div className="flex justify-center gap-2 mb-12 flex-wrap max-w-3xl mx-auto px-2">
           {features.map((feature, index) => (
             <button
               key={feature.id}
               onClick={() => setActiveIndex(index)}
               className={cn(
-                "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
-                "hover:bg-accent/50 hover:text-accent-foreground",
+                "px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-200",
+                "hover:bg-accent/50 hover:text-accent-foreground min-h-[44px] min-w-[44px] flex items-center justify-center",
                 activeIndex === index
                   ? "bg-primary text-primary-foreground shadow-md"
                   : "bg-card text-muted-foreground border border-border"

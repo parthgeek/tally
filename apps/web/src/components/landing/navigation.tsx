@@ -38,11 +38,11 @@ export function Navigation() {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
-      <div className="container mx-auto px-6">
-        <div className="flex items-center justify-between h-16">
+      <div className="container mx-auto px-4 sm:px-6">
+        <div className="flex items-center justify-between h-14 sm:h-16">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <span className="font-bold text-2xl md:text-3xl tracking-tight">Tally</span>
+            <span className="font-bold text-xl sm:text-2xl md:text-3xl tracking-tight">Tally</span>
           </div>
 
           {/* Desktop Nav - Only anchor links during prelaunch */}

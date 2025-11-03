@@ -88,18 +88,18 @@ export function FAQSection() {
       id="faq"
       ref={ref}
       className={cn(
-        "py-24 bg-background transition-all duration-700",
+        "py-16 sm:py-24 bg-background transition-all duration-700",
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
       )}
     >
-      <div className="container mx-auto px-6">
+      <div className="container mx-auto px-4 sm:px-6">
         <div className="max-w-3xl mx-auto">
           {/* Section Header */}
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <div className="text-center mb-10 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
               Frequently Asked Questions
             </h2>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-base sm:text-lg text-muted-foreground">
               Everything you need to know about how Tally works
             </p>
           </div>
@@ -112,8 +112,8 @@ export function FAQSection() {
           </div>
 
           {/* Still have questions CTA */}
-          <div className="mt-12 text-center">
-            <p className="text-muted-foreground mb-4">Still have questions?</p>
+          <div className="mt-10 sm:mt-12 text-center">
+            <p className="text-sm sm:text-base text-muted-foreground mb-4">Still have questions?</p>
             <a
               href="mailto:support@usetally.app"
               className="text-primary hover:text-primary/80 font-medium transition-colors"

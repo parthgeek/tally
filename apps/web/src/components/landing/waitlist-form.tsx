@@ -53,7 +53,7 @@ export function WaitlistForm({ inline = false, className }: WaitlistFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className={cn(inline ? "flex gap-2" : "space-y-4", className)}>
+    <form onSubmit={handleSubmit} className={cn(inline ? "flex flex-col sm:flex-row gap-2" : "space-y-4", className)}>
       <div className={cn(inline && "flex-1")}>
         <Input
           type="email"
@@ -61,7 +61,7 @@ export function WaitlistForm({ inline = false, className }: WaitlistFormProps) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full"
+          className="w-full min-h-[44px]"
           disabled={isLoading}
           aria-label="Email address"
         />
@@ -71,7 +71,7 @@ export function WaitlistForm({ inline = false, className }: WaitlistFormProps) {
         type="submit"
         size={inline ? "default" : "lg"}
         disabled={isLoading}
-        className="whitespace-nowrap"
+        className="whitespace-nowrap min-h-[44px] w-full sm:w-auto"
       >
         {isLoading ? "Joining..." : "Join Waitlist"}
       </Button>
