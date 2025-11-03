@@ -27,6 +27,10 @@ export function Sparkline({ points, width = 200, height = 56, className = "" }: 
   
   const fillPathData = `${pathData} L ${width} ${height} L 0 ${height} Z`;
 
+  // Guard last point for TypeScript
+  const lastPoint = points[points.length - 1] ?? points[0];
+  const lastCy = height - normalize(lastPoint) * height;
+
   return (
     <svg width={width} height={height} className={`overflow-visible ${className}`}>
       <defs>
@@ -52,7 +56,7 @@ export function Sparkline({ points, width = 200, height = 56, className = "" }: 
       {/* Last point highlight */}
       <circle
         cx={width}
-        cy={height - normalize(points[points.length - 1]) * height}
+        cy={lastCy}
         r="3"
         fill="hsl(var(--primary))"
         className="drop-shadow-md"
