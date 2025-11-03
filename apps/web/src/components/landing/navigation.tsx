@@ -1,11 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { getPosthogClientBrowser } from "@nexus/analytics/client";
 
 /**
  * Landing page navigation component (prelaunch mode - no auth links)
- * Features smooth scroll to page sections
+ * Features smooth scroll to page sections with logo
  */
 export function Navigation() {
   const handleSmoothScroll = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
@@ -41,9 +42,17 @@ export function Navigation() {
       <div className="container mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-14 sm:h-16">
           {/* Logo */}
-          <div className="flex items-center gap-2">
+          <a href="/" aria-label="Tally Home" className="flex items-center gap-2">
+            <Image
+              src="/brand/logo-mark.svg"
+              alt="Tally logo"
+              width={32}
+              height={32}
+              priority
+              className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8"
+            />
             <span className="font-bold text-xl sm:text-2xl md:text-3xl tracking-tight">Tally</span>
-          </div>
+          </a>
 
           {/* Desktop Nav - Only anchor links during prelaunch */}
           <div className="hidden md:flex items-center gap-6">
