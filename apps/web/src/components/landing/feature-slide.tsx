@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { cn } from "@/lib/utils";
 
 interface FeatureSlideProps {
   feature: {
@@ -13,22 +12,16 @@ interface FeatureSlideProps {
     imageSrc: string;
     imageAlt: string;
   };
-  isActive: boolean;
 }
 
 /**
- * Individual feature slide component
+ * Individual feature slide component for horizontal scroll carousel
  * Left: Number indicator, headline, description
  * Right: Feature image
  */
-export function FeatureSlide({ feature, isActive }: FeatureSlideProps) {
+export function FeatureSlide({ feature }: FeatureSlideProps) {
   return (
-    <div
-      className={cn(
-        "grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-16 items-center transition-opacity duration-500",
-        isActive ? "opacity-100" : "opacity-0 absolute inset-0 pointer-events-none"
-      )}
-    >
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-16 items-center">
       {/* Left: Content */}
       <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
         {/* Number Indicator */}

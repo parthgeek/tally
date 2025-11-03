@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { FeatureSlide } from "./feature-slide";
 import { cn } from "@/lib/utils";
 import { useFadeIn } from "@/hooks/use-fade-in";
+import { getPosthogClientBrowser } from "@nexus/analytics/client";
 
 const features = [
   {
@@ -59,12 +60,85 @@ const features = [
 ];
 
 /**
- * Beluga-style numbered feature showcase with navigation pills
- * Users can click pills to navigate between features
+ * Beluga-style scrollable feature showcase
+ * Horizontal scroll-snap carousel with minimal numeric indicators
  */
 export function FeatureShowcase() {
   const [activeIndex, setActiveIndex] = useState(0);
   const { ref, isVisible } = useFadeIn();
+  const trackRef = useRef<HTMLDivElement>(null);
+  const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Scroll to a specific slide
+  const scrollToSlide = useCallback((index: number) => {
+    const slide = slideRefs.current[index];
+    if (slide && trackRef.current) {
+      slide.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
+      
+      // Track navigation
+      const posthog = getPosthogClientBrowser();
+      if (posthog) {
+        posthog.capture("feature_nav_clicked", {
+          index,
+          feature_id: features[index].id,
+        });
+      }
+    }
+  }, []);
+
+  // IntersectionObserver to track visible slide
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+            const index = slideRefs.current.findIndex((ref) => ref === entry.target);
+            if (index !== -1 && index !== activeIndex) {
+              setActiveIndex(index);
+              
+              // Track slide visibility
+              const posthog = getPosthogClientBrowser();
+              if (posthog) {
+                posthog.capture("feature_slide_visible", {
+                  index,
+                  feature_id: features[index].id,
+                });
+              }
+            }
+          }
+        });
+      },
+      {
+        root: track,
+        threshold: 0.5,
+      }
+    );
+
+    slideRefs.current.forEach((slide) => {
+      if (slide) observer.observe(slide);
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [activeIndex]);
+
+  // Keyboard navigation
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "ArrowLeft" && activeIndex > 0) {
+        e.preventDefault();
+        scrollToSlide(activeIndex - 1);
+      } else if (e.key === "ArrowRight" && activeIndex < features.length - 1) {
+        e.preventDefault();
+        scrollToSlide(activeIndex + 1);
+      }
+    },
+    [activeIndex, scrollToSlide]
+  );
 
   return (
     <section
@@ -74,6 +148,9 @@ export function FeatureShowcase() {
         "py-16 sm:py-24 bg-muted/30 transition-all duration-700",
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
       )}
+      role="region"
+      aria-roledescription="carousel"
+      aria-label="Feature Showcase"
     >
       <div className="container mx-auto px-4 sm:px-6">
         {/* Section Header */}
@@ -86,37 +163,67 @@ export function FeatureShowcase() {
           </p>
         </div>
 
-        {/* Navigation Pills */}
-        <div className="flex justify-center gap-2 mb-12 flex-wrap max-w-3xl mx-auto px-2">
-          {features.map((feature, index) => (
-            <button
-              key={feature.id}
-              onClick={() => setActiveIndex(index)}
-              className={cn(
-                "px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-200",
-                "hover:bg-accent/50 hover:text-accent-foreground min-h-[44px] min-w-[44px] flex items-center justify-center",
-                activeIndex === index
-                  ? "bg-primary text-primary-foreground shadow-md"
-                  : "bg-card text-muted-foreground border border-border"
-              )}
-              aria-label={`View ${feature.shortTitle} feature`}
-              aria-current={activeIndex === index ? "true" : undefined}
-            >
-              <span className="hidden sm:inline">{feature.shortTitle}</span>
-              <span className="sm:hidden">{feature.number}</span>
-            </button>
-          ))}
+        {/* Numeric Indicators */}
+        <div className="relative mb-8 sm:mb-12">
+          {/* Edge fade gradients */}
+          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-muted/30 to-transparent pointer-events-none z-10" />
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-muted/30 to-transparent pointer-events-none z-10" />
+          
+          {/* Scrollable indicator rail */}
+          <div
+            className="overflow-x-auto scrollbar-hide"
+            role="tablist"
+            aria-label="Feature navigation"
+          >
+            <div className="flex justify-center gap-2 px-8 min-w-min">
+              {features.map((feature, index) => (
+                <button
+                  key={feature.id}
+                  id={`indicator-${feature.id}`}
+                  onClick={() => scrollToSlide(index)}
+                  className={cn(
+                    "px-4 py-2 rounded-full text-sm font-mono font-medium transition-all duration-200",
+                    "hover:bg-accent/50 hover:text-accent-foreground min-h-[44px] min-w-[44px] flex items-center justify-center flex-shrink-0",
+                    activeIndex === index
+                      ? "bg-primary text-primary-foreground shadow-md ring-2 ring-primary/30 scale-105"
+                      : "bg-card text-muted-foreground border border-border"
+                  )}
+                  role="tab"
+                  aria-selected={activeIndex === index}
+                  aria-controls={`slide-${feature.id}`}
+                  aria-label={`Slide ${feature.number}: ${feature.shortTitle}`}
+                >
+                  {feature.number}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* Feature Slides */}
-        <div className="relative max-w-6xl mx-auto min-h-[500px] lg:min-h-[400px]">
-          {features.map((feature, index) => (
-            <FeatureSlide
-              key={feature.id}
-              feature={feature}
-              isActive={activeIndex === index}
-            />
-          ))}
+        {/* Horizontal Scroll Track */}
+        <div
+          ref={trackRef}
+          className="overflow-x-auto snap-x snap-mandatory scrollbar-hide scroll-smooth touch-pan-x"
+          onKeyDown={handleKeyDown}
+          tabIndex={0}
+          role="presentation"
+        >
+          <div className="flex gap-8 max-w-6xl mx-auto">
+            {features.map((feature, index) => (
+              <div
+                key={feature.id}
+                id={`slide-${feature.id}`}
+                ref={(el) => {
+                  slideRefs.current[index] = el;
+                }}
+                className="min-w-full snap-start"
+                role="tabpanel"
+                aria-labelledby={`indicator-${feature.id}`}
+              >
+                <FeatureSlide feature={feature} />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
