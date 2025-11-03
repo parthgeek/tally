@@ -13,12 +13,6 @@ export const metadata: Metadata = {
     "Automated bookkeeping for Shopify stores. Real-time P&L, COGS tracking, and tax-ready exports. Built for e-commerce.",
   keywords:
     "shopify bookkeeping, ecommerce accounting, online store bookkeeping, automated bookkeeping, shopify accounting",
-  icons: {
-    icon: [
-      { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico", type: "image/x-icon" },
-    ],
-  },
   openGraph: {
     type: "website",
     locale: "en_US",
