@@ -10,7 +10,7 @@ export function Footer() {
   return (
     <footer className="border-t border-border bg-card">
       <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-12">
           {/* Brand Column */}
           <div className="space-y-4">
             <h3 className="text-lg font-bold">Tally</h3>
@@ -81,35 +81,12 @@ export function Footer() {
               </li>
             </ul>
           </div>
-
-          {/* Legal Column */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold">Legal</h4>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <a
-                  href="/privacy"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Privacy Policy
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/terms"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Terms of Service
-                </a>
-              </li>
-            </ul>
-          </div>
         </div>
 
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t border-border">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
-            <p>© {currentYear} Tally. All rights reserved.</p>
+            <p>© 2025 Tally Intelligence Inc. All Rights Reserved.</p>
             <p className="text-xs">
               Made with care for e-commerce founders who deserve better tools.
             </p>
