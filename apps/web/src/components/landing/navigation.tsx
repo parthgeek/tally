@@ -61,6 +61,13 @@ export function Navigation() {
             >
               How It Works
             </a>
+            <a
+              href="#faq"
+              onClick={(e) => handleSmoothScroll(e, "#faq")}
+              className="text-sm hover:text-primary transition-colors"
+            >
+              FAQ
+            </a>
             <Button size="sm" asChild onClick={handleCTAClick}>
               <a href="#waitlist" onClick={(e) => handleSmoothScroll(e, "#waitlist")}>
                 Join Waitlist

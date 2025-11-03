@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Navigation } from "@/components/landing/navigation";
 import { HeroSection } from "@/components/landing/hero-section";
 import { FeatureShowcase } from "@/components/landing/feature-showcase";
-import { ProblemSection } from "@/components/landing/problem-section";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { FAQSection } from "@/components/landing/faq-section";
 import { FinalCTA } from "@/components/landing/final-cta";
@@ -63,7 +62,6 @@ export default function LandingPage() {
         <main>
           <HeroSection />
           <FeatureShowcase />
-          <ProblemSection />
           <HowItWorks />
           <FAQSection />
           <FinalCTA />
