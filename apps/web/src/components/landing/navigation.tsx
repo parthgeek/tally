@@ -42,14 +42,14 @@ export function Navigation() {
       <div className="container mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-14 sm:h-16">
           {/* Logo */}
-          <a href="/" aria-label="Tally Home" className="flex items-center gap-2.5 sm:gap-3">
+          <a href="/" aria-label="Tally Home" className="flex items-center gap-1.5 sm:gap-2">
             <Image
               src="/brand/logo-mark.svg"
               alt="Tally logo"
-              width={40}
-              height={40}
+              width={56}
+              height={56}
               priority
-              className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10"
+              className="h-9 w-9 sm:h-10 sm:w-10 md:h-12 md:w-12"
             />
             <span className="font-bold text-xl sm:text-2xl md:text-3xl tracking-tight">Tally</span>
           </a>
