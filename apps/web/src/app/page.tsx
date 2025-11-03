@@ -6,6 +6,7 @@ import { ProblemSection } from "@/components/landing/problem-section";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { FAQSection } from "@/components/landing/faq-section";
 import { FinalCTA } from "@/components/landing/final-cta";
+import { Footer } from "@/components/landing/footer";
 
 export const metadata: Metadata = {
   title: "Tally | AI-Powered Bookkeeping for E-Commerce Brands",
@@ -68,13 +69,7 @@ export default function LandingPage() {
           <FinalCTA />
         </main>
 
-        <footer className="border-t border-border py-8">
-          <div className="container mx-auto px-6">
-            <div className="text-center text-sm text-muted-foreground">
-              <p>© 2025 Tally. All rights reserved.</p>
-            </div>
-          </div>
-        </footer>
+        <Footer />
       </div>
     </>
   );
