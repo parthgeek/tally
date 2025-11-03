@@ -1,6 +1,10 @@
 "use client";
 
-import Image from "next/image";
+import { PlVisual } from "./visuals/PlVisual";
+import { CategorizationVisual } from "./visuals/CategorizationVisual";
+import { ReceiptsVisual } from "./visuals/ReceiptsVisual";
+import { ShopifyReconVisual } from "./visuals/ShopifyReconVisual";
+import { ExportVisual } from "./visuals/ExportVisual";
 
 interface FeatureSlideProps {
   feature: {
@@ -17,9 +21,27 @@ interface FeatureSlideProps {
 /**
  * Individual feature slide component for horizontal scroll carousel
  * Left: Number indicator, headline, description
- * Right: Feature image
+ * Right: Programmatic visual component
  */
 export function FeatureSlide({ feature }: FeatureSlideProps) {
+  // Map feature ID to corresponding visual component
+  const renderVisual = () => {
+    switch (feature.id) {
+      case "real-time-pl":
+        return <PlVisual />;
+      case "smart-categorization":
+        return <CategorizationVisual />;
+      case "receipts":
+        return <ReceiptsVisual />;
+      case "shopify-reconciliation":
+        return <ShopifyReconVisual />;
+      case "export":
+        return <ExportVisual />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-16 items-center">
       {/* Left: Content */}
@@ -42,33 +64,9 @@ export function FeatureSlide({ feature }: FeatureSlideProps) {
         </p>
       </div>
 
-      {/* Right: Image */}
+      {/* Right: Programmatic Visual */}
       <div className="order-first lg:order-last">
-        <div className="relative aspect-[4/3] rounded-xl border border-border overflow-hidden bg-card">
-          {/* Placeholder with gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10" />
-          
-          {/* Centered placeholder text */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center space-y-2">
-              <div className="text-muted-foreground text-sm font-mono">
-                {feature.imageAlt}
-              </div>
-              <div className="text-xs text-muted-foreground/60">
-                Visual placeholder
-              </div>
-            </div>
-          </div>
-
-          {/* Future: Replace with actual image */}
-          {/* <Image
-            src={feature.imageSrc}
-            alt={feature.imageAlt}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 50vw"
-          /> */}
-        </div>
+        {renderVisual()}
       </div>
     </div>
   );

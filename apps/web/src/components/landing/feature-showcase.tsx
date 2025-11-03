@@ -71,8 +71,12 @@ export function FeatureShowcase() {
 
   // Scroll to a specific slide
   const scrollToSlide = useCallback((index: number) => {
+    if (index < 0 || index >= features.length) return;
+    
     const slide = slideRefs.current[index];
-    if (slide && trackRef.current) {
+    const feature = features[index];
+    
+    if (slide && trackRef.current && feature) {
       slide.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
       
       // Track navigation
@@ -80,7 +84,7 @@ export function FeatureShowcase() {
       if (posthog) {
         posthog.capture("feature_nav_clicked", {
           index,
-          feature_id: features[index].id,
+          feature_id: feature.id,
         });
       }
     }
@@ -96,7 +100,10 @@ export function FeatureShowcase() {
         entries.forEach((entry) => {
           if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
             const index = slideRefs.current.findIndex((ref) => ref === entry.target);
-            if (index !== -1 && index !== activeIndex) {
+            if (index >= 0 && index < features.length && index !== activeIndex) {
+              const feature = features[index];
+              if (!feature) return;
+              
               setActiveIndex(index);
               
               // Track slide visibility
@@ -104,7 +111,7 @@ export function FeatureShowcase() {
               if (posthog) {
                 posthog.capture("feature_slide_visible", {
                   index,
-                  feature_id: features[index].id,
+                  feature_id: feature.id,
                 });
               }
             }
