@@ -86,7 +86,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t border-border">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
-            <p>© 2025 Tally Intelligence Inc. All Rights Reserved.</p>
+            <p>© {currentYear} Tally Intelligence Inc. All Rights Reserved.</p>
             <p className="text-xs">
               Made with care for e-commerce founders who deserve better tools.
             </p>
