@@ -27,8 +27,9 @@ export function Sparkline({ points, width = 200, height = 56, className = "" }: 
   
   const fillPathData = `${pathData} L ${width} ${height} L 0 ${height} Z`;
 
-  // Guard last point for TypeScript
-  const lastPoint = points[points.length - 1] ?? points[0];
+  // Guard last point for TypeScript (noUncheckedIndexedAccess safe)
+  const lastIndex = points.length - 1;
+  const lastPoint = (points[lastIndex] ?? points[0]!) as number;
   const lastCy = height - normalize(lastPoint) * height;
 
   return (
