@@ -22,6 +22,17 @@ export interface Database {
           timezone: string | null
           owner_user_id: string | null
           created_at: string
+          slug: string | null
+          logo_url: string | null
+          default_timezone: string | null
+          region: string | null
+          updated_at: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          billing_email: string | null
+          plan: string | null
+          billing_status: string | null
+          current_period_end: string | null
         }
         Insert: {
           id?: string
@@ -30,6 +41,17 @@ export interface Database {
           timezone?: string | null
           owner_user_id?: string | null
           created_at?: string
+          slug?: string | null
+          logo_url?: string | null
+          default_timezone?: string | null
+          region?: string | null
+          updated_at?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          billing_email?: string | null
+          plan?: string | null
+          billing_status?: string | null
+          current_period_end?: string | null
         }
         Update: {
           id?: string
@@ -38,6 +60,17 @@ export interface Database {
           timezone?: string | null
           owner_user_id?: string | null
           created_at?: string
+          slug?: string | null
+          logo_url?: string | null
+          default_timezone?: string | null
+          region?: string | null
+          updated_at?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          billing_email?: string | null
+          plan?: string | null
+          billing_status?: string | null
+          current_period_end?: string | null
         }
         Relationships: []
       }
@@ -493,6 +526,117 @@ export interface Database {
           f1_score?: number | null
           passed_threshold?: boolean
           test_metadata?: Json | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          id: string
+          email: string | null
+          name: string | null
+          created_at: string
+          username: string | null
+          avatar_url: string | null
+          timezone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id: string
+          email?: string | null
+          name?: string | null
+          created_at?: string
+          username?: string | null
+          avatar_url?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          email?: string | null
+          name?: string | null
+          created_at?: string
+          username?: string | null
+          avatar_url?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_preferences: {
+        Row: {
+          user_id: string
+          theme: string | null
+          locale: string | null
+          date_format: string | null
+          number_format: string | null
+          reduced_motion: boolean | null
+          high_contrast: boolean | null
+          timezone: string | null
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          user_id: string
+          theme?: string | null
+          locale?: string | null
+          date_format?: string | null
+          number_format?: string | null
+          reduced_motion?: boolean | null
+          high_contrast?: boolean | null
+          timezone?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          user_id?: string
+          theme?: string | null
+          locale?: string | null
+          date_format?: string | null
+          number_format?: string | null
+          reduced_motion?: boolean | null
+          high_contrast?: boolean | null
+          timezone?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      billing_invoices: {
+        Row: {
+          id: string
+          org_id: string
+          stripe_invoice_id: string
+          hosted_invoice_url: string | null
+          invoice_pdf: string | null
+          amount_cents: string
+          currency: string | null
+          status: string
+          invoice_date: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          stripe_invoice_id: string
+          hosted_invoice_url?: string | null
+          invoice_pdf?: string | null
+          amount_cents: string
+          currency?: string | null
+          status: string
+          invoice_date: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          stripe_invoice_id?: string
+          hosted_invoice_url?: string | null
+          invoice_pdf?: string | null
+          amount_cents?: string
+          currency?: string | null
+          status?: string
+          invoice_date?: string
           created_at?: string
         }
         Relationships: []
