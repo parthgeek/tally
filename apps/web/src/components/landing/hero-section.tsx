@@ -16,10 +16,6 @@ export function HeroSection() {
     }
   };
 
-  const foundersOnWaitlist = Number(
-    process.env.NEXT_PUBLIC_WAITLIST_FOUNDERS_COUNT ?? 87
-  ).toLocaleString();
-
   return (
     <section className="relative min-h-screen bg-background flex items-center justify-center">
       {/* Purple glow effect */}
@@ -46,7 +42,7 @@ export function HeroSection() {
           <div className="flex flex-wrap justify-center gap-6 sm:gap-8 text-sm sm:text-base text-muted-foreground">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-primary flex-shrink-0" />
-              <span>{foundersOnWaitlist} Founders on waitlist</span>
+              <span>60+ Founders on waitlist</span>
             </div>
             <div className="flex items-center gap-2">
               <Store className="w-5 h-5 text-primary flex-shrink-0" />
