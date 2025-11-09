@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate request body
-    const validationResult = await validateRequestBody(request, plaidExchangeSchema);
+    const validationResult: any = await validateRequestBody(request, plaidExchangeSchema);
     if (!validationResult.success) {
       return createValidationErrorResponse(validationResult.error);
     }
