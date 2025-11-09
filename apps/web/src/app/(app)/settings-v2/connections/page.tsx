@@ -23,6 +23,7 @@ export default function ConnectionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showConnectForm, setShowConnectForm] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -55,9 +56,14 @@ export default function ConnectionsPage() {
     }
   };
 
+  const handleConnectClick = () => {
+    setShowConnectForm(true);
+    setError(null);
+  };
+
   const handleConnect = async () => {
     if (!shopDomain.trim()) {
-      setError("Please enter your Shopify store domain");
+      setError("Please enter your Shopify store name");
       return;
     }
 
@@ -69,7 +75,20 @@ export default function ConnectionsPage() {
     domain = domain.replace(/\/$/, "");
     domain = domain.replace(/\.myshopify\.com$/, "");
 
+    if (!domain) {
+      setError("Please enter a valid store name");
+      setIsConnecting(false);
+      return;
+    }
+
+    // Redirect directly to OAuth with the shop parameter
     window.location.href = `/api/shopify/oauth/start?shop=${encodeURIComponent(domain)}`;
+  };
+
+  const handleCancelConnect = () => {
+    setShowConnectForm(false);
+    setShopDomain("");
+    setError(null);
   };
 
   const handleDisconnect = async () => {
@@ -82,6 +101,7 @@ export default function ConnectionsPage() {
 
       if (response.ok) {
         setSuccess("Disconnected successfully");
+        setShowConnectForm(false);
         fetchStatus();
       } else {
         setError("Failed to disconnect");
@@ -144,21 +164,35 @@ export default function ConnectionsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {!status?.connected ? (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="shop">Store Domain</Label>
+            showConnectForm ? (
+              // Connect Form
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="shop">Shopify Store Name</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="shop"
+                      placeholder="your-store-name"
+                      value={shopDomain}
+                      onChange={(e) => setShopDomain(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleConnect()}
+                      disabled={isConnecting}
+                      className="flex-1"
+                    />
+                    <span className="flex items-center px-3 bg-muted text-sm rounded-md border">
+                      .myshopify.com
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Just enter your store name, we'll add .myshopify.com automatically
+                  </p>
+                </div>
+
                 <div className="flex gap-2">
-                  <Input
-                    id="shop"
-                    placeholder="yourstore.myshopify.com"
-                    value={shopDomain}
-                    onChange={(e) => setShopDomain(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleConnect()}
-                    disabled={isConnecting}
-                  />
                   <Button
                     onClick={handleConnect}
                     disabled={isConnecting || !shopDomain.trim()}
+                    className="flex-1"
                   >
                     {isConnecting ? (
                       <>
@@ -168,14 +202,38 @@ export default function ConnectionsPage() {
                     ) : (
                       <>
                         <Store className="mr-2 h-4 w-4" />
-                        Connect
+                        Connect Store
                       </>
                     )}
                   </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleCancelConnect}
+                    disabled={isConnecting}
+                  >
+                    Cancel
+                  </Button>
                 </div>
               </div>
-            </>
+            ) : (
+              // Connect Button
+              <div className="text-center py-6">
+                <Store className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">Connect Your Shopify Store</h3>
+                <p className="text-muted-foreground mb-6">
+                  One-click setup to sync your orders, refunds, and sales data automatically.
+                </p>
+                <Button
+                  onClick={handleConnectClick}
+                  size="lg"
+                >
+                  <Store className="mr-2 h-4 w-4" />
+                  Connect Shopify Store
+                </Button>
+              </div>
+            )
           ) : (
+            // Connected State
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div>

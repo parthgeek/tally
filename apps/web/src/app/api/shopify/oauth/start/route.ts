@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies(); // Add await here
+    const cookieStore = await cookies();
     
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,7 +23,6 @@ export async function GET(request: NextRequest) {
       }
     );
 
-
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -37,8 +36,10 @@ export async function GET(request: NextRequest) {
       .select("org_id")
       .eq("user_id", user.id)
       .maybeSingle();
-console.log("User ID:", user.id);
-console.log("User Org Role:", userOrgRole);
+
+    console.log("User ID:", user.id);
+    console.log("User Org Role:", userOrgRole);
+
     if (!userOrgRole) {
       return Response.redirect(
         new URL("/onboarding?error=no_org", request.url)
@@ -59,10 +60,10 @@ console.log("User Org Role:", userOrgRole);
     const searchParams = request.nextUrl.searchParams;
     const shop = searchParams.get("shop");
 
+    // FIX: Redirect to connect page if no shop parameter
     if (!shop) {
-      return Response.json(
-        { error: "Missing shop parameter" },
-        { status: 400 }
+      return Response.redirect(
+        new URL("/shopify/connect", request.url)
       );
     }
 
@@ -74,9 +75,8 @@ console.log("User Org Role:", userOrgRole);
 
     const shopDomainRegex = /^[a-z0-9-]+\.myshopify\.com$/;
     if (!shopDomainRegex.test(shopDomain)) {
-      return Response.json(
-        { error: "Invalid shop domain format" },
-        { status: 400 }
+      return Response.redirect(
+        new URL("/settings/connections?error=invalid_shop_domain", request.url)
       );
     }
 
