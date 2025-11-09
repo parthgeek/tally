@@ -36,7 +36,7 @@ export type PlaidExchangeRequest = z.infer<typeof plaidExchangeSchema>;
 export async function validateRequestBody<T>(
   request: Request,
   schema: z.ZodSchema<T>
-): Promise<{ success: true; data: T } | { success: false; error: unknown }> {
+): Promise<any > {
   try {
     const body = await request.json();
     const validatedData = schema.parse(body);
