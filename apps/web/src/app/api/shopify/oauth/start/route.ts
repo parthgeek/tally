@@ -1,76 +1,109 @@
 import type { NextRequest } from "next/server";
-import { withOrgFromRequest } from "@/lib/api/with-org";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
-/**
- * Shopify OAuth start endpoint
- * Redirects user to Shopify OAuth authorization page
- */
 export async function GET(request: NextRequest) {
   try {
-    const { orgId } = await withOrgFromRequest(request);
+    const cookieStore = cookies();
     
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          },
+        },
+      }
+    );
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return Response.redirect(
+        new URL("/login?error=unauthorized", request.url)
+      );
+    }
+
+    const { data: userOrgRole } = await supabase
+      .from("user_org_roles")
+      .select("org_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!userOrgRole) {
+      return Response.redirect(
+        new URL("/onboarding?error=no_org", request.url)
+      );
+    }
+
+    const orgId = userOrgRole.org_id;
     const shopifyApiKey = process.env.SHOPIFY_API_KEY;
     const shopifyAppHost = process.env.SHOPIFY_APP_HOST;
-    
+
     if (!shopifyApiKey || !shopifyAppHost) {
-      console.error('Missing Shopify configuration:', {
-        hasApiKey: !!shopifyApiKey,
-        hasAppHost: !!shopifyAppHost,
-      });
+      console.error("Missing Shopify configuration");
       return Response.redirect(
-        new URL('/settings/connections?error=shopify_config_missing', request.url)
+        new URL("/settings/connections?error=config_missing", request.url)
       );
     }
-    
-    // Get shop parameter from query string
+
     const searchParams = request.nextUrl.searchParams;
-    const shop = searchParams.get('shop');
-    
+    const shop = searchParams.get("shop");
+
     if (!shop) {
-      return new Response(
-        JSON.stringify({ error: 'Missing shop parameter' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      return Response.json(
+        { error: "Missing shop parameter" },
+        { status: 400 }
       );
     }
+
+    let shopDomain = shop.trim().toLowerCase();
     
-    // Validate shop domain format (basic validation)
-    if (!shop.endsWith('.myshopify.com') && !shop.includes('.')) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid shop domain' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+    if (!shopDomain.includes(".myshopify.com")) {
+      shopDomain = `${shopDomain}.myshopify.com`;
+    }
+
+    const shopDomainRegex = /^[a-z0-9-]+\.myshopify\.com$/;
+    if (!shopDomainRegex.test(shopDomain)) {
+      return Response.json(
+        { error: "Invalid shop domain format" },
+        { status: 400 }
       );
     }
-    
-    // Build OAuth URL
-    const scopes = 'read_orders,read_all_orders'; // read_all_orders for >60 day history
+
+    const scopes = "read_orders,read_all_orders";
     const redirectUri = `${shopifyAppHost}/api/shopify/oauth/callback`;
-    
-    // Generate state for CSRF protection (include orgId)
-    const state = Buffer.from(JSON.stringify({ orgId, timestamp: Date.now() })).toString('base64');
-    
-    const authUrl = new URL(`https://${shop}/admin/oauth/authorize`);
-    authUrl.searchParams.set('client_id', shopifyApiKey);
-    authUrl.searchParams.set('scope', scopes);
-    authUrl.searchParams.set('redirect_uri', redirectUri);
-    authUrl.searchParams.set('state', state);
-    authUrl.searchParams.set('grant_options[]', 'offline'); // Request offline access token
-    
-    console.log('Redirecting to Shopify OAuth:', {
-      shop,
-      scopes,
-      orgId,
-      redirectUri,
-    });
-    
+
+    const state = Buffer.from(
+      JSON.stringify({
+        orgId,
+        userId: user.id,
+        timestamp: Date.now(),
+        nonce: Math.random().toString(36).substring(7),
+      })
+    ).toString("base64");
+
+    const authUrl = new URL(`https://${shopDomain}/admin/oauth/authorize`);
+    authUrl.searchParams.set("client_id", shopifyApiKey);
+    authUrl.searchParams.set("scope", scopes);
+    authUrl.searchParams.set("redirect_uri", redirectUri);
+    authUrl.searchParams.set("state", state);
+    authUrl.searchParams.set("grant_options[]", "per-user");
+
+    console.log("Starting Shopify OAuth:", { shop: shopDomain, orgId });
+
     return Response.redirect(authUrl.toString());
   } catch (error) {
-    console.error('Shopify OAuth start error:', error);
+    console.error("OAuth start error:", error);
     return Response.redirect(
-      new URL('/settings/connections?error=oauth_start_failed', request.url)
+      new URL("/settings/connections?error=oauth_failed", request.url)
     );
   }
 }
-
-
-
-

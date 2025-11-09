@@ -1,220 +1,244 @@
 import type { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
-/**
- * Shopify data sync endpoint
- * Triggers historical data fetch from Shopify (orders and refunds)
- * 
- * POST /api/shopify/sync
- * Body: {
- *   syncMode?: 'full' | 'incremental',
- *   startDate?: string,
- *   endDate?: string
- * }
- */
+function createClient(request: NextRequest) {
+  const cookieStore = cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // Create Supabase client
-    const supabase = createClient();
-    
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
-      console.error('Authentication error:', authError);
-      return Response.json(
-        { error: 'Unauthorized. Please sign in.' },
-        { status: 401 }
-      );
+    const supabase = createClient(request);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get user's organization
-    const { data: orgMember, error: orgError } = await supabase
-      .from('org_members')
-      .select('org_id')
-      .eq('user_id', user.id)
-      .single();
+    const { data: userOrgRole } = await supabase
+      .from("user_org_roles")
+      .select("org_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-    if (orgError || !orgMember) {
-      console.error('Organization error:', orgError);
+    if (!userOrgRole) {
+      return Response.json({ error: "No organization" }, { status: 400 });
+    }
+
+    const orgId = userOrgRole.org_id;
+    const body = await request.json();
+    const { syncMode = "incremental" } = body;
+
+    const { data: shopConnection } = await supabase
+      .from("shopify_connections")
+      .select("*")
+      .eq("org_id", orgId)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (!shopConnection) {
       return Response.json(
-        { 
-          error: 'No organization found. Please set up your organization first.',
-          details: 'You need to be part of an organization to sync Shopify data.'
-        },
+        { error: "No Shopify connection" },
         { status: 400 }
       );
     }
 
-    const orgId = orgMember.org_id;
-    const body = await request.json();
-    const { syncMode = 'incremental', startDate, endDate } = body;
+    const now = new Date();
+    const startDate =
+      syncMode === "full"
+        ? new Date(now.getFullYear() - 2, now.getMonth(), now.getDate())
+        : new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const shopDomain = shopConnection.shop_domain;
+    const accessToken = shopConnection.access_token;
+    const apiVersion = process.env.SHOPIFY_API_VERSION || "2025-10";
 
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('Missing Supabase configuration');
-      return Response.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      );
-    }
-
-    console.log('Triggering Shopify sync:', {
-      orgId,
-      syncMode,
-      startDate,
-      endDate,
-    });
-
-    // Call Edge Function to perform sync
-    const syncResponse = await fetch(
-      `${supabaseUrl}/functions/v1/shopify-sync-orders`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-        },
-        body: JSON.stringify({
-          orgId,
-          syncMode,
-          startDate,
-          endDate,
-        }),
+    const query = `
+      query getOrders($query: String!, $cursor: String) {
+        orders(first: 250, query: $query, after: $cursor) {
+          edges {
+            node {
+              id
+              name
+              createdAt
+              currencyCode
+              subtotalPriceSet { shopMoney { amount } }
+              totalDiscountsSet { shopMoney { amount } }
+              totalShippingPriceSet { shopMoney { amount } }
+              totalTaxSet { shopMoney { amount } }
+              refunds {
+                id
+                createdAt
+                totalRefundedSet { shopMoney { amount } }
+              }
+            }
+          }
+          pageInfo { hasNextPage endCursor }
+        }
       }
-    );
+    `;
 
-    if (!syncResponse.ok) {
-      const errorText = await syncResponse.text();
-      console.error('Shopify sync failed:', {
-        status: syncResponse.status,
-        error: errorText,
-      });
-      return Response.json(
-        { error: 'Failed to sync Shopify data', details: errorText },
-        { status: syncResponse.status }
+    let hasNextPage = true;
+    let cursor: string | null = null;
+    let totalOrders = 0;
+    const ordersToUpsert: any[] = [];
+
+    while (hasNextPage && ordersToUpsert.length < 2500) {
+      const variables: any = {
+        query: `created_at:>='${startDate.toISOString()}'`,
+      };
+      if (cursor) variables.cursor = cursor;
+
+      const response = await fetch(
+        `https://${shopDomain}/admin/api/${apiVersion}/graphql.json`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Shopify-Access-Token": accessToken,
+          },
+          body: JSON.stringify({ query, variables }),
+        }
       );
+
+      if (!response.ok) {
+        return Response.json(
+          { error: "Shopify API error" },
+          { status: 502 }
+        );
+      }
+
+      const data = await response.json();
+      const orders = data.data?.orders?.edges || [];
+      const pageInfo = data.data?.orders?.pageInfo;
+
+      for (const { node: order } of orders) {
+        const refundsTotal = order.refunds.reduce(
+          (sum: number, r: any) =>
+            sum + parseFloat(r.totalRefundedSet.shopMoney.amount),
+          0
+        );
+
+        const salesGross = parseFloat(order.subtotalPriceSet.shopMoney.amount);
+        const discounts = parseFloat(order.totalDiscountsSet.shopMoney.amount);
+        const shipping = parseFloat(order.totalShippingPriceSet.shopMoney.amount);
+        const tax = parseFloat(order.totalTaxSet.shopMoney.amount);
+
+        ordersToUpsert.push({
+          org_id: orgId,
+          shop_order_id: order.id,
+          order_name: order.name,
+          created_at: order.createdAt,
+          currency: order.currencyCode,
+          sales_gross: salesGross,
+          discounts: discounts,
+          shipping_income: shipping,
+          tax_collected: tax,
+          refunds_total: refundsTotal,
+          refunds_detail: order.refunds,
+          net_sales_after_refunds: salesGross - discounts - refundsTotal,
+          raw: order,
+          updated_at: new Date().toISOString(),
+        });
+
+        totalOrders++;
+      }
+
+      hasNextPage = pageInfo?.hasNextPage || false;
+      cursor = pageInfo?.endCursor || null;
     }
 
-    const result = await syncResponse.json();
+    // Batch upsert
+    for (let i = 0; i < ordersToUpsert.length; i += 100) {
+      await supabase
+        .from("sales_to_refunds")
+        .upsert(ordersToUpsert.slice(i, i + 100), {
+          onConflict: "org_id,shop_order_id",
+        });
+    }
 
-    console.log('Shopify sync completed:', result);
+    // Update sync state
+    await supabase
+      .from("shopify_connections")
+      .update({
+        last_synced_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("org_id", orgId);
 
     return Response.json({
       success: true,
-      message: 'Shopify data synced successfully',
-      ...result,
+      ordersCount: totalOrders,
     });
   } catch (error) {
-    console.error('Shopify sync error:', error);
-    return Response.json(
-      { 
-        error: 'Failed to sync Shopify data',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    console.error("Sync error:", error);
+    return Response.json({ error: "Sync failed" }, { status: 500 });
   }
 }
 
-/**
- * Get sync status
- * 
- * GET /api/shopify/sync
- */
 export async function GET(request: NextRequest) {
   try {
-    // Create Supabase client
-    const supabase = createClient();
-    
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
-      console.error('Authentication error:', authError);
-      return Response.json(
-        { error: 'Unauthorized. Please sign in.' },
-        { status: 401 }
-      );
+    const supabase = createClient(request);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get user's organization
-    const { data: orgMember, error: orgError } = await supabase
-      .from('org_members')
-      .select('org_id')
-      .eq('user_id', user.id)
-      .single();
+    const { data: userOrgRole } = await supabase
+      .from("user_org_roles")
+      .select("org_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-    if (orgError || !orgMember) {
-      console.error('Organization not found:', orgError);
-      // Return a friendly response indicating no org
+    if (!userOrgRole) {
       return Response.json({
         connected: false,
-        message: 'No organization found. Please set up your organization first.',
         needsSetup: true,
       });
     }
 
-    const orgId = orgMember.org_id;
-    
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const orgId = userOrgRole.org_id;
 
-    // Fetch connection status
-    const { data: connections, error: connError } = await supabase
-      .from('shopify_connections')
-      .select('*')
-      .eq('org_id', orgId)
-      .eq('is_active', true);
+    const { data: shopConnection } = await supabase
+      .from("shopify_connections")
+      .select("*")
+      .eq("org_id", orgId)
+      .eq("is_active", true)
+      .maybeSingle();
 
-    if (connError) {
-      console.error('Error fetching connections:', connError);
-      return Response.json(
-        { error: 'Failed to fetch connection status' },
-        { status: 500 }
-      );
-    }
-    
-    if (!connections || connections.length === 0) {
-      return Response.json({
-        connected: false,
-        message: 'No active Shopify connection found. Please connect your Shopify store first.',
-      });
+    if (!shopConnection) {
+      return Response.json({ connected: false });
     }
 
-    const connection = connections[0];
-
-    // Fetch sync statistics
-    const { count: ordersCount, error: ordersError } = await supabase
-      .from('shopify_orders')
-      .select('*', { count: 'exact', head: true })
-      .eq('org_id', orgId);
-
-    const { count: refundsCount, error: refundsError } = await supabase
-      .from('shopify_refunds')
-      .select('*', { count: 'exact', head: true })
-      .eq('org_id', orgId);
-
-    if (ordersError) console.error('Error counting orders:', ordersError);
-    if (refundsError) console.error('Error counting refunds:', refundsError);
+    const { count: ordersCount } = await supabase
+      .from("sales_to_refunds")
+      .select("*", { count: "exact", head: true })
+      .eq("org_id", orgId);
 
     return Response.json({
       connected: true,
-      shopDomain: connection.shop_domain,
-      lastSyncedAt: connection.last_synced_at,
+      shopDomain: shopConnection.shop_domain,
+      lastSyncedAt: shopConnection.last_synced_at,
       ordersCount: ordersCount || 0,
-      refundsCount: refundsCount || 0,
     });
   } catch (error) {
-    console.error('Error fetching sync status:', error);
-    return Response.json(
-      { 
-        error: 'Failed to fetch sync status',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    return Response.json({ error: "Failed to get status" }, { status: 500 });
   }
 }

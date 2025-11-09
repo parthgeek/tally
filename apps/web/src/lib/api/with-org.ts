@@ -27,7 +27,7 @@ export async function withOrg(orgId: OrgId): Promise<AuthenticatedContext> {
   // Check user belongs to organization
   const { data: membership, error: membershipError } = await supabase
     .from("user_org_roles")
-    .select("org_id")
+      .select("org_id, role, orgs(name)")
     .eq("user_id", user.id)
     .eq("org_id", orgId)
     .single();
@@ -98,7 +98,7 @@ export async function withOrgFromRequest(request: NextRequest): Promise<Authenti
   // Verify membership in the resolved organization
   const { data: membership, error: membershipError } = await supabase
     .from("user_org_roles")
-    .select("org_id")
+     .select("org_id, role, orgs(name)")
     .eq("user_id", user.id)
     .eq("org_id", orgId)
     .single();
