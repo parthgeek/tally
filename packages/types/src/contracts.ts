@@ -50,7 +50,7 @@ export type ConnectionsListRequest = z.infer<typeof connectionsListRequestSchema
 export type Connection = z.infer<typeof connectionSchema>;
 export type ConnectionsListResponse = z.infer<typeof connectionsListResponseSchema>;
 
-// POST /connections.create
+// POST /connections.created
 const connectionsCreateRequestSchema = z.object({
   orgId: orgIdSchema,
   provider: z.enum(["plaid", "square", "manual"]),
