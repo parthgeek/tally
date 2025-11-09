@@ -57,7 +57,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Validate request body
-    const validationResult = await validateRequestBody(request, connectionDisconnectRequestSchema);
+    const validationResult: any = await validateRequestBody(request, connectionDisconnectRequestSchema);
     if (!validationResult.success) {
       return createValidationErrorResponse(validationResult.error);
     }
