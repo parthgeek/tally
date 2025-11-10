@@ -31,11 +31,36 @@ export async function GET(request: NextRequest) {
       );
     }
 
+   // before: if authError || !user => redirect to /login?error=unauthorized
+// REPLACE with this block (app/router route.ts near where you get the user)
+
+let orgId = null;
+let userId = null;
+
+try {
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (user && !authError) {
+    userId = user.id;
     const { data: userOrgRole } = await supabase
       .from("user_org_roles")
       .select("org_id")
       .eq("user_id", user.id)
       .maybeSingle();
+
+    if (userOrgRole) {
+      orgId = userOrgRole.org_id;
+    }
+  } else {
+    console.log('No authenticated user — proceeding in demo mode (state will not contain orgId).');
+  }
+} catch (err) {
+  console.log('Supabase auth check failed, continuing in demo mode', err);
+}
+
+// Build state JSON with whatever we have
+const stateObj = { orgId, userId, timestamp: Date.now(), nonce: Math.random().toString(36).substring(7) };
+const state = Buffer.from(JSON.stringify(stateObj)).toString('base64');
+
 
     console.log("User ID:", user.id);
     console.log("User Org Role:", userOrgRole);
