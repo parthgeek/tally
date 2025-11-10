@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     // Handle error cases
     if (error) {
       console.error("Plaid OAuth error:", error);
-      return NextResponse.redirect(
+      return Response.redirect(
         new URL(`/settings/connections?error=${encodeURIComponent(error)}`, request.url)
       );
     }
@@ -38,10 +38,10 @@ export async function GET(request: NextRequest) {
           throw new Error("Failed to exchange public token");
         }
 
-        return NextResponse.redirect(new URL("/settings/connections?success=true", request.url));
+        return Response.redirect(new URL("/settings/connections?success=true", request.url));
       } catch (exchangeError) {
         console.error("Token exchange error:", exchangeError);
-        return NextResponse.redirect(
+        return Response.redirect(
           new URL("/settings/connections?error=exchange_failed", request.url)
         );
       }
@@ -54,13 +54,13 @@ export async function GET(request: NextRequest) {
       redirectUrl.searchParams.set("oauth_state_id", oauthStateId);
       redirectUrl.searchParams.set("reinitialize_link", "true");
 
-      return NextResponse.redirect(redirectUrl.toString());
+      return Response.redirect(redirectUrl.toString());
     }
 
     // Default redirect
-    return NextResponse.redirect(new URL("/settings/connections", request.url));
+    return Response.redirect(new URL("/settings/connections", request.url));
   } catch (error) {
     console.error("OAuth callback error:", error);
-    return NextResponse.redirect(new URL("/settings/connections?error=oauth_failed", request.url));
+    return Response.redirect(new URL("/settings/connections?error=oauth_failed", request.url));
   }
 }

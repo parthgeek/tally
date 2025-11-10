@@ -13,14 +13,14 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error("Shopify OAuth error:", error);
-      return NextResponse.redirect(
+      return Response.redirect(
         new URL(`/settings/connections?error=${error}`, request.url)
       );
     }
 
     if (!code || !shop || !state) {
       console.error("Missing OAuth parameters");
-      return NextResponse.redirect(
+      return Response.redirect(
         new URL("/settings/connections?error=missing_params", request.url)
       );
     }
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     const shopifyApiSecret = process.env.SHOPIFY_API_SECRET;
     if (!shopifyApiSecret) {
       console.error("Missing SHOPIFY_API_SECRET");
-      return NextResponse.redirect(
+      return Response.redirect(
         new URL("/settings/connections?error=config_missing", request.url)
       );
     }
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 
       if (calculatedHmac !== hmac) {
         console.error("HMAC verification failed");
-        return NextResponse.redirect(
+        return Response.redirect(
           new URL("/settings/connections?error=invalid_hmac", request.url)
         );
       }
@@ -65,19 +65,19 @@ export async function GET(request: NextRequest) {
 
       const age = Date.now() - stateData.timestamp;
       if (age > 10 * 60 * 1000) {
-        return NextResponse.redirect(
+        return Response.redirect(
           new URL("/settings/connections?error=state_expired", request.url)
         );
       }
     } catch {
-      return NextResponse.redirect(
+      return Response.redirect(
         new URL("/settings/connections?error=invalid_state", request.url)
       );
     }
 
     const shopifyApiKey = process.env.SHOPIFY_API_KEY;
     if (!shopifyApiKey) {
-      return NextResponse.redirect(
+      return Response.redirect(
         new URL("/settings/connections?error=config_missing", request.url)
       );
     }
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
 
     if (!tokenResponse.ok) {
       console.error("Token exchange failed");
-      return NextResponse.redirect(
+      return Response.redirect(
         new URL("/settings/connections?error=token_failed", request.url)
       );
     }
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
     const scopes = tokenData.scope;
 
     if (!accessToken) {
-      return NextResponse.redirect(
+      return Response.redirect(
         new URL("/settings/connections?error=no_token", request.url)
       );
     }
@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
 
     if (insertError) {
       console.error("Failed to store connection:", insertError);
-      return NextResponse.redirect(
+      return Response.redirect(
         new URL("/settings/connections?error=store_failed", request.url)
       );
     }
@@ -169,12 +169,12 @@ export async function GET(request: NextRequest) {
       console.error("Webhook registration error:", error);
     }
 
-    return NextResponse.redirect(
+    return Response.redirect(
       new URL("/settings/connections?success=shopify_connected", request.url)
     );
   } catch (error) {
     console.error("OAuth callback error:", error);
-    return NextResponse.redirect(
+    return Response.redirect(
       new URL("/settings/connections?error=callback_failed", request.url)
     );
   }

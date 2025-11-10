@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.redirect(
+      return Response.redirect(
         new URL("/login?error=unauthorized", request.url)
       );
     }
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     console.log("User Org Role:", userOrgRole);
 
     if (!userOrgRole) {
-      return NextResponse.redirect(
+      return Response.redirect(
         new URL("/onboarding?error=no_org", request.url)
       );
     }
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
 
     if (!shopifyApiKey || !shopifyAppHost) {
       console.error("Missing Shopify configuration");
-      return NextResponse.redirect(
+      return Response.redirect(
         new URL("/settings/connections?error=config_missing", request.url)
       );
     }
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     // FIX: Redirect to connect page if no shop parameter
     if (!shop) {
-      return NextResponse.redirect(
+      return Response.redirect(
         new URL("/shopify/connect", request.url)
       );
     }
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
 
     const shopDomainRegex = /^[a-z0-9-]+\.myshopify\.com$/;
     if (!shopDomainRegex.test(shopDomain)) {
-      return NextResponse.redirect(
+      return Response.redirect(
         new URL("/settings/connections?error=invalid_shop_domain", request.url)
       );
     }
@@ -102,10 +102,10 @@ export async function GET(request: NextRequest) {
 
     console.log("Starting Shopify OAuth:", { shop: shopDomain, orgId });
 
-    return NextResponse.redirect(authUrl.toString());
+    return Response.redirect(authUrl.toString());
   } catch (error) {
     console.error("OAuth start error:", error);
-    return NextResponse.redirect(
+    return Response.redirect(
       new URL("/settings/connections?error=oauth_failed", request.url)
     );
   }
