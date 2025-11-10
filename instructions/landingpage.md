@@ -851,7 +851,7 @@ import { createMiddlewareSupabaseClient } from "@/lib/supabase";
  * Helper function to create a redirect response while preserving cookies
  */
 function createRedirectWithCookies(url: string, req: NextRequest, originalRes: NextResponse) {
-  const redirectRes = NextNextResponse.redirect(new URL(url, req.url));
+  const redirectRes = NextResponse.redirect(new URL(url, req.url));
   const cookies = originalRes.cookies.getAll();
   cookies.forEach(cookie => {
     redirectRes.cookies.set(cookie.name, cookie.value, cookie);

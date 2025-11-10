@@ -6,7 +6,7 @@
 //  * Helper function to create a redirect response while preserving cookies from the original response
 //  */
 // function createRedirectWithCookies(url: string, req: NextRequest, originalRes: NextResponse) {
-//   const redirectRes = NextNextResponse.redirect(new URL(url, req.url));
+//   const redirectRes = NextResponse.redirect(new URL(url, req.url));
 
 //   // Copy cookies from the original response to the redirect response
 //   const cookies = originalRes.cookies.getAll();
