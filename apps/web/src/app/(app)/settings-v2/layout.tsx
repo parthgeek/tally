@@ -12,7 +12,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
-import { User, Building2, CreditCard } from "lucide-react";
+import { User, Building2, CreditCard, Palette } from "lucide-react";
 
 const tabs = [
   {
@@ -30,6 +30,8 @@ const tabs = [
     href: "/settings-v2/billing",
     icon: CreditCard,
   },
+  { name: "connections", href: "/settings-v2/connections", icon: Palette },
+
 ];
 
 export default function SettingsV2Layout({ children }: { children: React.ReactNode }) {
