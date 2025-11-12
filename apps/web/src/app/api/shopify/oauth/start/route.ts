@@ -6,7 +6,6 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const shop = url.searchParams.get("shop");
   const hmac = url.searchParams.get("hmac");
-  const timestamp = url.searchParams.get("timestamp");
 
   if (!shop) {
     return NextResponse.json(
@@ -16,8 +15,19 @@ export async function GET(req: Request) {
   }
 
   // Verify HMAC of initial request
-  if (hmac && timestamp) {
-    const queryParams: Record<string, string> = { shop, timestamp };
+  if (hmac) {
+    // Get ALL query parameters
+    const queryParams: Record<string, string> = {};
+    
+    url.searchParams.forEach((value, key) => {
+      queryParams[key] = value;
+    });
+
+    // Remove hmac and signature from params for verification
+    delete queryParams.hmac;
+    delete queryParams.signature;
+
+    // Sort keys alphabetically and build message
     const message = Object.keys(queryParams)
       .sort()
       .map((key) => `${key}=${queryParams[key]}`)
@@ -27,6 +37,13 @@ export async function GET(req: Request) {
       .createHmac("sha256", process.env.SHOPIFY_API_SECRET!)
       .update(message)
       .digest("hex");
+
+    console.log({
+      generatedHash,
+      hmac,
+      message,
+      allParams: queryParams
+    });
 
     if (generatedHash !== hmac) {
       return NextResponse.json(
@@ -43,7 +60,7 @@ export async function GET(req: Request) {
   // Define scopes your app needs
   const scopes = "read_products,write_products";
   const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/shopify/oauth/callback`;
-
+  console.log({redirectUri})
   // Build Shopify authorization URL
   const authUrl = new URL(`https://${shop}/admin/oauth/authorize`);
   authUrl.searchParams.set("client_id", process.env.SHOPIFY_API_KEY!);
