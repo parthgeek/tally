@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase";
 
 export default function ConnectionsPage() {
   const [status, setStatus] = useState<any>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const supabase = createClient();
 
   const APP_STORE_URL = process.env.NEXT_PUBLIC_SHOPIFY_APP_URL || "https://apps.shopify.com/your-app-handle";
 
@@ -13,8 +15,27 @@ export default function ConnectionsPage() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("success") === "shopify_connected") {
       setSuccess("Connected!");
+      (async () => {
+        if (params.get("shop")) {
+          const user = await supabase.auth.getUser()
+          await supabase.from("shopify_connections").update({
+            auth_id: user.data.user.id
+          }).match({
+            shop_domain: params.get("shop")
+          });
+        }
+      })()
       window.history.replaceState({}, "", window.location.pathname);
     }
+
+     (async () => {
+       
+          const user = await supabase.auth.getUser()
+        console.log({user})
+        
+      })()
+
+
     if (params.get("error")) {
       setError(params.get("error"));
       window.history.replaceState({}, "", window.location.pathname);
@@ -60,7 +81,7 @@ export default function ConnectionsPage() {
               <button onClick={() => window.location.href = `/api/shopify/oauth/start?shop=${status.shop_domain}`}>Reconnect</button>
               <button onClick={async () => {
                 if (!confirm("Disconnect?")) return;
-                await fetch("/api/shopify/disconnect", { method: "POST", body: JSON.stringify({ shop: status.shop_domain }), headers: { "Content-Type": "application/json" }});
+                await fetch("/api/shopify/disconnect", { method: "POST", body: JSON.stringify({ shop: status.shop_domain }), headers: { "Content-Type": "application/json" } });
                 fetchStatus();
               }}>Disconnect</button>
             </div>

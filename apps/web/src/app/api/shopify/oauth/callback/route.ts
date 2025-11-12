@@ -71,14 +71,13 @@ export async function GET(req: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    await supabase
+   const {error} =  await supabase
       .from("shopify_connections")
       .upsert(
         {
           shop_domain: shop,
           access_token: accessToken,
           scope: scope,
-          is_online: false, // This is an offline token by default
           installed_at: new Date().toISOString(),
           is_active: true,
         },
@@ -87,11 +86,11 @@ export async function GET(req: Request) {
 
     // 5. Register webhooks (optional - add your webhook registration here)
     // await registerWebhooks(shop, accessToken);
-
+      console.log({error})
     // 6. Redirect back to your app
     return NextResponse.redirect(
       new URL(
-        "/settings/connections?success=shopify_connected",
+        `/settings-v2/connections?success=shopify_connected&shop=${shop}`,
         process.env.NEXT_PUBLIC_APP_URL || req.url
       )
     );

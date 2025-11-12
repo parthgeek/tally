@@ -67,6 +67,6 @@ export async function GET(req: Request) {
   authUrl.searchParams.set("scope", scopes);
   authUrl.searchParams.set("redirect_uri", redirectUri);
   authUrl.searchParams.set("state", state);
-
+  console.log('succeded')
   return NextResponse.redirect(authUrl.toString());
 }
