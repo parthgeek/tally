@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
-
+import {getCurrentOrgId} from '@/lib/lib-get-current-org'
 interface ShopifyConnection {
   id: string;
   shop_domain: string;
@@ -34,7 +34,7 @@ export default function ConnectionsPage() {
           if (user) {
             await supabase
               .from("shopify_connections")
-              .update({ auth_id: user.id })
+              .update({ auth_id: user.id,org_id:getCurrentOrgId() })
               .eq("shop_domain", params.get("shop"));
           }
         }

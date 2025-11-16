@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,11 +15,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { CategoryPill, type CategoryTier1 } from "@/components/ui/category-pill";
 import { ConfidenceBadge } from "@/components/ui/confidence-badge";
-import { Receipt, Trash2, Loader2 } from "lucide-react";
+import { Receipt, Trash2, Loader2, Eye, Upload, Download, FileText, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { createClient } from "@/lib/supabase";
 import { getCategoryIcon } from "@/lib/category-icons";
 import { InstitutionLogo } from "@/components/ui/institution-logo";
+import { TransactionDetailModal } from "@/components/transaction-detail-modal";
+import { getCurrentOrgId } from "@/lib/lib-get-current-org";
 import {
   filterTransactions,
   isLowConfidence,
@@ -38,6 +40,14 @@ import {
 import { getPosthogClientBrowser } from "@nexus/analytics/client";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 
 // Local currency formatting function
 function formatAmount(amountCents: string, currency: string = "USD"): string {
@@ -57,9 +67,34 @@ function getCategoryTier1(categoryType?: string | null): CategoryTier1 {
   return null;
 }
 
+// Receipt interface
+interface Receipt {
+  id: string;
+  org_id: string;
+  transaction_id: string;
+  file_path: string;
+  uploaded_by: string;
+  created_at: string;
+  checksum: string;
+  ocr_text?: string;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  description?: string;
+  amount?: number;
+  date?: string;
+  vendor?: string;
+  category?: string;
+  updated_at: string;
+  processing_status: string;
+}
+
+// Note: Account data is not currently stored in a separate table
+// The account_id is used directly as the account identifier
 interface Account {
   name: string;
   mask?: string | null;
+  institution_name?: string | null;
 }
 
 interface Category {
@@ -87,6 +122,8 @@ interface Transaction {
   account_mask?: string | null;
   category_name?: string;
   category_type?: string | null;
+  provider_tx_id?: string;
+  normalized_vendor?: string | null;
 }
 
 interface TransactionWithNormalized extends Omit<Transaction, "category_name" | "account_name" | "account_mask"> {
@@ -95,6 +132,7 @@ interface TransactionWithNormalized extends Omit<Transaction, "category_name" | 
   institution_name: string | null;
   category_name: string | null;
   category_type?: string | null;
+  receipts?: Receipt[];
 }
 
 const initialFilterState: FilterState = {
@@ -109,6 +147,185 @@ const initialFilterState: FilterState = {
   lowConfidenceOnly: false,
   month: new Date().toISOString().slice(0, 7), // Current month: "YYYY-MM"
 };
+
+// Receipt Management Modal Component
+function ReceiptManagementModal({
+  transaction,
+  receipts,
+  open,
+  onOpenChange,
+  onUploadReceipt,
+  onDeleteReceipt,
+  uploading,
+  deleting,
+}: {
+  transaction: TransactionWithNormalized | null;
+  receipts: Receipt[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onUploadReceipt: (file: File) => Promise<void>;
+  onDeleteReceipt: (receiptId: string) => Promise<void>;
+  uploading: boolean;
+  deleting: Set<string>;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [dragActive, setDragActive] = useState(false);
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      await onUploadReceipt(files[0]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      await onUploadReceipt(files[0]);
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Manage Receipts</DialogTitle>
+          <DialogDescription>
+            Upload and manage receipts for transaction: {transaction?.description}
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Upload Area */}
+        <div
+          className={cn(
+            "border-2 border-dashed rounded-lg p-6 text-center transition-colors",
+            dragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25",
+            uploading && "opacity-50"
+          )}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.pdf,.doc,.docx"
+            onChange={handleFileSelect}
+            className="hidden"
+            disabled={uploading}
+          />
+          <div className="flex flex-col items-center gap-2">
+            <Upload className="h-8 w-8 text-muted-foreground" />
+            <div>
+              <p className="font-medium">
+                {uploading ? "Uploading..." : "Drag and drop your receipt here"}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                or{" "}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-primary hover:underline"
+                  disabled={uploading}
+                >
+                  browse files
+                </button>
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Supports images, PDF, Word documents (Max: 10MB)
+            </p>
+          </div>
+        </div>
+
+        {/* Receipts List */}
+        <div className="space-y-3">
+          <h4 className="font-medium">Attached Receipts ({receipts.length})</h4>
+          {receipts.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No receipts attached to this transaction
+            </p>
+          ) : (
+            receipts.map((receipt) => (
+              <div
+                key={receipt.id}
+                className="flex items-center justify-between p-3 border rounded-lg"
+              >
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-muted-foreground" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{receipt.file_name}</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{formatFileSize(receipt.file_size)}</span>
+                      <span>•</span>
+                      <span>{new Date(receipt.created_at).toLocaleDateString()}</span>
+                      {receipt.processing_status && (
+                        <>
+                          <span>•</span>
+                          <Badge variant="outline" className="text-xs">
+                            {receipt.processing_status}
+                          </Badge>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.open(`/api/receipts/${receipt.id}/download`, '_blank')}
+                    disabled={deleting.has(receipt.id)}
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onDeleteReceipt(receipt.id)}
+                    disabled={deleting.has(receipt.id)}
+                  >
+                    {deleting.has(receipt.id) ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<TransactionWithNormalized[]>([]);
@@ -126,6 +343,14 @@ export default function TransactionsPage() {
     null
   );
   const [uncategorizedCount, setUncategorizedCount] = useState<number>(0);
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionWithNormalized | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  
+  // Receipt management state
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [selectedTransactionForReceipt, setSelectedTransactionForReceipt] = useState<TransactionWithNormalized | null>(null);
+  const [uploadingReceipts, setUploadingReceipts] = useState<Set<string>>(new Set());
+  const [deletingReceipts, setDeletingReceipts] = useState<Set<string>>(new Set());
 
   const supabase = createClient();
   const posthog = getPosthogClientBrowser();
@@ -133,9 +358,19 @@ export default function TransactionsPage() {
 
   const isEnhancedUIEnabled = isUIFeatureEnabled(UI_FEATURE_FLAGS.TRANSACTIONS_ENHANCED_UI);
 
+  // Initialize org ID on mount
   useEffect(() => {
-    fetchTransactions();
-  }, [isEnhancedUIEnabled]);
+    const orgId = getCurrentOrgId();
+    if (orgId) {
+      setCurrentOrgId(orgId);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentOrgId) {
+      fetchTransactions();
+    }
+  }, [currentOrgId, isEnhancedUIEnabled]);
 
   useEffect(() => {
     if (currentOrgId) {
@@ -182,12 +417,14 @@ export default function TransactionsPage() {
     return filterTransactions(transactions, filters);
   }, [transactions, filters, isEnhancedUIEnabled]);
 
+  // Note: Currently using account_id as account_name since there's no accounts relationship
+  // In the future, create an accounts table and add foreign key relationship
   const distinctAccounts = useMemo(() => {
-    const accounts = transactions
-      .map((tx) => tx.account_name)
+    const accountIds = transactions
+      .map((tx) => tx.account_id)
       .filter(Boolean)
       .filter((value, index, self) => self.indexOf(value) === index);
-    return accounts.sort();
+    return accountIds.sort();
   }, [transactions]);
 
   useEffect(() => {
@@ -218,6 +455,213 @@ export default function TransactionsPage() {
     currentUserId,
     currentOrgId,
   ]);
+
+  // Receipt CRUD Operations using Supabase Storage directly
+  const handleUploadReceipt = useCallback(async (file: File) => {
+    if (!selectedTransactionForReceipt || !currentOrgId || !currentUserId) return;
+
+    const transactionId = selectedTransactionForReceipt.id;
+    setUploadingReceipts(prev => new Set(prev).add(transactionId));
+
+    try {
+      // Validate file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error('File size must be less than 10MB');
+      }
+
+      // Generate unique file path
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${transactionId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `receipts/${currentOrgId}/${fileName}`;
+
+      // Upload file to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('receipts')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      // Get public URL for the uploaded file
+      const { data: urlData } = supabase.storage
+        .from('receipts')
+        .getPublicUrl(filePath);
+
+      // Create receipt record in database
+      const receiptData = {
+        org_id: currentOrgId,
+        transaction_id: transactionId,
+        file_path: filePath,
+        uploaded_by: currentUserId,
+        file_name: file.name,
+        file_size: file.size,
+        mime_type: file.type,
+        processing_status: 'uploaded',
+        checksum: '', // You might want to generate a checksum here
+      };
+
+      const { data: receipt, error: dbError } = await supabase
+        .from('receipts')
+        .insert(receiptData)
+        .select()
+        .single();
+
+      if (dbError) {
+        // If database insert fails, delete the uploaded file
+        await supabase.storage.from('receipts').remove([filePath]);
+        throw new Error(`Failed to create receipt record: ${dbError.message}`);
+      }
+
+      // Update transactions with new receipt
+      setTransactions(prev => prev.map(tx => 
+        tx.id === transactionId 
+          ? { ...tx, receipts: [...(tx.receipts || []), receipt] }
+          : tx
+      ));
+
+      toast({
+        title: "Receipt Uploaded",
+        description: "Receipt has been successfully uploaded",
+      });
+    } catch (error) {
+      console.error('Failed to upload receipt:', error);
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "Failed to upload receipt. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingReceipts(prev => {
+        const next = new Set(prev);
+        next.delete(transactionId);
+        return next;
+      });
+    }
+  }, [selectedTransactionForReceipt, currentOrgId, currentUserId, supabase, toast]);
+
+  const handleDownloadReceipt = useCallback(async (receipt: Receipt) => {
+    try {
+      // Get signed URL for download (valid for 1 hour)
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+        .from('receipts')
+        .createSignedUrl(receipt.file_path, 3600); // 1 hour expiry
+
+      if (signedUrlError) {
+        throw new Error(`Failed to generate download URL: ${signedUrlError.message}`);
+      }
+
+      // Create a temporary anchor element to trigger download
+      const link = document.createElement('a');
+      link.href = signedUrlData.signedUrl;
+      link.download = receipt.file_name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Download Started",
+        description: "Receipt download has started",
+      });
+    } catch (error) {
+      console.error('Failed to download receipt:', error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to download receipt. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [supabase, toast]);
+
+  const handleViewReceipt = useCallback(async (receipt: Receipt) => {
+    try {
+      // Get public URL for viewing
+      const { data: publicUrlData } = supabase.storage
+        .from('receipts')
+        .getPublicUrl(receipt.file_path);
+
+      // Open in new tab
+      window.open(publicUrlData.publicUrl, '_blank');
+    } catch (error) {
+      console.error('Failed to view receipt:', error);
+      toast({
+        title: "View Failed",
+        description: "Failed to open receipt. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [supabase, toast]);
+
+  const handleDeleteReceipt = useCallback(async (receiptId: string) => {
+    if (!confirm('Are you sure you want to delete this receipt?')) return;
+
+    setDeletingReceipts(prev => new Set(prev).add(receiptId));
+
+    try {
+      // First get the receipt to get the file path
+      const { data: receipt, error: fetchError } = await supabase
+        .from('receipts')
+        .select('*')
+        .eq('id', receiptId)
+        .single();
+
+      if (fetchError) {
+        throw new Error(`Failed to fetch receipt: ${fetchError.message}`);
+      }
+
+      // Delete file from storage
+      const { error: storageError } = await supabase.storage
+        .from('receipts')
+        .remove([receipt.file_path]);
+
+      if (storageError) {
+        throw new Error(`Failed to delete file from storage: ${storageError.message}`);
+      }
+
+      // Delete receipt record from database
+      const { error: dbError } = await supabase
+        .from('receipts')
+        .delete()
+        .eq('id', receiptId);
+
+      if (dbError) {
+        throw new Error(`Failed to delete receipt record: ${dbError.message}`);
+      }
+
+      // Remove receipt from transactions state
+      setTransactions(prev => prev.map(tx => 
+        tx.receipts 
+          ? { ...tx, receipts: tx.receipts.filter(r => r.id !== receiptId) }
+          : tx
+      ));
+
+      toast({
+        title: "Receipt Deleted",
+        description: "Receipt has been successfully deleted",
+      });
+    } catch (error) {
+      console.error('Failed to delete receipt:', error);
+      toast({
+        title: "Deletion Failed",
+        description: error instanceof Error ? error.message : "Failed to delete receipt. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingReceipts(prev => {
+        const next = new Set(prev);
+        next.delete(receiptId);
+        return next;
+      });
+    }
+  }, [supabase, toast]);
+
+  const handleManageReceipts = useCallback((transaction: TransactionWithNormalized) => {
+    setSelectedTransactionForReceipt(transaction);
+    setReceiptModalOpen(true);
+  }, []);
 
   const handleCategoryChange = useCallback(
     async (txId: string, newCategoryId: string) => {
@@ -426,6 +870,11 @@ export default function TransactionsPage() {
     }
   }, [selectionMode]);
 
+  const openTransactionDetail = useCallback((transaction: TransactionWithNormalized) => {
+    setSelectedTransaction(transaction);
+    setDetailModalOpen(true);
+  }, []);
+
   const handleDeleteSelected = useCallback(async () => {
     if (selectedTransactions.size === 0 || !currentUserId || !currentOrgId) return;
 
@@ -591,26 +1040,29 @@ export default function TransactionsPage() {
   ]);
 
   const fetchTransactions = async () => {
+    if (!currentOrgId) {
+      console.warn('No org ID available, skipping transaction fetch');
+      setLoading(false);
+      return;
+    }
+
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) return;
+      
+      if (!user) {
+        console.warn('No user found');
+        setLoading(false);
+        return;
+      }
 
       setCurrentUserId(user.id);
-
-      const cookies = document.cookie.split(";");
-      const orgCookie = cookies.find((cookie) => cookie.trim().startsWith("orgId="));
-      const orgId = orgCookie ? orgCookie.split("=")[1] : null;
-
-      if (!orgId) return;
-      setCurrentOrgId(orgId);
 
       const selectQuery = isEnhancedUIEnabled
         ? `
           id, date, amount_cents, currency, description, merchant_name, source, account_id, raw,
-          category_id, confidence, needs_review,
-          accounts(name, mask, institution_name),
+          category_id, confidence, needs_review, provider_tx_id, normalized_vendor,
           categories(name, type)
         `
         : "*";
@@ -618,41 +1070,56 @@ export default function TransactionsPage() {
       const { data, error } = await supabase
         .from("transactions")
         .select(selectQuery)
-        .eq("org_id", orgId)
+        .eq("org_id", currentOrgId)
         .order("date", { ascending: false })
         .limit(200);
 
       if (error) {
         console.error("Error fetching transactions:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load transactions. Please try again.",
+          variant: "destructive",
+        });
         return;
       }
 
-      const normalizedTransactions = (data || []).map((t) => {
-        const accountData = (t as any).accounts
-          ? Array.isArray((t as any).accounts)
-            ? (t as any).accounts?.[0]
-            : (t as any).accounts
-          : undefined;
+      // Fetch receipts for each transaction
+      const transactionsWithReceipts = await Promise.all(
+        (data || []).map(async (t) => {
+          const categoryData = (t as any).categories
+            ? Array.isArray((t as any).categories)
+              ? (t as any).categories?.[0]
+              : (t as any).categories
+            : undefined;
 
-        const categoryData = (t as any).categories
-          ? Array.isArray((t as any).categories)
-            ? (t as any).categories?.[0]
-            : (t as any).categories
-          : undefined;
+          // Fetch receipts for this transaction
+          const { data: receiptsData } = await supabase
+            .from('receipts')
+            .select('*')
+            .eq('transaction_id', t.id)
+            .eq('org_id', currentOrgId);
 
-        return {
-          ...(t as any),
-          account_name: accountData?.name || "Unknown",
-          account_mask: accountData?.mask || null,
-          institution_name: accountData?.institution_name || null,
-          category_name: categoryData?.name || null,
-          category_type: categoryData?.type || null,
-        } as TransactionWithNormalized;
-      });
+          return {
+            ...(t as any),
+            account_name: (t as any).account_id || "Unknown Account",
+            account_mask: null,
+            institution_name: (t as any).source || null,
+            category_name: categoryData?.name || null,
+            category_type: categoryData?.type || null,
+            receipts: receiptsData || [],
+          } as TransactionWithNormalized;
+        })
+      );
 
-      setTransactions(normalizedTransactions);
+      setTransactions(transactionsWithReceipts);
     } catch (error) {
       console.error("Failed to fetch transactions:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load transactions. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -731,6 +1198,32 @@ export default function TransactionsPage() {
     );
   }
 
+  if (!currentOrgId) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Transactions</h1>
+          <p className="text-muted-foreground">No organization selected</p>
+        </div>
+        <Card>
+          <CardContent className="p-12">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center">
+              <div className="rounded-full bg-primary/10 p-4">
+                <Receipt className="h-10 w-10 text-primary" />
+              </div>
+              <div className="space-y-2 max-w-md">
+                <h3 className="text-xl font-semibold">No Organization Selected</h3>
+                <p className="text-sm text-muted-foreground">
+                  Please select an organization from the organization switcher to view transactions.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -788,7 +1281,7 @@ export default function TransactionsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="account" className="text-xs">
-                  Account
+                  Account ID
                 </Label>
                 <Select
                   value={filters.account}
@@ -799,9 +1292,9 @@ export default function TransactionsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__all__">All accounts</SelectItem>
-                    {distinctAccounts.map((account) => (
-                      <SelectItem key={account} value={account}>
-                        {account}
+                    {distinctAccounts.map((accountId) => (
+                      <SelectItem key={accountId} value={accountId}>
+                        {accountId}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -936,7 +1429,7 @@ export default function TransactionsPage() {
                       Vendor
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                      Account
+                      Account ID
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">
                       Amount
@@ -951,6 +1444,12 @@ export default function TransactionsPage() {
                         Confidence
                       </th>
                     )}
+                    <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      Receipts
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -961,6 +1460,7 @@ export default function TransactionsPage() {
                     const amountCents = parseInt(transaction.amount_cents);
                     const isExpense = amountCents < 0;
                     const isIncome = amountCents > 0;
+                    const receiptCount = transaction.receipts?.length || 0;
 
                     return (
                       <tr
@@ -1005,12 +1505,7 @@ export default function TransactionsPage() {
                               provider={transaction.source}
                               size={16}
                             />
-                            <span>
-                              {transaction.account_name}
-                              {transaction.account_mask && (
-                                <span className="text-muted-foreground"> (...{transaction.account_mask})</span>
-                              )}
-                            </span>
+                            <span className="font-mono text-xs">{transaction.account_name}</span>
                           </div>
                         </td>
                         <td className={cn(
@@ -1081,6 +1576,35 @@ export default function TransactionsPage() {
                             />
                           </td>
                         )}
+                        <td className="px-4 py-4 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            {receiptCount > 0 && (
+                              <Badge variant="secondary" className="text-xs">
+                                {receiptCount}
+                              </Badge>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleManageReceipts(transaction)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <FileText className="h-4 w-4" />
+                              <span className="sr-only">Manage receipts</span>
+                            </Button>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openTransactionDetail(transaction)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">View details</span>
+                          </Button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -1097,6 +1621,7 @@ export default function TransactionsPage() {
               const amountCents = parseInt(transaction.amount_cents);
               const isExpense = amountCents < 0;
               const isIncome = amountCents > 0;
+              const receiptCount = transaction.receipts?.length || 0;
 
               return (
                 <Card key={transaction.id} className="p-4">
@@ -1120,6 +1645,29 @@ export default function TransactionsPage() {
                           {formatAmount(transaction.amount_cents, transaction.currency)}
                         </div>
                       </div>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleManageReceipts(transaction)}
+                          className="h-8 w-8 p-0 relative"
+                        >
+                          <FileText className="h-4 w-4" />
+                          {receiptCount > 0 && (
+                            <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full text-xs w-4 h-4 flex items-center justify-center">
+                              {receiptCount}
+                            </span>
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openTransactionDetail(transaction)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
 
                     {/* Vendor/Description */}
@@ -1141,10 +1689,7 @@ export default function TransactionsPage() {
                         provider={transaction.source}
                         size={14}
                       />
-                      <span>
-                        {transaction.account_name}
-                        {transaction.account_mask && ` (...${transaction.account_mask})`}
-                      </span>
+                      <span className="font-mono">{transaction.account_name}</span>
                     </div>
 
                     {/* Category and Confidence - Enhanced UI Only */}
@@ -1246,6 +1791,24 @@ export default function TransactionsPage() {
         </Card>
       )}
 
+      {/* Transaction Detail Modal */}
+      <TransactionDetailModal
+        transaction={selectedTransaction}
+        open={detailModalOpen}
+        onOpenChange={setDetailModalOpen}
+      />
+
+      {/* Receipt Management Modal */}
+      <ReceiptManagementModal
+        transaction={selectedTransactionForReceipt}
+        receipts={selectedTransactionForReceipt?.receipts || []}
+        open={receiptModalOpen}
+        onOpenChange={setReceiptModalOpen}
+        onUploadReceipt={handleUploadReceipt}
+        onDeleteReceipt={handleDeleteReceipt}
+        uploading={uploadingReceipts.has(selectedTransactionForReceipt?.id || '')}
+        deleting={deletingReceipts}
+      />
     </div>
   );
 }
