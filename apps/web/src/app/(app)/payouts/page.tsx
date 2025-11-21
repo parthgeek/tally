@@ -28,6 +28,12 @@ import { createClient } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
 import { getCurrentOrgId } from "@/lib/lib-get-current-org";
 import { cn } from "@/lib/utils";
+import { Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Types
 interface ShopifyPayout {
