@@ -1086,7 +1086,7 @@ export default function TransactionsPage() {
 
       // Fetch receipts for each transaction
       const transactionsWithReceipts = await Promise.all(
-        (data || []).map(async (t) => {
+        (data || []).map(async (t:any) => {
           const categoryData = (t as any).categories
             ? Array.isArray((t as any).categories)
               ? (t as any).categories?.[0]
@@ -1453,7 +1453,7 @@ export default function TransactionsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredTransactions.map((transaction) => {
+                  {filteredTransactions.map((transaction:any) => {
                     const isUpdating = updatingCategories.has(transaction.id);
                     const tier1 = getCategoryTier1(transaction.category_type);
                     const isSelected = selectedTransactions.has(transaction.id);
@@ -1615,7 +1615,7 @@ export default function TransactionsPage() {
 
           {/* Mobile Card View - visible on mobile only */}
           <div className="md:hidden space-y-3">
-            {filteredTransactions.map((transaction) => {
+            {filteredTransactions.map((transaction:any) => {
               const isUpdating = updatingCategories.has(transaction.id);
               const tier1 = getCategoryTier1(transaction.category_type);
               const amountCents = parseInt(transaction.amount_cents);
