@@ -14,6 +14,7 @@ import Image from "next/image";
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Transactions", href: "/transactions", icon: Receipt },
+  { name: "Receipts", href: "/receipts", icon: Receipt },
   { name: "P&L", href: "/pl", icon: TrendingUp },
   { name: "Receipts", href: "/receipts", icon: Eye },
   { name: "Payouts", href: "/payouts", icon: Banknote },

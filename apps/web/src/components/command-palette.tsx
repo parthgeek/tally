@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Home, Receipt, TrendingUp, Eye, Settings, DollarSign, Search, ArrowRight } from "lucide-react";
+import { Home, Receipt, TrendingUp, Eye, Settings, DollarSign, Search, ArrowRight, FileText } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -62,6 +62,16 @@ export function CommandPalette() {
         setOpen(false);
       },
       keywords: ["list", "all", "view"],
+    },
+    {
+      id: "nav-receipts",
+      label: "Go to Receipts",
+      icon: FileText,
+      onSelect: () => {
+        router.push("/receipts");
+        setOpen(false);
+      },
+      keywords: ["documents", "papers", "files", "invoices"],
     },
     {
       id: "nav-pl",
@@ -132,6 +142,17 @@ export function CommandPalette() {
           >
             <DollarSign className="mr-2 h-4 w-4" />
             <span>View all transactions</span>
+          </CommandItem>
+          <CommandItem
+            value="View all receipts"
+            onSelect={() => {
+              router.push("/receipts");
+              setOpen(false);
+            }}
+            className="cursor-pointer"
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            <span>View all receipts</span>
           </CommandItem>
           <CommandItem
             value="Review queue"
