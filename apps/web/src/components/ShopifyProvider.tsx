@@ -2,7 +2,6 @@
 "use client";
 
 import React from "react";
-import { Provider } from "@shopify/app-bridge-react";
 
 interface Props {
   children: React.ReactNode;
@@ -23,5 +22,5 @@ export default function ShopifyProvider({ children, apiKey, host, forceRedirect 
     forceRedirect,
   };
 
-  return <Provider config={config}>{children}</Provider>;
+  return {children};
 }

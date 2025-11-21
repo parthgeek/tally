@@ -1,45 +1,72 @@
-// app/api/shopify/start/route.ts
+// app/api/shopify/oauth/route.ts
 import { NextResponse } from "next/server";
-import { randomBytes } from "crypto";
-import { createClient } from "@supabase/supabase-js";
-
-const SHOPIFY_CLIENT_ID = process.env.SHOPIFY_API_KEY!;
-const SHOPIFY_SCOPES = process.env.SHOPIFY_SCOPES || "read_products,read_orders";
-const SHOPIFY_CALLBACK = `${process.env.SHOPIFY_APP_HOST?.replace(/\/$/, "")}/api/shopify/oauth/callback`;
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-function normalizeShop(raw: string) {
-  let s = raw.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
-  if (!s.endsWith(".myshopify.com")) s = `${s}.myshopify.com`;
-  return s;
-}
+import crypto from "crypto";
 
 export async function GET(req: Request) {
-  try {
-    const url = new URL(req.url);
-    const shopParam = url.searchParams.get("shop");
-    if (!shopParam) return NextResponse.json({ error: "Missing shop param" }, { status: 400 });
+  const url = new URL(req.url);
+  const shop = url.searchParams.get("shop");
+  const hmac = url.searchParams.get("hmac");
 
-    const shop = normalizeShop(shopParam);
-    const state = randomBytes(16).toString("hex");
-
-    // Persist state -> oauth_states table
-    const { error } = await supabase.from("oauth_states").insert({ state, shop });
-    if (error) {
-      console.error("Failed to persist state:", error);
-      return NextResponse.json({ error: "Failed to persist state" }, { status: 500 });
-    }
-
-    const redirectUri = encodeURIComponent(SHOPIFY_CALLBACK);
-    const scope = encodeURIComponent(SHOPIFY_SCOPES);
-    const authorizeUrl = `https://${shop}/admin/oauth/authorize?client_id=${SHOPIFY_CLIENT_ID}&scope=${scope}&redirect_uri=${redirectUri}&state=${state}&grant_options[]=per-user`;
-
-    return NextResponse.redirect(authorizeUrl);
-  } catch (err: any) {
-    console.error("Start OAuth error:", err);
-    return NextResponse.json({ error: String(err?.message ?? err) }, { status: 500 });
+  if (!shop) {
+    return NextResponse.json(
+      { error: "Shop parameter required" },
+      { status: 400 }
+    );
   }
+
+  // Verify HMAC of initial request
+  if (hmac) {
+    // Get ALL query parameters
+    const queryParams: Record<string, string> = {};
+    
+    url.searchParams.forEach((value, key) => {
+      queryParams[key] = value;
+    });
+
+    // Remove hmac and signature from params for verification
+    delete queryParams.hmac;
+    delete queryParams.signature;
+
+    // Sort keys alphabetically and build message
+    const message = Object.keys(queryParams)
+      .sort()
+      .map((key) => `${key}=${queryParams[key]}`)
+      .join("&");
+
+    const generatedHash = crypto
+      .createHmac("sha256", process.env.SHOPIFY_API_SECRET!)
+      .update(message)
+      .digest("hex");
+
+    console.log({
+      generatedHash,
+      hmac,
+      message,
+      allParams: queryParams
+    });
+
+    if (generatedHash !== hmac) {
+      return NextResponse.json(
+        { error: "HMAC validation failed" },
+        { status: 403 }
+      );
+    }
+  }
+
+  // Generate state for security
+  const state = crypto.randomBytes(16).toString("hex");
+  // TODO: Store state in session/cookie for verification later
+
+  // Define scopes your app needs
+  const scopes = "read_products,write_products";
+  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/shopify/oauth/callback`;
+  console.log({redirectUri})
+  // Build Shopify authorization URL
+  const authUrl = new URL(`https://${shop}/admin/oauth/authorize`);
+  authUrl.searchParams.set("client_id", process.env.SHOPIFY_API_KEY!);
+  authUrl.searchParams.set("scope", scopes);
+  authUrl.searchParams.set("redirect_uri", redirectUri);
+  authUrl.searchParams.set("state", state);
+  console.log('succeded')
+  return NextResponse.redirect(authUrl.toString());
 }

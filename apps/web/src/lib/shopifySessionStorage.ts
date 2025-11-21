@@ -1,8 +1,8 @@
 // lib/shopifySessionStorage.ts
-import { Session, SessionStorage } from "@shopify/shopify-api";
+import { Session } from "@shopify/shopify-api";
 import { createClient } from "@supabase/supabase-js";
 
-export class SupabaseSessionStorage implements SessionStorage {
+export class SupabaseSessionStorage {
   supabase: ReturnType<typeof createClient>;
 
   constructor() {
@@ -26,13 +26,13 @@ export class SupabaseSessionStorage implements SessionStorage {
     };
     const { error } = await this.supabase
       .from("shopify_sessions")
-      .upsert(record, { onConflict: "id" });
+      .upsert(record as any, { onConflict: "id" });
     if (error) throw error;
     return true;
   }
 
   async loadSession(id: string): Promise<Session | undefined> {
-    const { data, error } = await this.supabase
+    const { data, error }:any = await this.supabase
       .from("shopify_sessions")
       .select("data")
       .eq("id", id)

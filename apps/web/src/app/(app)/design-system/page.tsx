@@ -27,13 +27,6 @@ export default function DesignSystemPage() {
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
             <Button>Default</Button>
-            <Button variant="secondary">Secondary</Button>
-            <Button variant="outline">Outline</Button>
-            <Button variant="ghost">Ghost</Button>
-            <Button variant="ghost-subtle">Ghost Subtle</Button>
-            <Button variant="notion">Notion</Button>
-            <Button variant="destructive">Destructive</Button>
-            <Button variant="link">Link</Button>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button size="sm">Small</Button>
